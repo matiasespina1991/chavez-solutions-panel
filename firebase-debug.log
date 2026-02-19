@@ -1,0 +1,74 @@
+[debug] [2026-02-05T01:23:09.270Z] ----------------------------------------------------------------------
+[debug] [2026-02-05T01:23:09.272Z] Command:       /Users/matiasespina/.nvm/versions/node/v22.9.0/bin/node /Users/matiasespina/.nvm/versions/node/v22.9.0/bin/firebase deploy --only functions:onVideoUpload
+[debug] [2026-02-05T01:23:09.272Z] CLI Version:   14.27.0
+[debug] [2026-02-05T01:23:09.272Z] Platform:      darwin
+[debug] [2026-02-05T01:23:09.272Z] Node Version:  v22.9.0
+[debug] [2026-02-05T01:23:09.273Z] Time:          Thu Feb 05 2026 02:23:09 GMT+0100 (Central European Standard Time)
+[debug] [2026-02-05T01:23:09.273Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-02-05T01:23:09.379Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-02-05T01:23:09.379Z] > authorizing via signed-in user (matiasespina1991@gmail.com)
+[debug] [2026-02-05T01:23:09.379Z] [iam] checking project laura-butallo-web for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]
+[debug] [2026-02-05T01:23:09.380Z] Checked if tokens are valid: false, expires at: 1770254762257
+[debug] [2026-02-05T01:23:09.380Z] Checked if tokens are valid: false, expires at: 1770254762257
+[debug] [2026-02-05T01:23:09.380Z] > refreshing access token with scopes: []
+[debug] [2026-02-05T01:23:09.380Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-02-05T01:23:09.380Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-02-05T01:23:09.526Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-02-05T01:23:09.526Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-02-05T01:23:09.538Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/laura-butallo-web:testIamPermissions [none]
+[debug] [2026-02-05T01:23:09.538Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/laura-butallo-web:testIamPermissions x-goog-quota-user=projects/laura-butallo-web
+[debug] [2026-02-05T01:23:09.538Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/laura-butallo-web:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2026-02-05T01:23:10.361Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/laura-butallo-web:testIamPermissions 200
+[debug] [2026-02-05T01:23:10.361Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/laura-butallo-web:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2026-02-05T01:23:10.361Z] Checked if tokens are valid: true, expires at: 1770258188526
+[debug] [2026-02-05T01:23:10.361Z] Checked if tokens are valid: true, expires at: 1770258188526
+[debug] [2026-02-05T01:23:10.362Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/laura-butallo-web/serviceAccounts/laura-butallo-web@appspot.gserviceaccount.com:testIamPermissions [none]
+[debug] [2026-02-05T01:23:10.362Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/laura-butallo-web/serviceAccounts/laura-butallo-web@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2026-02-05T01:23:11.113Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/laura-butallo-web/serviceAccounts/laura-butallo-web@appspot.gserviceaccount.com:testIamPermissions 200
+[debug] [2026-02-05T01:23:11.114Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/laura-butallo-web/serviceAccounts/laura-butallo-web@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[info] 
+[info] === Deploying to 'laura-butallo-web'...
+[info] 
+[info] i  deploying functions 
+[debug] [2026-02-05T01:23:11.115Z] Checked if tokens are valid: true, expires at: 1770258188526
+[debug] [2026-02-05T01:23:11.115Z] Checked if tokens are valid: true, expires at: 1770258188526
+[debug] [2026-02-05T01:23:11.115Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/laura-butallo-web [none]
+[debug] [2026-02-05T01:23:11.319Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/laura-butallo-web 200
+[debug] [2026-02-05T01:23:11.319Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/laura-butallo-web {"projectNumber":"388226025861","projectId":"laura-butallo-web","lifecycleState":"ACTIVE","name":"Laura Butallo Web","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2025-09-18T00:46:15.783906Z"}
+[info] i  functions: preparing codebase default for deployment 
+[info] i  functions: ensuring required API cloudfunctions.googleapis.com is enabled... 
+[info] i  functions: ensuring required API cloudbuild.googleapis.com is enabled... 
+[info] i  artifactregistry: ensuring required API artifactregistry.googleapis.com is enabled... 
+[debug] [2026-02-05T01:23:11.320Z] Checked if tokens are valid: true, expires at: 1770258188526
+[debug] [2026-02-05T01:23:11.320Z] Checked if tokens are valid: true, expires at: 1770258188526
+[debug] [2026-02-05T01:23:11.320Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/laura-butallo-web/adminSdkConfig [none]
+[debug] [2026-02-05T01:23:11.782Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/laura-butallo-web/adminSdkConfig 200
+[debug] [2026-02-05T01:23:11.782Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/laura-butallo-web/adminSdkConfig {"projectId":"laura-butallo-web","storageBucket":"laura-butallo-web.firebasestorage.app"}
+[debug] [2026-02-05T01:23:11.783Z] Checked if tokens are valid: true, expires at: 1770258188526
+[debug] [2026-02-05T01:23:11.783Z] Checked if tokens are valid: true, expires at: 1770258188526
+[debug] [2026-02-05T01:23:11.783Z] >>> [apiv2][query] GET https://runtimeconfig.googleapis.com/v1beta1/projects/laura-butallo-web/configs [none]
+[debug] [2026-02-07T09:34:14.774Z] ----------------------------------------------------------------------
+[debug] [2026-02-07T09:34:14.779Z] Command:       /Users/matiasespina/.nvm/versions/node/v22.9.0/bin/node /Users/matiasespina/.nvm/versions/node/v22.9.0/bin/firebase deploy --only functions:onImageUpload,functions:onVideoUpload
+[debug] [2026-02-07T09:34:14.780Z] CLI Version:   14.27.0
+[debug] [2026-02-07T09:34:14.780Z] Platform:      darwin
+[debug] [2026-02-07T09:34:14.780Z] Node Version:  v22.9.0
+[debug] [2026-02-07T09:34:14.780Z] Time:          Sat Feb 07 2026 10:34:14 GMT+0100 (Central European Standard Time)
+[debug] [2026-02-07T09:34:14.780Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-02-07T09:34:14.783Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-02-07T09:34:15.839Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-02-07T09:34:15.840Z] > authorizing via signed-in user (matiasespina1991@gmail.com)
+[debug] [2026-02-07T09:34:15.840Z] [iam] checking project laura-butallo-web for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]
+[debug] [2026-02-07T09:34:15.841Z] Checked if tokens are valid: false, expires at: 1770258188526
+[debug] [2026-02-07T09:34:15.841Z] Checked if tokens are valid: false, expires at: 1770258188526
+[debug] [2026-02-07T09:34:15.841Z] > refreshing access token with scopes: []
+[debug] [2026-02-07T09:34:15.848Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-02-07T09:34:15.848Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-02-07T09:34:16.157Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-02-07T09:34:16.158Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-02-07T09:34:16.175Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/laura-butallo-web:testIamPermissions [none]
+[debug] [2026-02-07T09:34:16.175Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/laura-butallo-web:testIamPermissions x-goog-quota-user=projects/laura-butallo-web
+[debug] [2026-02-07T09:34:16.175Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/laura-butallo-web:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","firebase.projects.get"]}
+[debug] [2026-02-07T09:34:16.179Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-02-07T09:34:16.179Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}

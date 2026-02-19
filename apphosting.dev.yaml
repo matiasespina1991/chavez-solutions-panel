@@ -1,0 +1,18 @@
+sourceDir: apps/web
+
+runConfig:
+  # overrides for dev environment
+  cpu: 1
+  memoryMiB: 512
+  concurrency: 5
+
+env:
+  - variable: NEXT_PUBLIC_DEPLOY_ENV
+    value: dev
+    availability:
+      - BUILD
+  - variable: NEXT_PUBLIC_TINYMCE_API_KEY
+    secret: TINYMCE_API_KEY
+    availability:
+      - BUILD
+      - RUNTIME
