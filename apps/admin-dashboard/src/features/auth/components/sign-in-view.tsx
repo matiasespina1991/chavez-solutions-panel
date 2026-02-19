@@ -102,7 +102,7 @@ export default function SignInViewPage({ stars }: { stars: number }) {
             alt='Cueva logo'
             className='h-5 w-5'
           />
-          <span>Laura Butallo Web</span>
+          <span>Chavez Solutions Web</span>
           <span className='text-muted-foreground'>·</span>
           <span>Dashboard</span>
         </div> */}

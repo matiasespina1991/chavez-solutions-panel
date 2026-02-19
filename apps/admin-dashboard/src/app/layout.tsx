@@ -16,8 +16,8 @@ const META_THEME_COLORS = {
 };
 
 export const metadata: Metadata = {
-  title: 'Laura Butallo Web Admin Dashboard',
-  description: 'Panel de administración para Laura Butallo Web'
+  title: 'Chavez Solutions Web Admin Dashboard',
+  description: 'Panel de administración para Chavez Solutions Web'
 };
 
 export const viewport: Viewport = {

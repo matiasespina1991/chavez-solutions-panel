@@ -10,14 +10,41 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from '@/components/ui/table';
 import { useAuthSession } from '@/contexts/auth-session';
 
 const mockMembers = [
-  { name: 'Laura Butallo', role: 'Creative Director', email: 'studio@laurabutallo.com', status: 'Active' },
-  { name: 'Mara Lobos', role: 'Producer', email: 'mara@laurabutallo.com', status: 'Active' },
-  { name: 'Nico Prado', role: 'Tech wizard', email: 'nico@laurabutallo.com', status: 'Invited' },
-  { name: 'Agus Mini', role: 'Social', email: 'agus@laurabutallo.com', status: 'Active' }
+  {
+    name: 'Chavez Solutions',
+    role: 'Creative Director',
+    email: 'studio@laurabutallo.com',
+    status: 'Active'
+  },
+  {
+    name: 'Mara Lobos',
+    role: 'Producer',
+    email: 'mara@laurabutallo.com',
+    status: 'Active'
+  },
+  {
+    name: 'Nico Prado',
+    role: 'Tech wizard',
+    email: 'nico@laurabutallo.com',
+    status: 'Invited'
+  },
+  {
+    name: 'Agus Mini',
+    role: 'Social',
+    email: 'agus@laurabutallo.com',
+    status: 'Active'
+  }
 ];
 
 export default function TeamPage() {
@@ -32,20 +59,28 @@ export default function TeamPage() {
         <Card>
           <CardHeader>
             <CardTitle>Workspace status</CardTitle>
-            <CardDescription>Who has access and how they collaborate.</CardDescription>
+            <CardDescription>
+              Who has access and how they collaborate.
+            </CardDescription>
           </CardHeader>
           <CardContent className='space-y-4 text-sm'>
             <div className='flex items-center justify-between rounded-lg border p-3'>
               <div>
                 <p className='font-semibold'>Plan</p>
-                <p className='text-muted-foreground capitalize'>{activeOrganization.plan}</p>
+                <p className='text-muted-foreground capitalize'>
+                  {activeOrganization.plan}
+                </p>
               </div>
-              <Badge variant='outline'>{activeOrganization.members} seats</Badge>
+              <Badge variant='outline'>
+                {activeOrganization.members} seats
+              </Badge>
             </div>
             <div className='flex items-center justify-between rounded-lg border p-3'>
               <div>
                 <p className='font-semibold'>Storage</p>
-                <p className='text-muted-foreground'>{activeOrganization.storageUsedGb}GB in use</p>
+                <p className='text-muted-foreground'>
+                  {activeOrganization.storageUsedGb}GB in use
+                </p>
               </div>
               <Button variant='ghost' size='sm'>
                 Review access
@@ -56,10 +91,12 @@ export default function TeamPage() {
         <Card>
           <CardHeader>
             <CardTitle>Pending invites</CardTitle>
-            <CardDescription>Plug Firebase Auth later to drive real invites.</CardDescription>
+            <CardDescription>
+              Plug Firebase Auth later to drive real invites.
+            </CardDescription>
           </CardHeader>
           <CardContent className='space-y-3'>
-            <div className='rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground'>
+            <div className='text-muted-foreground rounded-lg border border-dashed p-4 text-center text-sm'>
               Drag contacts or paste emails to invite collaborators.
             </div>
             <Button className='w-full'>Invite collaborator</Button>
@@ -69,7 +106,9 @@ export default function TeamPage() {
       <Card className='mt-6'>
         <CardHeader>
           <CardTitle>Members</CardTitle>
-          <CardDescription>Everyone with access to this workspace.</CardDescription>
+          <CardDescription>
+            Everyone with access to this workspace.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -86,9 +125,15 @@ export default function TeamPage() {
                 <TableRow key={member.email}>
                   <TableCell className='font-medium'>{member.name}</TableCell>
                   <TableCell>{member.role}</TableCell>
-                  <TableCell className='text-muted-foreground'>{member.email}</TableCell>
+                  <TableCell className='text-muted-foreground'>
+                    {member.email}
+                  </TableCell>
                   <TableCell className='text-right'>
-                    <Badge variant={member.status === 'Active' ? 'secondary' : 'outline'}>
+                    <Badge
+                      variant={
+                        member.status === 'Active' ? 'secondary' : 'outline'
+                      }
+                    >
                       {member.status}
                     </Badge>
                   </TableCell>
