@@ -7,7 +7,7 @@ import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 
 export const metadata: Metadata = {
-  title: 'Laura Butallo Admin Dashboard',
+  title: 'Chavez Solutions Admin Dashboard',
   description: 'Admin dashboard para la gestión del sitio web'
 };
 
