@@ -1,0 +1,70 @@
+// Firestore Security Rules
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthorized() {
+      return request.auth != null;
+    }
+
+    // Public read for everything
+    match /{document=**} {
+      allow read: if true;
+    }
+
+    // Assets collection
+    match /assets/{mediaId} {
+      // All writes must come from Cloud Functions using Admin SDK
+      allow write: if request.auth == null && request.time == request.time;
+      // Explanation: Admin SDK bypasses rules. Frontend cannot write.
+    }
+
+    // MediaSets collection
+    match /mediasets/{setId} {
+      allow read: if true;
+      allow create, update, delete: if isAuthorized();
+      
+      // Items subcollection
+      match /items/{itemId} {
+        allow read: if true;
+        allow create, update, delete: if isAuthorized();
+      }
+    }
+
+    // Exhibitions collection (admin UI)
+    match /exhibitions/{exhibitionId} {
+      allow read: if true;
+      allow create, update, delete: if isAuthorized();
+    }
+
+    // Media collection (admin UI)
+    match /media/{mediaId} {
+      allow read: if true;
+      allow create, update, delete: if isAuthorized();
+    }
+
+    // About Me (admin UI)
+    match /about_me/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isAuthorized();
+    }
+
+    // Contact (admin UI)
+    match /contact/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isAuthorized();
+    }
+
+    // About Me + Contact collection (admin UI)
+    match /about_me_contact/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isAuthorized();
+    }
+
+    // Prevent direct frontend creation of subcollections (except mediasets/items which is handled above)
+    match /assets/{mediaId}/{sub=**} {
+      allow write: if false;
+    }
+  }
+}

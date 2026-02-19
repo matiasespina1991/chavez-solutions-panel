@@ -1,0 +1,16 @@
+{
+  "name": "laura-butallo-monorepo",
+  "private": true,
+  "scripts": {
+    "dev:web": "npm run dev --prefix apps/web",
+    "build:web": "npm run build --prefix apps/web",
+    "start:web": "npm run start --prefix apps/web",
+    "lint:web": "npm run lint --prefix apps/web",
+    "format:web": "npm run format --prefix apps/web",
+    "dev:admin": "npm run dev --prefix apps/admin",
+    "build:admin": "npm run build --prefix apps/admin",
+    "start:admin": "npm run start --prefix apps/admin",
+    "lint:admin": "npm run lint --prefix apps/admin",
+    "deploy:functions": "cd functions && rm -rf lib && npm run build && npm run deploy"
+  }
+}

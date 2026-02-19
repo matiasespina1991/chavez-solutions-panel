@@ -1,0 +1,179 @@
+.main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: calc(100vh - 3rem);
+  max-width: 1400px;
+}
+
+.main.exhibitionsPage,
+.main.aboutMePage {
+  max-width: 2200px;
+}
+
+.main.main.notFound {
+  max-width: none;
+}
+
+.main.homePage,
+.main.worksPage {
+  margin-inline: auto;
+}
+
+.main.homePage,
+.main.notFound {
+  min-height: 100vh;
+}
+
+.lightboxOpen {
+  pointer-events: none;
+}
+.contact_page_container,
+.exhibition_page_container,
+.about_me_container {
+  padding-left: 0.7rem;
+  padding-right: 0.7rem;
+  padding-bottom: 1rem;
+}
+
+.exhibition_page_container a {
+  color: blue;
+}
+
+@media (max-width: 600px) {
+  .contact_page_container,
+  .exhibition_page_container,
+  .about_me_container {
+    padding-bottom: 0;
+  }
+}
+
+.code {
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.carousel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.photoSetContainer {
+  z-index: 0;
+  height: 100%;
+  flex: 0 0 auto;
+  transition: 0.8s;
+  position: relative;
+
+  transform: none !important;
+}
+
+.photoSetContainer:hover {
+  cursor: pointer;
+}
+
+.photoSetImage {
+  height: 100%;
+  object-fit: cover;
+}
+
+.photoSetImageWrapper {
+  display: flex;
+  justify-content: center;
+  align-content: center;
+  height: 32rem;
+}
+
+.mediaHover {
+  position: relative;
+}
+
+.seeMore {
+  position: absolute;
+  bottom: 8px;
+  left: 13px;
+  z-index: 3;
+  opacity: 0;
+  transition:
+    opacity 0.55s ease,
+    color 0.3s ease;
+  color: #ffffff;
+  font-size: 2rem;
+  letter-spacing: 0.01em;
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  text-decoration: none;
+}
+
+.seeMoreIcon {
+  width: 0.7em;
+  height: 0.7em;
+  filter: invert(1);
+  display: block;
+  transform: rotate(-90deg);
+  transition: filter 0.3s ease;
+}
+
+.mediaHover:hover .seeMore {
+  opacity: 1;
+}
+
+.seeMore:hover,
+.seeMore:focus-visible {
+  color: #000000;
+}
+
+.seeMore:hover .seeMoreIcon,
+.seeMore:focus-visible .seeMoreIcon {
+  filter: invert(0);
+}
+
+.backButton {
+  transition: 0.3s;
+}
+
+.backButton:hover {
+  cursor: pointer;
+  background-color: rgba(0, 0, 0, 0.86);
+  color: white;
+}
+
+@media (min-width: 2000px) {
+  .main.exhibitionsPage {
+    max-width: 1300px;
+  }
+}
+
+@media (max-width: 600px) {
+  .main {
+    min-height: 100vh;
+    padding-bottom: 2rem;
+  }
+  .main.contactPage {
+    min-height: calc(100vh - 12rem);
+    padding-bottom: 0;
+  }
+
+  .main.exhibitionsPage {
+    padding-bottom: 0;
+  }
+  .main.homePage {
+    min-height: 100vh;
+  }
+
+  .carousel {
+    gap: 12px;
+  }
+
+  .photoSetImageWrapper {
+    height: 28rem;
+  }
+}
