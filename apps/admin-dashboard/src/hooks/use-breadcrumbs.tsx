@@ -13,7 +13,7 @@ type BreadcrumbItem = {
 
 const routeMapping: Record<string, BreadcrumbItem[]> = {
   '/dashboard': [
-    { title: 'Organizador de Obras', link: '/dashboard/works-organizer' }
+    { title: 'Configurador', link: '/dashboard/configurator' }
   ]
   // Add more custom mappings as needed
 };
