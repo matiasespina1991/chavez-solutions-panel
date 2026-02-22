@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
 
 export default async function Page() {
-  redirect('/dashboard/works-organizer');
+  redirect('/dashboard/configurator');
 }

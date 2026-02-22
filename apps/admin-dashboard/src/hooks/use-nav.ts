@@ -22,7 +22,7 @@ export function useFilteredNavItems(items: NavItem[]) {
       '/dashboard/about-me',
       '/dashboard/contact',
       '/dashboard/settings',
-      '/dashboard/works-organizer'
+      '/dashboard/configurator'
     ]);
 
     const filterItems = (entries: NavItem[]): NavItem[] =>
