@@ -15,6 +15,11 @@ export function UserAvatarProfile({
   showInfo = false,
   user
 }: UserAvatarProfileProps) {
+  const email = user?.emailAddresses[0]?.emailAddress || '';
+  const primaryLabel = user?.fullName || '';
+  const isPrimaryLabelEmail =
+    primaryLabel.trim().toLowerCase() === email.trim().toLowerCase();
+
   return (
     <div className='flex items-center gap-2'>
       <Avatar className={className}>
@@ -26,9 +31,15 @@ export function UserAvatarProfile({
 
       {showInfo && (
         <div className='grid flex-1 text-left text-sm leading-tight'>
-          <span className='truncate font-semibold'>{user?.fullName || ''}</span>
+          <span
+            className={`truncate ${
+              isPrimaryLabelEmail ? 'font-normal' : 'font-semibold'
+            }`}
+          >
+            {primaryLabel}
+          </span>
           <span className='truncate text-xs'>
-            {user?.emailAddresses[0].emailAddress || ''}
+            {email}
           </span>
         </div>
       )}

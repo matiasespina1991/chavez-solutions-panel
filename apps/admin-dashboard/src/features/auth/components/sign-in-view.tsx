@@ -16,9 +16,20 @@ export const metadata: Metadata = {
   description: 'Authentication forms built using the components.'
 };
 
+const LAST_VALID_SIGNIN_EMAIL_KEY = 'auth:last-valid-signin-email';
+
+const isValidEmail = (value: string) => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+};
+
 export default function SignInViewPage({ stars: _stars }: { stars: number }) {
-  const { signInWithEmailPassword, authReady, authError, clearAuthError } =
-    useAuthSession();
+  const {
+    signInWithEmailPassword,
+    authReady,
+    authError,
+    clearAuthError,
+    user
+  } = useAuthSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -46,17 +57,39 @@ export default function SignInViewPage({ stars: _stars }: { stars: number }) {
     clearAuthError();
   }, [authError, clearAuthError]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (user) return;
+
+    const savedEmail = window.localStorage.getItem(LAST_VALID_SIGNIN_EMAIL_KEY);
+    if (!savedEmail) return;
+    setEmail(savedEmail);
+  }, [user]);
+
   const handleEmailSignIn = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!email.trim() || !password.trim()) {
+    const normalizedEmail = email.trim();
+
+    if (!normalizedEmail || !password.trim()) {
       toast.error('Ingresa tu correo y contraseña para continuar.');
+      return;
+    }
+
+    if (!isValidEmail(normalizedEmail)) {
+      toast.error('Ingresa un correo electrónico válido.');
       return;
     }
 
     try {
       setSigningIn(true);
-      await signInWithEmailPassword(email.trim(), password);
+      await signInWithEmailPassword(normalizedEmail, password);
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(
+          LAST_VALID_SIGNIN_EMAIL_KEY,
+          normalizedEmail
+        );
+      }
       toast.success('Ingreso correcto. Redirigiendo al panel...');
     } finally {
       setSigningIn(false);
