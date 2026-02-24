@@ -1,13 +1,24 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog';
 import {
   Form,
   FormControl,
@@ -100,60 +111,65 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+const createDefaultFormValues = (): FormValues => ({
+  type: 'both',
+  matrix: 'water',
+  reference: `PR-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000)}`,
+  createdAt: new Date(),
+  validDays: 30,
+  notes: '',
+  client: {
+    businessName: '',
+    taxId: '',
+    contactName: '',
+    contactRole: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: ''
+  },
+  samples: {
+    agreedCount: 1,
+    additionalCount: 0,
+    executedCount: 1,
+    items: [
+      {
+        sampleCode: 'M-001',
+        sampleType: '',
+        takenAt: null,
+        notes: ''
+      }
+    ]
+  },
+  analyses: {
+    applyMode: 'all_samples',
+    items: []
+  },
+  pricing: {
+    currency: 'USD',
+    subtotal: 0,
+    taxPercent: 15,
+    total: 0,
+    validDays: 30
+  }
+});
+
 export default function ConfiguratorForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editRequestId = searchParams.get('requestId');
   const isEditMode = Boolean(editRequestId);
+  const cacheKey = `configurator:cache:${editRequestId ?? 'new'}`;
   const [activeTab, setActiveTab] = useState('type');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingRequest, setIsLoadingRequest] = useState(false);
+  const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
   const requestedTab = searchParams.get('tab');
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema) as any,
-    defaultValues: {
-      type: 'both',
-      matrix: 'water',
-      reference: `PR-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000)}`,
-      createdAt: new Date(),
-      validDays: 30,
-      notes: '',
-      client: {
-        businessName: '',
-        taxId: '',
-        contactName: '',
-        contactRole: '',
-        email: '',
-        phone: '',
-        address: '',
-        city: ''
-      },
-      samples: {
-        agreedCount: 1,
-        additionalCount: 0,
-        executedCount: 1,
-        items: [
-          {
-            sampleCode: 'M-001',
-            sampleType: '',
-            takenAt: null,
-            notes: ''
-          }
-        ]
-      },
-      analyses: {
-        applyMode: 'all_samples',
-        items: []
-      },
-      pricing: {
-        currency: 'USD',
-        subtotal: 0,
-        taxPercent: 15,
-        total: 0,
-        validDays: 30
-      }
-    }
+    defaultValues: createDefaultFormValues()
   });
 
   const {
@@ -265,6 +281,110 @@ export default function ConfiguratorForm() {
     return null;
   };
 
+  const mergeWithCachedValues = (
+    baseValues: FormValues,
+    cachedRaw: unknown
+  ): FormValues => {
+    if (!cachedRaw || typeof cachedRaw !== 'object') return baseValues;
+
+    const cached = cachedRaw as Partial<FormValues> & {
+      client?: Partial<FormValues['client']>;
+      samples?:
+        | (Partial<FormValues['samples']> & {
+            items?: Array<Partial<FormValues['samples']['items'][number]>>;
+          })
+        | undefined;
+      analyses?:
+        | (Partial<FormValues['analyses']> & {
+            items?: FormValues['analyses']['items'];
+          })
+        | undefined;
+      pricing?: Partial<FormValues['pricing']>;
+    };
+
+    const mergedSampleItems = Array.isArray(cached.samples?.items)
+      ? cached.samples.items.map((item, index) => ({
+          sampleCode:
+            typeof item.sampleCode === 'string'
+              ? item.sampleCode
+              : baseValues.samples.items[index]?.sampleCode ??
+                `M-${String(index + 1).padStart(3, '0')}`,
+          sampleType:
+            typeof item.sampleType === 'string' ? item.sampleType : '',
+          takenAt: toDateOrNull(item.takenAt),
+          notes: typeof item.notes === 'string' ? item.notes : ''
+        }))
+      : baseValues.samples.items;
+
+    return {
+      ...baseValues,
+      ...cached,
+      createdAt: toDateOrNull(cached.createdAt) ?? baseValues.createdAt,
+      client: {
+        ...baseValues.client,
+        ...(cached.client ?? {})
+      },
+      samples: {
+        ...baseValues.samples,
+        ...(cached.samples ?? {}),
+        items: mergedSampleItems
+      },
+      analyses: {
+        ...baseValues.analyses,
+        ...(cached.analyses ?? {}),
+        items: Array.isArray(cached.analyses?.items)
+          ? cached.analyses.items
+          : baseValues.analyses.items
+      },
+      pricing: {
+        ...baseValues.pricing,
+        ...(cached.pricing ?? {})
+      }
+    };
+  };
+
+  const removeCachedDraft = () => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.removeItem(cacheKey);
+  };
+
+  const handleConfirmClearCurrentData = () => {
+    form.reset(createDefaultFormValues());
+    setActiveTab('type');
+    removeCachedDraft();
+    setIsClearDialogOpen(false);
+    toast.success('Los datos en curso fueron vaciados correctamente.');
+  };
+
+  const clearCurrentDataButton = (
+    <Button
+      type='button'
+      variant='outline'
+      size='icon'
+      className='cursor-pointer'
+      disabled={isSubmitting || isLoadingRequest}
+      onClick={() => setIsClearDialogOpen(true)}
+      aria-label='Vaciar datos en curso'
+      title='Vaciar datos en curso'
+    >
+      <Trash2 className='h-4 w-4' />
+    </Button>
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || editRequestId) return;
+
+    try {
+      const cached = window.localStorage.getItem(cacheKey);
+      if (!cached) return;
+
+      const parsed = JSON.parse(cached) as unknown;
+      form.reset(mergeWithCachedValues(createDefaultFormValues(), parsed));
+    } catch (error) {
+      console.error('Error restoring configurator cache:', error);
+    }
+  }, [cacheKey, editRequestId, form]);
+
   useEffect(() => {
     const loadRequest = async () => {
       if (!editRequestId) return;
@@ -279,7 +399,7 @@ export default function ConfiguratorForm() {
           return;
         }
 
-        form.reset({
+        const loadedValues: FormValues = {
           type: existing.type,
           matrix: existing.matrix,
           reference: existing.reference,
@@ -318,7 +438,22 @@ export default function ConfiguratorForm() {
             total: existing.pricing.total,
             validDays: existing.pricing.validDays
           }
-        });
+        };
+
+        if (typeof window !== 'undefined') {
+          try {
+            const cached = window.localStorage.getItem(cacheKey);
+            if (cached) {
+              const parsed = JSON.parse(cached) as unknown;
+              form.reset(mergeWithCachedValues(loadedValues, parsed));
+              return;
+            }
+          } catch (error) {
+            console.error('Error restoring edit cache:', error);
+          }
+        }
+
+        form.reset(loadedValues);
       } catch (error) {
         console.error('Error loading request for edit:', error);
         toast.error('No se pudo cargar la solicitud para editar');
@@ -328,7 +463,34 @@ export default function ConfiguratorForm() {
     };
 
     loadRequest();
-  }, [editRequestId, form, router]);
+  }, [cacheKey, editRequestId, form, router]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const subscription = form.watch((values) => {
+      if (isLoadingRequest) return;
+
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+
+      saveTimeoutRef.current = setTimeout(() => {
+        try {
+          window.localStorage.setItem(cacheKey, JSON.stringify(values));
+        } catch (error) {
+          console.error('Error persisting configurator cache:', error);
+        }
+      }, 250);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [cacheKey, form, isLoadingRequest]);
 
   // Update sample items when agreedCount changes
   useEffect(() => {
@@ -462,6 +624,7 @@ export default function ConfiguratorForm() {
           toast.success('Proforma emitida correctamente');
         }
       }
+      removeCachedDraft();
       router.push('/dashboard');
     } catch (error) {
       console.error('Error saving configuration:', error);
@@ -500,6 +663,7 @@ export default function ConfiguratorForm() {
 
       await updateConfiguration(editRequestId, updateData);
       toast.success('Solicitud actualizada');
+      removeCachedDraft();
       router.push('/dashboard/service-requests');
     } catch (error) {
       console.error('Error updating request:', error);
@@ -735,7 +899,8 @@ export default function ConfiguratorForm() {
                   )}
                 />
 
-                <div className='flex justify-end'>
+                <div className='flex justify-end gap-2'>
+                  {clearCurrentDataButton}
                   <Button type='button' onClick={() => setActiveTab('client')}>
                     Siguiente
                   </Button>
@@ -865,9 +1030,15 @@ export default function ConfiguratorForm() {
                   >
                     Anterior
                   </Button>
-                  <Button type='button' onClick={() => setActiveTab('samples')}>
-                    Siguiente
-                  </Button>
+                  <div className='flex items-center gap-2'>
+                    {clearCurrentDataButton}
+                    <Button
+                      type='button'
+                      onClick={() => setActiveTab('samples')}
+                    >
+                      Siguiente
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -1026,12 +1197,15 @@ export default function ConfiguratorForm() {
                   >
                     Anterior
                   </Button>
-                  <Button
-                    type='button'
-                    onClick={() => setActiveTab('analyses')}
-                  >
-                    Siguiente
-                  </Button>
+                  <div className='flex items-center gap-2'>
+                    {clearCurrentDataButton}
+                    <Button
+                      type='button'
+                      onClick={() => setActiveTab('analyses')}
+                    >
+                      Siguiente
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -1215,9 +1389,15 @@ export default function ConfiguratorForm() {
                   >
                     Anterior
                   </Button>
-                  <Button type='button' onClick={() => setActiveTab('summary')}>
-                    Siguiente
-                  </Button>
+                  <div className='flex items-center gap-2'>
+                    {clearCurrentDataButton}
+                    <Button
+                      type='button'
+                      onClick={() => setActiveTab('summary')}
+                    >
+                      Siguiente
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -1393,7 +1573,8 @@ export default function ConfiguratorForm() {
                   >
                     Anterior
                   </Button>
-                  <div className='space-x-4'>
+                  <div className='flex items-center gap-2'>
+                    {clearCurrentDataButton}
                     {isEditMode ? (
                       <Button
                         type='button'
@@ -1414,7 +1595,7 @@ export default function ConfiguratorForm() {
                             form.handleSubmit((data) => onSubmit(data, 'draft'))()
                           }
                         >
-                          Guardar Borrador
+                          Guardar como Borrador
                         </Button>
                         <Button
                           type='button'
@@ -1440,6 +1621,28 @@ export default function ConfiguratorForm() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <AlertDialog open={isClearDialogOpen} onOpenChange={setIsClearDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar vaciado de datos</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Está seguro de que desea vaciar los datos actualmente cargados en
+              este configurador? Esta acción eliminará la información en curso
+              y no podrá deshacerse.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className='cursor-pointer'>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className='cursor-pointer bg-destructive text-white hover:bg-destructive/90'
+              onClick={handleConfirmClearCurrentData}
+            >
+              Vaciar datos
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Form>
   );
 }
