@@ -64,6 +64,8 @@ export const deleteServiceRequest = onCall(async (req) => {
         workOrderRef,
         {
           status: 'cancelled',
+          cancellationReason: 'request_deleted_by_admin',
+          notes: 'Solicitud eliminada por administrador',
           cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         },

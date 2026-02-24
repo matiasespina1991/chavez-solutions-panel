@@ -74,6 +74,8 @@ interface ServiceRequestRow {
   isWorkOrder: boolean;
   matrix: ServiceRequestMatrix;
   status: ServiceRequestStatus;
+  validDays: number | null;
+  createdAtMs: number;
   client: {
     businessName: string;
     taxId: string;
@@ -146,6 +148,16 @@ const toTimestampMs = (value: unknown) => {
   return 0;
 };
 
+const getValidUntilMs = (createdAtMs: number, validDays: number | null) => {
+  if (!createdAtMs || !validDays || validDays <= 0) return null;
+  return createdAtMs + validDays * 24 * 60 * 60 * 1000;
+};
+
+const formatDate = (valueMs: number | null) => {
+  if (!valueMs) return '—';
+  return new Date(valueMs).toLocaleDateString('es-EC');
+};
+
 export default function ServiceRequestsListing() {
   const router = useRouter();
   const [rows, setRows] = useState<ServiceRequestRow[]>([]);
@@ -167,6 +179,18 @@ export default function ServiceRequestsListing() {
   const hasIssuedWorkOrder = (row: ServiceRequestRow) =>
     row.status === 'converted_to_work_order' ||
     row.status === 'work_order_paused';
+
+  const isExpiredProforma = (row: ServiceRequestRow) => {
+    if (row.status !== 'submitted') return false;
+    const validUntilMs = getValidUntilMs(row.createdAtMs, row.validDays);
+    if (!validUntilMs) return false;
+    return validUntilMs < Date.now();
+  };
+
+  const getRowStatusLabel = (row: ServiceRequestRow) => {
+    if (isExpiredProforma(row)) return 'Proforma vencida';
+    return statusLabelMap[row.status];
+  };
 
   const getOtSortRank = (row: ServiceRequestRow) => {
     if (row.status === 'work_order_paused') return 1;
@@ -309,6 +333,16 @@ export default function ServiceRequestsListing() {
                     .taxPercent ?? 15
                 )
               : 15;
+          const validDays =
+            typeof value.pricing === 'object' && value.pricing !== null
+              ? Number(
+                  (value.pricing as { validDays?: number | null }).validDays ??
+                    0
+                )
+              : 0;
+
+          const createdAtMs =
+            toTimestampMs(value.createdAt) || toTimestampMs(value.updatedAt);
 
           const agreedCount =
             typeof value.samples === 'object' && value.samples !== null
@@ -396,6 +430,9 @@ export default function ServiceRequestsListing() {
             isWorkOrder,
             matrix,
             status,
+            validDays:
+              Number.isFinite(validDays) && validDays > 0 ? validDays : null,
+            createdAtMs,
             client,
             sampleItems,
             analysisItems,
@@ -462,8 +499,8 @@ export default function ServiceRequestsListing() {
           break;
         case 'status':
           compare = collator.compare(
-            statusLabelMap[left.status],
-            statusLabelMap[right.status]
+            getRowStatusLabel(left),
+            getRowStatusLabel(right)
           );
           break;
         case 'notes':
@@ -510,7 +547,9 @@ export default function ServiceRequestsListing() {
         row.matrix,
         matrixLabelMap[row.matrix],
         row.status,
-        statusLabelMap[row.status],
+        getRowStatusLabel(row),
+        String(row.validDays ?? ''),
+        formatDate(getValidUntilMs(row.createdAtMs, row.validDays)),
         row.client.businessName,
         row.client.taxId,
         row.client.contactName,
@@ -690,6 +729,7 @@ export default function ServiceRequestsListing() {
                 const workOrderIssued = hasIssuedWorkOrder(row);
                 const isWorkOrderPaused = row.status === 'work_order_paused';
                 const isDraft = row.status === 'draft';
+                const isProformaExpired = isExpiredProforma(row);
 
                 return (
                   <tr
@@ -710,6 +750,11 @@ export default function ServiceRequestsListing() {
                       {row.status === 'work_order_paused' && (
                         <span className='text-muted-foreground ml-1 text-xs'>
                           (pausada)
+                        </span>
+                      )}
+                      {isProformaExpired && (
+                        <span className='text-muted-foreground ml-1 text-xs'>
+                          (vencida)
                         </span>
                       )}
                     </td>
@@ -741,7 +786,13 @@ export default function ServiceRequestsListing() {
                     <td className='px-4 py-3 text-right'>
                       {row.analysesCount}
                     </td>
-                    <td className='px-4 py-3'>{statusLabelMap[row.status]}</td>
+                    <td
+                      className={`px-4 py-3 ${
+                        isProformaExpired ? 'text-destructive' : ''
+                      }`}
+                    >
+                      {getRowStatusLabel(row)}
+                    </td>
                     <td className='px-4 py-3'>
                       {row.notes?.trim() ? (
                         <span className='inline-block max-w-[14rem] truncate align-bottom'>
@@ -1011,6 +1062,21 @@ export default function ServiceRequestsListing() {
                     <p>
                       <span className='font-medium'>Referencia:</span>{' '}
                       {selectedRow.reference}
+                    </p>
+                    <p>
+                      <span className='font-medium'>Validez:</span>{' '}
+                      {selectedRow.validDays
+                        ? `${selectedRow.validDays} días`
+                        : '—'}
+                    </p>
+                    <p>
+                      <span className='font-medium'>Válida hasta:</span>{' '}
+                      {formatDate(
+                        getValidUntilMs(
+                          selectedRow.createdAtMs,
+                          selectedRow.validDays
+                        )
+                      )}
                     </p>
                   </div>
                   <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
