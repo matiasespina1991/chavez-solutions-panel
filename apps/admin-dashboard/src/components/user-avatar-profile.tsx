@@ -1,4 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { AppUserRole, getUserRoleLabel } from '@/lib/user-role';
 
 interface UserAvatarProfileProps {
   className?: string;
@@ -6,6 +7,7 @@ interface UserAvatarProfileProps {
   user: {
     imageUrl?: string;
     fullName?: string | null;
+    role?: AppUserRole;
     emailAddresses: Array<{ emailAddress: string }>;
   } | null;
 }
@@ -19,6 +21,7 @@ export function UserAvatarProfile({
   const primaryLabel = user?.fullName || '';
   const isPrimaryLabelEmail =
     primaryLabel.trim().toLowerCase() === email.trim().toLowerCase();
+  const roleLabel = getUserRoleLabel(user?.role);
 
   return (
     <div className='flex items-center gap-2'>
@@ -38,9 +41,7 @@ export function UserAvatarProfile({
           >
             {primaryLabel}
           </span>
-          <span className='truncate text-xs'>
-            {email}
-          </span>
+          <span className='truncate text-xs'>{roleLabel}</span>
         </div>
       )}
     </div>

@@ -12,6 +12,7 @@ import {
 } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { AppUserRole } from '@/lib/user-role';
 
 type PlanTier = 'starter' | 'pro' | 'enterprise';
 
@@ -30,7 +31,7 @@ export interface DemoUser {
   fullName: string;
   emailAddresses: Array<{ emailAddress: string }>;
   imageUrl?: string;
-  role: 'admin' | 'editor' | 'viewer';
+  role: AppUserRole;
 }
 
 interface AuthSessionContextValue {

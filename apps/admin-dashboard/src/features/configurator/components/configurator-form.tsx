@@ -979,7 +979,7 @@ export default function ConfiguratorForm() {
                     <FormItem>
                       <FormLabel>Notas</FormLabel>
                       <FormControl>
-                        <Textarea {...field} />
+                        <Textarea {...field} className='min-h-[79px]' />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

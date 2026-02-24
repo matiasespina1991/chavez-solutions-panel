@@ -12,6 +12,7 @@ import {
 import { UserAvatarProfile } from '@/components/user-avatar-profile';
 import { useRouter } from 'next/navigation';
 import { useAuthSession } from '@/contexts/auth-session';
+import { getUserRoleLabel } from '@/lib/user-role';
 
 export function UserNav() {
   const { user, signOut } = useAuthSession();
@@ -36,7 +37,7 @@ export function UserNav() {
           <div className='flex flex-col space-y-1'>
             <p className='text-sm leading-none font-medium'>{user.fullName}</p>
             <p className='text-muted-foreground text-xs leading-none'>
-              {user.emailAddresses[0].emailAddress}
+              {getUserRoleLabel(user.role)}
             </p>
           </div>
         </DropdownMenuLabel>

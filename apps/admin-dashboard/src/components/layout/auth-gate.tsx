@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthSession } from '@/contexts/auth-session';
@@ -10,6 +10,8 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const isAuthRoute = pathname.startsWith('/auth');
+  const [showLoader, setShowLoader] = useState(true);
+  const [isLoaderFading, setIsLoaderFading] = useState(false);
 
   useEffect(() => {
     if (!authReady) {
@@ -24,13 +26,47 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     }
   }, [authReady, isAuthRoute, router, user]);
 
+  useEffect(() => {
+    if (isAuthRoute) {
+      setShowLoader(false);
+      setIsLoaderFading(false);
+      return;
+    }
+
+    if (!authReady || !user) {
+      setShowLoader(true);
+      setIsLoaderFading(false);
+      return;
+    }
+
+    setShowLoader(true);
+    setIsLoaderFading(false);
+
+    const startFadeTimeout = setTimeout(() => {
+      setIsLoaderFading(true);
+    }, 2000);
+
+    const hideLoaderTimeout = setTimeout(() => {
+      setShowLoader(false);
+    }, 3000);
+
+    return () => {
+      clearTimeout(startFadeTimeout);
+      clearTimeout(hideLoaderTimeout);
+    };
+  }, [authReady, isAuthRoute, user]);
+
   if (isAuthRoute) {
     return children;
   }
 
-  if (!authReady || !user) {
+  if (showLoader || !authReady || !user) {
     return (
-      <div className='text-muted-foreground flex h-[95vh] min-h-[60vh] flex-col items-center justify-center gap-1 text-sm'>
+      <div
+        className={`text-muted-foreground flex h-[95vh] min-h-[60vh] flex-col items-center justify-center gap-1 text-sm transition-opacity duration-1000 ${
+          authReady && user && isLoaderFading ? 'opacity-0' : 'opacity-100'
+        }`}
+      >
         <Image
           src='/assets/branding/logos/chavez_solutions/world-logo.png'
           alt='Chavez Solutions'

@@ -16,6 +16,12 @@ body {
     --spacing: 0.222222rem;
   }
 
+  @media (min-width: 1024px) {
+    [data-slot='button'] {
+      --spacing: 0.25rem;
+    }
+  }
+
   [data-slot='card'] {
     --spacing: 0.16rem;
   }
