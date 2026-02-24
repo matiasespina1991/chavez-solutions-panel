@@ -571,7 +571,7 @@ export default function WorkOrdersListing() {
           <table className='w-full min-w-[1080px] text-left text-sm'>
             <thead className='bg-muted text-muted-foreground sticky top-0 z-10'>
               <tr>
-                <th className='w-[155px] px-4 py-3'>
+                <th className='w-[260px] px-4 py-3'>
                   <button
                     type='button'
                     className='cursor-pointer select-none'
@@ -616,7 +616,7 @@ export default function WorkOrdersListing() {
                     Análisis{getSortIndicator('analyses')}
                   </button>
                 </th>
-                <th className='px-4 py-3'>
+                <th className='min-w-[160px] px-4 py-3'>
                   <button
                     type='button'
                     className='cursor-pointer select-none'
@@ -997,7 +997,6 @@ export default function WorkOrdersListing() {
                     </div>
                   </div>
                 ) : null}
-
               </div>
             </div>
           )}

@@ -778,7 +778,7 @@ export default function ServiceRequestsListing() {
           <table className='w-full min-w-[1120px] text-left text-sm'>
             <thead className='bg-muted text-muted-foreground sticky top-0 z-10'>
               <tr>
-                <th className='w-[155px] px-4 py-3'>
+                <th className='w-[190px] px-4 py-3'>
                   <button
                     type='button'
                     className='cursor-pointer select-none'
@@ -796,7 +796,7 @@ export default function ServiceRequestsListing() {
                     Matriz{getSortIndicator('matrix')}
                   </button>
                 </th>
-                <th className='px-4 py-3'>
+                <th className='w-[120px] px-4 py-3'>
                   <button
                     type='button'
                     className='cursor-pointer select-none'
@@ -805,7 +805,7 @@ export default function ServiceRequestsListing() {
                     Cliente{getSortIndicator('client')}
                   </button>
                 </th>
-                <th className='px-4 py-3 text-right'>
+                <th className='max-w-[90px] px-4 py-3 text-right'>
                   <button
                     type='button'
                     className='cursor-pointer select-none'
