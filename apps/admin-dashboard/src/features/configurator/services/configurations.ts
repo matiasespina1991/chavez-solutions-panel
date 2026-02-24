@@ -129,7 +129,7 @@ export const getConfigurationById = async (id: string): Promise<ConfigurationDoc
   return {
     ...data,
     id: snapshot.id,
-    type: data.isWorkOrder ? 'work_order' : 'proforma',
+    type: data.isWorkOrder ? 'both' : 'proforma',
     status: toConfigurationStatus(data.status),
   } as ConfigurationDocument;
 };

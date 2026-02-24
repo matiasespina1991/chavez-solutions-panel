@@ -5,7 +5,7 @@ import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -36,6 +36,8 @@ import { packages } from '../catalogs/packages';
 import {
   createConfiguration,
   createWorkOrderFromRequest,
+  getConfigurationById,
+  updateConfiguration,
   ConfigurationDocument
 } from '../services/configurations';
 
@@ -100,8 +102,13 @@ type FormValues = z.infer<typeof formSchema>;
 
 export default function ConfiguratorForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editRequestId = searchParams.get('requestId');
+  const isEditMode = Boolean(editRequestId);
   const [activeTab, setActiveTab] = useState('type');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingRequest, setIsLoadingRequest] = useState(false);
+  const requestedTab = searchParams.get('tab');
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema) as any,
@@ -168,6 +175,17 @@ export default function ConfiguratorForm() {
     name: 'analyses.items'
   });
 
+  useEffect(() => {
+    if (
+      requestedTab &&
+      ['type', 'client', 'samples', 'analyses', 'summary'].includes(
+        requestedTab
+      )
+    ) {
+      setActiveTab(requestedTab);
+    }
+  }, [requestedTab]);
+
   const matrix = form.watch('matrix');
   const agreedCount = form.watch('samples.agreedCount');
   const type = form.watch('type');
@@ -233,6 +251,84 @@ export default function ConfiguratorForm() {
     tabStatus.client === 'ok' &&
     tabStatus.samples === 'ok' &&
     tabStatus.analyses === 'ok';
+
+  const toDateOrNull = (value: unknown): Date | null => {
+    if (!value) return null;
+    if (value instanceof Date) return value;
+    if (typeof value === 'object' && value !== null && 'toDate' in value) {
+      try {
+        return (value as { toDate: () => Date }).toDate();
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  };
+
+  useEffect(() => {
+    const loadRequest = async () => {
+      if (!editRequestId) return;
+
+      try {
+        setIsLoadingRequest(true);
+        const existing = await getConfigurationById(editRequestId);
+
+        if (!existing) {
+          toast.error('No se encontró la solicitud seleccionada');
+          router.push('/dashboard/service-requests');
+          return;
+        }
+
+        form.reset({
+          type: existing.type,
+          matrix: existing.matrix,
+          reference: existing.reference,
+          createdAt: toDateOrNull(existing.createdAt) || new Date(),
+          validDays: existing.pricing?.validDays ?? 30,
+          notes: existing.notes || '',
+          client: {
+            businessName: existing.client.businessName,
+            taxId: existing.client.taxId,
+            contactName: existing.client.contactName,
+            contactRole: existing.client.contactRole || '',
+            email: existing.client.email,
+            phone: existing.client.phone,
+            address: existing.client.address,
+            city: existing.client.city
+          },
+          samples: {
+            agreedCount: existing.samples.agreedCount,
+            additionalCount: existing.samples.additionalCount,
+            executedCount: existing.samples.executedCount,
+            items: existing.samples.items.map((item) => ({
+              sampleCode: item.sampleCode,
+              sampleType: item.sampleType,
+              takenAt: toDateOrNull(item.takenAt),
+              notes: item.notes || ''
+            }))
+          },
+          analyses: {
+            applyMode: existing.analyses.applyMode,
+            items: existing.analyses.items
+          },
+          pricing: {
+            currency: 'USD',
+            subtotal: existing.pricing.subtotal,
+            taxPercent: existing.pricing.taxPercent,
+            total: existing.pricing.total,
+            validDays: existing.pricing.validDays
+          }
+        });
+      } catch (error) {
+        console.error('Error loading request for edit:', error);
+        toast.error('No se pudo cargar la solicitud para editar');
+      } finally {
+        setIsLoadingRequest(false);
+      }
+    };
+
+    loadRequest();
+  }, [editRequestId, form, router]);
 
   // Update sample items when agreedCount changes
   useEffect(() => {
@@ -355,17 +451,59 @@ export default function ConfiguratorForm() {
       const requestId = await createConfiguration(docData);
 
       if (status === 'final' && (values.type === 'work_order' || values.type === 'both')) {
-        const { workOrderNumber } = await createWorkOrderFromRequest(requestId);
-        toast.success(`Solicitud guardada y OT creada (${workOrderNumber})`);
-      } else {
+        await createWorkOrderFromRequest(requestId);
         toast.success(
-          `Solicitud guardada como ${status === 'draft' ? 'borrador' : 'definitiva'}`
+          `Solicitud ejecutada y Orden de Trabajo emitida (${values.reference})`
         );
+      } else {
+        if (status === 'draft') {
+          toast.success('Solicitud guardada como borrador');
+        } else {
+          toast.success('Proforma emitida correctamente');
+        }
       }
       router.push('/dashboard');
     } catch (error) {
       console.error('Error saving configuration:', error);
-      toast.error('Error al guardar la configuración');
+      toast.error('No se pudo guardar la solicitud');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const onUpdateRequest = async (values: FormValues) => {
+    if (!editRequestId) return;
+
+    try {
+      setIsSubmitting(true);
+
+      const updateData: Partial<ConfigurationDocument> = {
+        type: values.type,
+        matrix: values.matrix,
+        reference: values.reference,
+        notes: values.notes || '',
+        client: {
+          ...values.client,
+          contactRole: values.client.contactRole || null
+        },
+        samples: {
+          ...values.samples,
+          items: values.samples.items.map((item) => ({
+            ...item,
+            takenAt: item.takenAt || null,
+            notes: item.notes || ''
+          }))
+        },
+        analyses: values.analyses,
+        pricing: values.pricing
+      };
+
+      await updateConfiguration(editRequestId, updateData);
+      toast.success('Solicitud actualizada');
+      router.push('/dashboard/service-requests');
+    } catch (error) {
+      console.error('Error updating request:', error);
+      toast.error('Error al actualizar la solicitud');
     } finally {
       setIsSubmitting(false);
     }
@@ -1086,14 +1224,17 @@ export default function ConfiguratorForm() {
           </TabsContent>
 
           {/* PASO E: RESUMEN */}
-          <TabsContent value='summary' className='mt-4 space-y-4'>
-            <Card>
-              <CardHeader>
-                <CardTitle>Resumen de Configuración</CardTitle>
+          <TabsContent value='summary' className='mt-4'>
+            <Card className='p-0'>
+              <CardHeader className='border-b px-6 py-4'>
+                <CardTitle>Resumen de solicitud</CardTitle>
+                <p className='text-muted-foreground text-sm'>
+                  Vista consolidada de cliente, muestras, análisis y costos.
+                </p>
               </CardHeader>
-              <CardContent className='space-y-6'>
-                <div className='grid grid-cols-2 gap-8'>
-                  <div className='space-y-2'>
+              <CardContent className='space-y-5 px-6 py-5'>
+                <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
+                  <div className='space-y-2 rounded-md border bg-muted/20 p-4'>
                     <h4 className='text-muted-foreground font-semibold'>
                       Datos Generales
                     </h4>
@@ -1114,26 +1255,26 @@ export default function ConfiguratorForm() {
                       {form.getValues('reference')}
                     </p>
                   </div>
-                  <div className='space-y-2'>
+                  <div className='space-y-2 rounded-md border bg-muted/20 p-4'>
                     <h4 className='text-muted-foreground font-semibold'>
                       Cliente
                     </h4>
                     <p>
                       <span className='font-medium'>Razón Social:</span>{' '}
-                      {form.getValues('client.businessName')}
+                      {form.getValues('client.businessName') || '—'}
                     </p>
                     <p>
                       <span className='font-medium'>RUC:</span>{' '}
-                      {form.getValues('client.taxId')}
+                      {form.getValues('client.taxId') || '—'}
                     </p>
                     <p>
                       <span className='font-medium'>Contacto:</span>{' '}
-                      {form.getValues('client.contactName')}
+                      {form.getValues('client.contactName') || '—'}
                     </p>
                   </div>
                 </div>
 
-                <div className='space-y-2'>
+                <div className='space-y-2 rounded-md border bg-muted/20 p-4'>
                   <h4 className='text-muted-foreground font-semibold'>
                     Muestras ({agreedCount})
                   </h4>
@@ -1141,7 +1282,7 @@ export default function ConfiguratorForm() {
                     {sampleItems.map((s) => (
                       <span
                         key={s.id}
-                        className='bg-muted rounded px-2 py-1 text-sm'
+                        className='bg-muted rounded border px-2 py-1 text-sm'
                       >
                         {s.sampleCode} ({s.sampleType || 'Sin tipo'})
                       </span>
@@ -1149,7 +1290,7 @@ export default function ConfiguratorForm() {
                   </div>
                 </div>
 
-                <div className='space-y-2'>
+                <div className='space-y-2 rounded-md border bg-muted/20 p-4'>
                   <h4 className='text-muted-foreground font-semibold'>
                     Análisis ({analysisItems.length})
                   </h4>
@@ -1157,7 +1298,7 @@ export default function ConfiguratorForm() {
                     {analysisItems.map((a) => (
                       <span
                         key={a.id}
-                        className='bg-primary/10 text-primary rounded px-2 py-1 text-sm'
+                        className='bg-primary/10 text-primary rounded border border-primary/20 px-2 py-1 text-sm'
                       >
                         {a.parameterLabelEs}
                       </span>
@@ -1166,7 +1307,7 @@ export default function ConfiguratorForm() {
                 </div>
 
                 {(type === 'proforma' || type === 'both') && (
-                  <div className='space-y-2 border-t pt-4'>
+                  <div className='space-y-4 rounded-md border p-4'>
                     {analysesItemsWatch && analysesItemsWatch.length > 0 && (
                       <div className='space-y-2'>
                         <h4 className='text-muted-foreground font-semibold'>
@@ -1214,7 +1355,7 @@ export default function ConfiguratorForm() {
                     <h4 className='text-muted-foreground font-semibold'>
                       Costos Estimados
                     </h4>
-                    <div className='w-64 space-y-1'>
+                    <div className='w-full max-w-xs space-y-1'>
                       <div className='flex justify-between'>
                         <span className='text-muted-foreground'>Subtotal:</span>{' '}
                         <span>
@@ -1244,7 +1385,7 @@ export default function ConfiguratorForm() {
                   </div>
                 )}
 
-                <div className='mt-8 flex justify-between border-t pt-4'>
+                <div className='mt-6 flex justify-between border-t pt-4'>
                   <Button
                     type='button'
                     variant='outline'
@@ -1253,25 +1394,45 @@ export default function ConfiguratorForm() {
                     Anterior
                   </Button>
                   <div className='space-x-4'>
-                    <Button
-                      type='button'
-                      variant='secondary'
-                      disabled={isSubmitting}
-                      onClick={() =>
-                        form.handleSubmit((data) => onSubmit(data, 'draft'))()
-                      }
-                    >
-                      Guardar Borrador
-                    </Button>
-                    <Button
-                      type='button'
-                      disabled={isSubmitting || !canSubmitFinal}
-                      onClick={() =>
-                        form.handleSubmit((data) => onSubmit(data, 'final'))()
-                      }
-                    >
-                      Guardar Definitivo
-                    </Button>
+                    {isEditMode ? (
+                      <Button
+                        type='button'
+                        disabled={isSubmitting || isLoadingRequest || !canSubmitFinal}
+                        onClick={() =>
+                          form.handleSubmit((data) => onUpdateRequest(data))()
+                        }
+                      >
+                        Actualizar solicitud
+                      </Button>
+                    ) : (
+                      <>
+                        <Button
+                          type='button'
+                          variant='secondary'
+                          disabled={isSubmitting || isLoadingRequest}
+                          onClick={() =>
+                            form.handleSubmit((data) => onSubmit(data, 'draft'))()
+                          }
+                        >
+                          Guardar Borrador
+                        </Button>
+                        <Button
+                          type='button'
+                          disabled={
+                            isSubmitting || isLoadingRequest || !canSubmitFinal
+                          }
+                          onClick={() =>
+                            form.handleSubmit((data) => onSubmit(data, 'final'))()
+                          }
+                        >
+                          {type === 'proforma'
+                            ? 'Ejecutar Proforma'
+                            : type === 'both'
+                              ? 'Ejecutar Proforma + OT'
+                              : 'Ejecutar Orden de Trabajo'}
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               </CardContent>

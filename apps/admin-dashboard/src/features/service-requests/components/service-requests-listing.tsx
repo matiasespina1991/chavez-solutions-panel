@@ -3,6 +3,13 @@
 import { DataTableSkeleton } from '@/components/ui/table/data-table-skeleton';
 import { Button } from '@/components/ui/button';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -26,7 +33,12 @@ import {
   query,
   Timestamp
 } from 'firebase/firestore';
-import { IconDotsVertical, IconPlayerPauseFilled, IconPlayerPlayFilled } from '@tabler/icons-react';
+import {
+  IconDotsVertical,
+  IconPlayerPauseFilled,
+  IconPlayerPlayFilled
+} from '@tabler/icons-react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -44,10 +56,19 @@ interface ServiceRequestRow {
   isWorkOrder: boolean;
   matrix: ServiceRequestMatrix;
   status: ServiceRequestStatus;
+  client: {
+    businessName: string;
+    taxId: string;
+    contactName: string;
+  };
+  sampleItems: Array<{ sampleCode: string; sampleType: string }>;
+  analysisItems: Array<{ parameterLabelEs: string; unitPrice: number }>;
+  taxPercent: number;
   clientBusinessName: string;
   agreedCount: number;
   analysesCount: number;
   total: number;
+  subtotal: number;
   updatedAtLabel: string;
 }
 
@@ -58,7 +79,7 @@ const matrixLabelMap: Record<ServiceRequestMatrix, string> = {
 
 const statusLabelMap: Record<ServiceRequestStatus, string> = {
   draft: 'Borrador',
-  submitted: 'Enviada',
+  submitted: 'Proforma enviada',
   converted_to_work_order: 'Convertida a OT',
   work_order_paused: 'Orden de trabajo pausada',
   cancelled: 'Cancelada'
@@ -80,9 +101,12 @@ const formatTimestamp = (value: unknown) => {
 };
 
 export default function ServiceRequestsListing() {
+  const router = useRouter();
   const [rows, setRows] = useState<ServiceRequestRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
+  const [selectedRow, setSelectedRow] = useState<ServiceRequestRow | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
   const handleWorkOrderAction = async (row: ServiceRequestRow) => {
     try {
@@ -90,15 +114,15 @@ export default function ServiceRequestsListing() {
 
       if (row.isWorkOrder) {
         if (row.status === 'work_order_paused') {
-          const result = await resumeWorkOrderFromRequest(row.id);
-          toast.success(`Orden de trabajo ${result.workOrderNumber} reanudada`);
+          await resumeWorkOrderFromRequest(row.id);
+          toast.success(`Orden de trabajo ${row.reference} reanudada`);
         } else {
-          const result = await pauseWorkOrderFromRequest(row.id);
-          toast.success(`Orden de trabajo ${result.workOrderNumber} pausada`);
+          await pauseWorkOrderFromRequest(row.id);
+          toast.success(`Orden de trabajo ${row.reference} pausada`);
         }
       } else {
-        const result = await createWorkOrderFromRequest(row.id);
-        toast.success(`Orden de trabajo emitida (${result.workOrderNumber})`);
+        await createWorkOrderFromRequest(row.id);
+        toast.success(`Orden de Trabajo emitida (${row.reference})`);
       }
     } catch (error) {
       console.error('[ServiceRequests] action error', error);
@@ -131,6 +155,19 @@ export default function ServiceRequestsListing() {
                   (value.pricing as { total?: number | null }).total ?? 0
                 )
               : 0;
+          const subtotal =
+            typeof value.pricing === 'object' && value.pricing !== null
+              ? Number(
+                  (value.pricing as { subtotal?: number | null }).subtotal ?? 0
+                )
+              : 0;
+          const taxPercent =
+            typeof value.pricing === 'object' && value.pricing !== null
+              ? Number(
+                  (value.pricing as { taxPercent?: number | null }).taxPercent ??
+                    15
+                )
+              : 15;
 
           const agreedCount =
             typeof value.samples === 'object' && value.samples !== null
@@ -155,16 +192,79 @@ export default function ServiceRequestsListing() {
                 )
               : '';
 
+          const client =
+            typeof value.client === 'object' && value.client !== null
+              ? {
+                  businessName: String(
+                    (value.client as { businessName?: string }).businessName ??
+                      ''
+                  ),
+                  taxId: String(
+                    (value.client as { taxId?: string }).taxId ?? ''
+                  ),
+                  contactName: String(
+                    (value.client as { contactName?: string }).contactName ?? ''
+                  )
+                }
+              : {
+                  businessName: '',
+                  taxId: '',
+                  contactName: ''
+                };
+
+          const sampleItems =
+            typeof value.samples === 'object' && value.samples !== null
+              ? Array.isArray((value.samples as { items?: unknown[] }).items)
+                ? ((value.samples as { items?: unknown[] }).items ?? []).map(
+                    (item) => {
+                      const rowItem = item as {
+                        sampleCode?: string;
+                        sampleType?: string;
+                      };
+                      return {
+                        sampleCode: String(rowItem.sampleCode ?? '—'),
+                        sampleType: String(rowItem.sampleType ?? 'Sin tipo')
+                      };
+                    }
+                  )
+                : []
+              : [];
+
+          const analysisItems =
+            typeof value.analyses === 'object' && value.analyses !== null
+              ? Array.isArray((value.analyses as { items?: unknown[] }).items)
+                ? ((value.analyses as { items?: unknown[] }).items ?? []).map(
+                    (item) => {
+                      const rowItem = item as {
+                        parameterLabelEs?: string;
+                        unitPrice?: number | null;
+                      };
+                      return {
+                        parameterLabelEs: String(
+                          rowItem.parameterLabelEs ?? 'Parámetro'
+                        ),
+                        unitPrice: Number(rowItem.unitPrice ?? 0)
+                      };
+                    }
+                  )
+                : []
+              : [];
+
           return {
             id: docSnap.id,
             reference: String(value.reference ?? '—'),
             isWorkOrder,
             matrix,
             status,
+            client,
+            sampleItems,
+            analysisItems,
+            taxPercent: Number.isFinite(taxPercent) ? taxPercent : 15,
             clientBusinessName: clientBusinessName || '—',
             agreedCount,
             analysesCount,
             total: Number.isFinite(total) ? total : 0,
+            subtotal: Number.isFinite(subtotal) ? subtotal : 0,
             updatedAtLabel: formatTimestamp(value.updatedAt)
           };
         });
@@ -215,7 +315,14 @@ export default function ServiceRequestsListing() {
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.id} className='border-t'>
+            <tr
+              key={row.id}
+              className='hover:bg-muted/40 cursor-pointer border-t transition-colors duration-200'
+              onClick={() => {
+                setSelectedRow(row);
+                setIsViewDialogOpen(true);
+              }}
+            >
               <td className='px-4 py-3'>{row.reference}</td>
               <td className='px-4 py-3 text-center'>
                 <Tooltip>
@@ -249,7 +356,10 @@ export default function ServiceRequestsListing() {
               </td>
               <td className='px-4 py-3'>{row.updatedAtLabel}</td>
               <td className='w-12 px-2 py-3 text-right'>
-                <div className='flex justify-end'>
+                <div
+                  className='flex justify-end'
+                  onClick={(event) => event.stopPropagation()}
+                >
                   <DropdownMenu modal={false}>
                     <DropdownMenuTrigger asChild>
                       <Button
@@ -262,19 +372,57 @@ export default function ServiceRequestsListing() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align='end' side='bottom'>
-                      <DropdownMenuItem className='cursor-pointer transition-colors duration-150'>
+                      <DropdownMenuItem
+                        className='cursor-pointer transition-colors duration-150'
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setSelectedRow(row);
+                          setIsViewDialogOpen(true);
+                        }}
+                      >
                         Ver solicitud
                       </DropdownMenuItem>
-                      <DropdownMenuItem className='cursor-pointer transition-colors duration-150'>
-                        Editar solicitud...
-                      </DropdownMenuItem>
+                      {row.isWorkOrder && row.status !== 'work_order_paused' ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className='block'>
+                              <DropdownMenuItem
+                                disabled
+                                className='cursor-not-allowed text-muted-foreground opacity-60'
+                              >
+                                Editar solicitud...
+                              </DropdownMenuItem>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            No se puede editar una orden de trabajo ya emitida
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <DropdownMenuItem
+                          className='cursor-pointer transition-colors duration-150'
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            router.push(
+                              `/dashboard/configurator?requestId=${encodeURIComponent(row.id)}&tab=summary`
+                            );
+                          }}
+                        >
+                          Editar solicitud...
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem
                         className={`cursor-pointer justify-start transition-colors duration-150 ${
-                          row.status === 'work_order_paused'
+                          !row.isWorkOrder
+                            ? 'text-foreground focus:text-foreground'
+                            : row.status === 'work_order_paused'
                             ? 'text-emerald-600 focus:text-emerald-600'
                             : 'text-destructive focus:text-destructive'
                         }`}
-                        onClick={() => handleWorkOrderAction(row)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleWorkOrderAction(row);
+                        }}
                         disabled={pendingActionId === row.id}
                       >
                         {row.isWorkOrder ? row.status === 'work_order_paused' ? (
@@ -305,6 +453,151 @@ export default function ServiceRequestsListing() {
           ))}
         </tbody>
       </table>
+
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className='max-h-[90vh] overflow-y-auto overscroll-none p-0 sm:max-w-3xl'>
+          <DialogHeader className='border-b px-6 py-4 pr-12'>
+            <DialogTitle>Resumen de solicitud</DialogTitle>
+            <DialogDescription>
+              Vista consolidada de cliente, muestras, análisis y costos.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedRow && (
+            <div className='space-y-5 px-6 py-5'>
+              <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
+                <div className='space-y-2 rounded-md border bg-muted/20 p-4'>
+                  <h4 className='text-muted-foreground font-semibold'>
+                    Datos Generales
+                  </h4>
+                  <p>
+                    <span className='font-medium'>Tipo:</span>{' '}
+                    {selectedRow.isWorkOrder
+                      ? 'Proforma + OT'
+                      : 'Proforma'}
+                  </p>
+                  <p>
+                    <span className='font-medium'>Matriz:</span>{' '}
+                    {selectedRow.matrix === 'water' ? 'Agua' : 'Suelo'}
+                  </p>
+                  <p>
+                    <span className='font-medium'>Referencia:</span>{' '}
+                    {selectedRow.reference}
+                  </p>
+                </div>
+                <div className='space-y-2 rounded-md border bg-muted/20 p-4'>
+                  <h4 className='text-muted-foreground font-semibold'>Cliente</h4>
+                  <p>
+                    <span className='font-medium'>Razón Social:</span>{' '}
+                    {selectedRow.client.businessName || '—'}
+                  </p>
+                  <p>
+                    <span className='font-medium'>RUC:</span>{' '}
+                    {selectedRow.client.taxId || '—'}
+                  </p>
+                  <p>
+                    <span className='font-medium'>Contacto:</span>{' '}
+                    {selectedRow.client.contactName || '—'}
+                  </p>
+                </div>
+              </div>
+
+              <div className='space-y-2 rounded-md border bg-muted/20 p-4'>
+                <h4 className='text-muted-foreground font-semibold'>
+                  Muestras ({selectedRow.agreedCount})
+                </h4>
+                <div className='flex flex-wrap gap-2'>
+                  {selectedRow.sampleItems.map((sample, index) => (
+                    <span
+                      key={`${sample.sampleCode}-${index}`}
+                      className='bg-muted rounded border px-2 py-1 text-sm'
+                    >
+                      {sample.sampleCode} ({sample.sampleType || 'Sin tipo'})
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className='space-y-2 rounded-md border bg-muted/20 p-4'>
+                <h4 className='text-muted-foreground font-semibold'>
+                  Análisis ({selectedRow.analysisItems.length})
+                </h4>
+                <div className='flex flex-wrap gap-2'>
+                  {selectedRow.analysisItems.map((analysis, index) => (
+                    <span
+                      key={`${analysis.parameterLabelEs}-${index}`}
+                      className='bg-primary/10 text-primary rounded border border-primary/20 px-2 py-1 text-sm'
+                    >
+                      {analysis.parameterLabelEs}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className='space-y-4 rounded-md border p-4'>
+                {selectedRow.analysisItems.length > 0 && (
+                  <div className='space-y-2'>
+                    <h4 className='text-muted-foreground font-semibold'>
+                      Detalle de costos por análisis
+                    </h4>
+                    <div className='overflow-x-auto rounded-md border'>
+                      <table className='w-full text-left text-sm'>
+                        <thead className='bg-muted text-muted-foreground'>
+                          <tr>
+                            <th className='p-2'>Parámetro</th>
+                            <th className='p-2 text-right'>Muestras</th>
+                            <th className='p-2 text-right'>Costo unitario</th>
+                            <th className='p-2 text-right'>Subtotal</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedRow.analysisItems.map((analysis, index) => {
+                            const lineTotal =
+                              analysis.unitPrice * selectedRow.agreedCount;
+                            return (
+                              <tr key={`${analysis.parameterLabelEs}-${index}`} className='border-t'>
+                                <td className='p-2'>{analysis.parameterLabelEs}</td>
+                                <td className='p-2 text-right'>{selectedRow.agreedCount}</td>
+                                <td className='p-2 text-right'>${analysis.unitPrice.toFixed(2)}</td>
+                                <td className='p-2 text-right'>${lineTotal.toFixed(2)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                <h4 className='text-muted-foreground font-semibold'>Costos Estimados</h4>
+                <div className='w-full max-w-xs space-y-1'>
+                  <div className='flex justify-between'>
+                    <span className='text-muted-foreground'>Subtotal:</span>
+                    <span>${selectedRow.subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className='flex justify-between'>
+                    <span className='text-muted-foreground'>
+                      IVA ({selectedRow.taxPercent}%):
+                    </span>
+                    <span>
+                      ${
+                        (
+                          (selectedRow.subtotal * selectedRow.taxPercent) /
+                          100
+                        ).toFixed(2)
+                      }
+                    </span>
+                  </div>
+                  <div className='mt-1 flex justify-between border-t pt-1 text-lg font-bold'>
+                    <span>Total:</span>
+                    <span>${selectedRow.total.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
