@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import {
   GoogleAuthProvider,
   onAuthStateChanged,
+  signInWithEmailAndPassword,
   signInWithPopup,
   signOut as firebaseSignOut,
   type User,
@@ -42,6 +43,10 @@ interface AuthSessionContextValue {
   authError: string | null;
   clearAuthError: () => void;
   signInWithGoogle: () => Promise<UserCredential>;
+  signInWithEmailPassword: (
+    email: string,
+    password: string
+  ) => Promise<UserCredential>;
   signOut: () => Promise<void>;
 }
 
@@ -173,9 +178,21 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
       authError,
       clearAuthError: () => setAuthError(null),
       signInWithGoogle: () => signInWithPopup(auth, googleProvider),
+      signInWithEmailPassword: async (email: string, password: string) => {
+        try {
+          setAuthError(null);
+          return await signInWithEmailAndPassword(auth, email, password);
+        } catch (error) {
+          console.error('[Auth] email/password sign-in failed', error);
+          setAuthError(
+            'No fue posible iniciar sesión con correo y contraseña. Verifica tus credenciales e inténtalo nuevamente.'
+          );
+          throw error;
+        }
+      },
       signOut: () => firebaseSignOut(auth)
     };
-  }, [activeOrgId, authReady, firebaseUser]);
+  }, [activeOrgId, authReady, authError, firebaseUser]);
 
   return (
     <AuthSessionContext.Provider value={value}>

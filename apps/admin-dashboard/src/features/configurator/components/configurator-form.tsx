@@ -1481,7 +1481,7 @@ export default function ConfiguratorForm() {
                     {analysisItems.map((a) => (
                       <span
                         key={a.id}
-                        className='bg-primary/10 text-primary border-primary/20 rounded border px-2 py-1 text-sm'
+                        className='bg-muted rounded border px-2 py-1 text-sm'
                       >
                         {a.parameterLabelEs}
                       </span>

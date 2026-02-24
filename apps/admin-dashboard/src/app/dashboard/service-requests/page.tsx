@@ -16,7 +16,25 @@ export default function Page() {
     >
       <Suspense
         fallback={
-          <DataTableSkeleton columnCount={8} rowCount={8} filterCount={0} />
+          <DataTableSkeleton
+            columnCount={10}
+            rowCount={8}
+            filterCount={0}
+            withViewOptions={false}
+            withPagination={false}
+            cellWidths={[
+              '10rem',
+              '4rem',
+              '6rem',
+              '14rem',
+              '6rem',
+              '6rem',
+              '10rem',
+              '8rem',
+              '12rem',
+              '3rem'
+            ]}
+          />
         }
       >
         <ServiceRequestsListing />
