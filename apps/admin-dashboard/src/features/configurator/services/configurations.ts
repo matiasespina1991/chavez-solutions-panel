@@ -215,3 +215,19 @@ export const resumeWorkOrderFromRequest = async (
   const result = await callable({ sourceRequestId });
   return result.data;
 };
+
+interface DeleteServiceRequestResponse {
+  deletedRequestId: string;
+}
+
+export const deleteServiceRequest = async (
+  sourceRequestId: string
+): Promise<DeleteServiceRequestResponse> => {
+  const functions = getFunctions();
+  const callable = httpsCallable<
+    { sourceRequestId: string },
+    DeleteServiceRequestResponse
+  >(functions, 'deleteServiceRequest');
+  const result = await callable({ sourceRequestId });
+  return result.data;
+};
