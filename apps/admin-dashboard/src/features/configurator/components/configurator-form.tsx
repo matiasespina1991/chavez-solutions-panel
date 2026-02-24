@@ -479,6 +479,7 @@ export default function ConfiguratorForm() {
 
   const isDraftEditMode = isEditMode && loadedRequestStatus === 'draft';
   const isPausedEditMode = isEditMode && loadedRequestStatus === 'paused';
+  const showDraftActions = !isEditMode;
   const isDraftSaveDisabled =
     isSubmitting || isLoadingRequest || isPausedEditMode;
 
@@ -986,15 +987,17 @@ export default function ConfiguratorForm() {
                 />
 
                 <div className='flex justify-end gap-2'>
-                  {clearCurrentDataButton}
-                  <Button
-                    type='button'
-                    variant='secondary'
-                    disabled={isDraftSaveDisabled}
-                    onClick={() => onSubmit(form.getValues(), 'draft')}
-                  >
-                    Guardar como Borrador
-                  </Button>
+                  {showDraftActions ? clearCurrentDataButton : null}
+                  {showDraftActions ? (
+                    <Button
+                      type='button'
+                      variant='secondary'
+                      disabled={isDraftSaveDisabled}
+                      onClick={() => onSubmit(form.getValues(), 'draft')}
+                    >
+                      Guardar como Borrador
+                    </Button>
+                  ) : null}
                   <Button type='button' onClick={() => setActiveTab('client')}>
                     Siguiente
                   </Button>
@@ -1125,15 +1128,17 @@ export default function ConfiguratorForm() {
                     Anterior
                   </Button>
                   <div className='flex items-center gap-2'>
-                    {clearCurrentDataButton}
-                    <Button
-                      type='button'
-                      variant='secondary'
-                      disabled={isDraftSaveDisabled}
-                      onClick={() => onSubmit(form.getValues(), 'draft')}
-                    >
-                      Guardar como Borrador
-                    </Button>
+                    {showDraftActions ? clearCurrentDataButton : null}
+                    {showDraftActions ? (
+                      <Button
+                        type='button'
+                        variant='secondary'
+                        disabled={isDraftSaveDisabled}
+                        onClick={() => onSubmit(form.getValues(), 'draft')}
+                      >
+                        Guardar como Borrador
+                      </Button>
+                    ) : null}
                     <Button
                       type='button'
                       onClick={() => setActiveTab('samples')}
@@ -1300,15 +1305,17 @@ export default function ConfiguratorForm() {
                     Anterior
                   </Button>
                   <div className='flex items-center gap-2'>
-                    {clearCurrentDataButton}
-                    <Button
-                      type='button'
-                      variant='secondary'
-                      disabled={isDraftSaveDisabled}
-                      onClick={() => onSubmit(form.getValues(), 'draft')}
-                    >
-                      Guardar como Borrador
-                    </Button>
+                    {showDraftActions ? clearCurrentDataButton : null}
+                    {showDraftActions ? (
+                      <Button
+                        type='button'
+                        variant='secondary'
+                        disabled={isDraftSaveDisabled}
+                        onClick={() => onSubmit(form.getValues(), 'draft')}
+                      >
+                        Guardar como Borrador
+                      </Button>
+                    ) : null}
                     <Button
                       type='button'
                       onClick={() => setActiveTab('analyses')}
@@ -1500,15 +1507,17 @@ export default function ConfiguratorForm() {
                     Anterior
                   </Button>
                   <div className='flex items-center gap-2'>
-                    {clearCurrentDataButton}
-                    <Button
-                      type='button'
-                      variant='secondary'
-                      disabled={isDraftSaveDisabled}
-                      onClick={() => onSubmit(form.getValues(), 'draft')}
-                    >
-                      Guardar como Borrador
-                    </Button>
+                    {showDraftActions ? clearCurrentDataButton : null}
+                    {showDraftActions ? (
+                      <Button
+                        type='button'
+                        variant='secondary'
+                        disabled={isDraftSaveDisabled}
+                        onClick={() => onSubmit(form.getValues(), 'draft')}
+                      >
+                        Guardar como Borrador
+                      </Button>
+                    ) : null}
                     <Button
                       type='button'
                       onClick={() => setActiveTab('summary')}
@@ -1707,17 +1716,9 @@ export default function ConfiguratorForm() {
                     Anterior
                   </Button>
                   <div className='flex items-center gap-2'>
-                    {clearCurrentDataButton}
+                    {showDraftActions ? clearCurrentDataButton : null}
                     {isDraftEditMode ? (
                       <>
-                        <Button
-                          type='button'
-                          variant='secondary'
-                          disabled={isDraftSaveDisabled}
-                          onClick={() => onSubmit(form.getValues(), 'draft')}
-                        >
-                          Guardar como Borrador
-                        </Button>
                         <Button
                           type='button'
                           className='bg-black text-white hover:bg-black/90 disabled:bg-black disabled:text-white'
@@ -1747,14 +1748,16 @@ export default function ConfiguratorForm() {
                       </Button>
                     ) : (
                       <>
-                        <Button
-                          type='button'
-                          variant='secondary'
-                          disabled={isDraftSaveDisabled}
-                          onClick={() => onSubmit(form.getValues(), 'draft')}
-                        >
-                          Guardar como Borrador
-                        </Button>
+                        {showDraftActions ? (
+                          <Button
+                            type='button'
+                            variant='secondary'
+                            disabled={isDraftSaveDisabled}
+                            onClick={() => onSubmit(form.getValues(), 'draft')}
+                          >
+                            Guardar como Borrador
+                          </Button>
+                        ) : null}
                         <Button
                           type='button'
                           className='bg-black text-white hover:bg-black/90 disabled:bg-black disabled:text-white'

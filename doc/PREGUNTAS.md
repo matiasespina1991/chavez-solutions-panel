@@ -2,3 +2,4 @@
 - Como se debe mostrar los parametros urgentes?
 - Que datos se pueden o deben omitir en las ordenes de trabajo?
 - Que informacion es obligatoria en cada una?
+- Se puede pausar una orde de trabajo? si se pausa una y se cambia algo se debe crear una nueva orden de trabajo o se puede usar la misma con mas detalles?

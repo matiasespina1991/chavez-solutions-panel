@@ -157,7 +157,7 @@ export default function SignInViewPage({ stars: _stars }: { stars: number }) {
 
               <Button
                 type='submit'
-                className='h-11 w-full cursor-pointer'
+                className='h-11 w-full cursor-pointer bg-black text-white hover:bg-black/90 disabled:bg-black disabled:text-white'
                 disabled={!authReady || signingIn}
               >
                 {signingIn ? 'Validando acceso…' : 'Iniciar sesión'}

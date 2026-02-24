@@ -4,7 +4,8 @@ import {
   getDoc,
   setDoc,
   serverTimestamp,
-  updateDoc
+  updateDoc,
+  writeBatch
 } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from '@/lib/firebase';
@@ -94,6 +95,7 @@ export interface ServiceRequestDocument
 }
 
 const SERVICE_REQUEST_COLLECTION = 'service_requests';
+const WORK_ORDER_COLLECTION = 'work_orders';
 
 const toServiceRequestStatus = (
   status: ConfigurationStatus
@@ -141,13 +143,35 @@ export const updateConfiguration = async (
   data: Partial<ConfigurationDocument>
 ) => {
   const docRef = doc(db, SERVICE_REQUEST_COLLECTION, id);
+  const currentSnapshot = await getDoc(docRef);
+  const currentData = currentSnapshot.exists()
+    ? (currentSnapshot.data() as {
+        linkedWorkOrderId?: string | null;
+      })
+    : null;
+  const linkedWorkOrderId = currentData?.linkedWorkOrderId;
   const { type, serviceRequestStatus, ...restData } = data;
   const docData = {
     ...restData,
     ...(type ? { isWorkOrder: toIsWorkOrder(type) } : {}),
     ...(data.status ? { status: toServiceRequestStatus(data.status) } : {}),
     updatedAt: serverTimestamp()
-  };
+  } as any;
+
+  const shouldSyncNotesToWorkOrder =
+    typeof data.notes === 'string' && !!linkedWorkOrderId;
+
+  if (shouldSyncNotesToWorkOrder && linkedWorkOrderId) {
+    const batch = writeBatch(db);
+    batch.update(docRef, docData);
+    batch.update(doc(db, WORK_ORDER_COLLECTION, linkedWorkOrderId), {
+      notes: data.notes,
+      updatedAt: serverTimestamp()
+    });
+    await batch.commit();
+    return;
+  }
+
   await updateDoc(docRef, docData);
 };
 
@@ -191,14 +215,15 @@ interface PauseWorkOrderResponse {
 }
 
 export const pauseWorkOrderFromRequest = async (
-  sourceRequestId: string
+  sourceRequestId: string,
+  notes?: string
 ): Promise<PauseWorkOrderResponse> => {
   const functions = getFunctions();
   const callable = httpsCallable<
-    { sourceRequestId: string },
+    { sourceRequestId: string; notes?: string },
     PauseWorkOrderResponse
   >(functions, 'pauseWorkOrder');
-  const result = await callable({ sourceRequestId });
+  const result = await callable({ sourceRequestId, notes });
   return result.data;
 };
 
@@ -209,14 +234,15 @@ interface ResumeWorkOrderResponse {
 }
 
 export const resumeWorkOrderFromRequest = async (
-  sourceRequestId: string
+  sourceRequestId: string,
+  notes?: string
 ): Promise<ResumeWorkOrderResponse> => {
   const functions = getFunctions();
   const callable = httpsCallable<
-    { sourceRequestId: string },
+    { sourceRequestId: string; notes?: string },
     ResumeWorkOrderResponse
   >(functions, 'resumeWorkOrder');
-  const result = await callable({ sourceRequestId });
+  const result = await callable({ sourceRequestId, notes });
   return result.data;
 };
 

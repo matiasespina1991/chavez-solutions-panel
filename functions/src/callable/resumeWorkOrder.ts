@@ -5,6 +5,7 @@ const db = admin.firestore();
 
 interface ResumeWorkOrderRequest {
   sourceRequestId?: string;
+  notes?: string;
 }
 
 interface ServiceRequestData {
@@ -23,6 +24,7 @@ export const resumeWorkOrder = onCall(async (req) => {
 
   const data = (req.data || {}) as ResumeWorkOrderRequest;
   const sourceRequestId = data.sourceRequestId?.trim();
+  const notes = typeof data.notes === 'string' ? data.notes : undefined;
 
   if (!sourceRequestId) {
     throw new HttpsError('invalid-argument', 'sourceRequestId is required.');
@@ -61,6 +63,7 @@ export const resumeWorkOrder = onCall(async (req) => {
 
     tx.update(workOrderRef, {
       status: 'issued',
+      ...(notes !== undefined ? { notes } : {}),
       resumedAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
@@ -68,6 +71,7 @@ export const resumeWorkOrder = onCall(async (req) => {
     tx.update(sourceRequestRef, {
       isWorkOrder: true,
       status: 'converted_to_work_order',
+      ...(notes !== undefined ? { notes } : {}),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
