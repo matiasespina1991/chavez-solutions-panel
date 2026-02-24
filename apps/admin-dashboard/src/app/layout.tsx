@@ -35,6 +35,8 @@ export default async function RootLayout({
   const initialThemeValue = isAutoTheme
     ? activeThemeValue === 'auto-blue'
       ? 'blue'
+      : activeThemeValue === 'auto-gray'
+        ? 'gray'
       : 'default'
     : activeThemeValue;
   const isScaled = initialThemeValue?.endsWith('-scaled');

@@ -19,6 +19,10 @@ const DEFAULT_THEMES = [
     value: 'default'
   },
   {
+    name: 'Gray',
+    value: 'gray'
+  },
+  {
     name: 'Blue',
     value: 'blue'
   },
@@ -38,6 +42,10 @@ const SCALED_THEMES = [
     value: 'default-scaled'
   },
   {
+    name: 'Gray',
+    value: 'gray-scaled'
+  },
+  {
     name: 'Blue',
     value: 'blue-scaled'
   }
@@ -54,6 +62,10 @@ const AUTO_THEMES = [
   {
     name: 'Default',
     value: 'auto-default'
+  },
+  {
+    name: 'Gray',
+    value: 'auto-gray'
   },
   {
     name: 'Blue',

@@ -19,7 +19,7 @@ export function UserAvatarProfile({
     <div className='flex items-center gap-2'>
       <Avatar className={className}>
         <AvatarImage src={user?.imageUrl || ''} alt={user?.fullName || ''} />
-        <AvatarFallback className='rounded-lg'>
+        <AvatarFallback className='rounded-lg text-black'>
           {user?.fullName?.slice(0, 2)?.toUpperCase() || 'CN'}
         </AvatarFallback>
       </Avatar>
