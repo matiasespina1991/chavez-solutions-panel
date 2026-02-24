@@ -33,6 +33,44 @@ export const deleteServiceRequest = onCall(async (req) => {
 
     const sourceData = sourceSnap.data() ?? {};
 
+    const linkedWorkOrderId =
+      typeof sourceData.linkedWorkOrderId === 'string'
+        ? sourceData.linkedWorkOrderId.trim()
+        : '';
+
+    let workOrderRef: FirebaseFirestore.DocumentReference | null = null;
+
+    if (linkedWorkOrderId) {
+      workOrderRef = db.collection('work_orders').doc(linkedWorkOrderId);
+      const workOrderSnap = await tx.get(workOrderRef);
+      if (!workOrderSnap.exists) {
+        workOrderRef = null;
+      }
+    }
+
+    if (!workOrderRef) {
+      const workOrderBySourceQuery = db
+        .collection('work_orders')
+        .where('sourceRequestId', '==', sourceRequestId)
+        .limit(1);
+      const workOrderBySourceSnap = await tx.get(workOrderBySourceQuery);
+      if (!workOrderBySourceSnap.empty) {
+        workOrderRef = workOrderBySourceSnap.docs[0].ref;
+      }
+    }
+
+    if (workOrderRef) {
+      tx.set(
+        workOrderRef,
+        {
+          status: 'cancelled',
+          cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+    }
+
     tx.set(deletedRef, {
       ...sourceData,
       originalRequestId: sourceRequestId,

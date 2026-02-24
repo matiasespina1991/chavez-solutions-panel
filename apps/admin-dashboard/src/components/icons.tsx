@@ -94,5 +94,6 @@ export const Icons = {
   gallery: IconPhotoPlus,
   works: IconLayoutGrid,
   list: IconList,
+  checklist: IconChecklist,
   configurator: IconWand
 };

@@ -103,10 +103,13 @@ Busca el `useEffect` dentro de `src/features/configurator/components/configurato
 ## 8. Dashboard y Operación
 
 - El menú lateral del dashboard se redujo a tres entradas operativas para este alcance:
+- El menú lateral del dashboard contempla estas entradas operativas para este alcance:
   - `Configurador de proformas y OT`
   - `Lista de solicitudes` (ruta actual: `/dashboard/service-requests`)
+  - `Lista de ordenes de trabajo` (ruta: `/dashboard/work-orders`)
   - `Configuración`
 - La sección de lista muestra `service_requests` y permite acciones por fila.
+- La sección de órdenes de trabajo muestra `work_orders` en una vista dedicada.
 - Desde "Editar solicitud..." se abre el configurador con query `requestId` para edición.
 - En modo edición, el resumen muestra solo el botón **Actualizar solicitud** (sin Guardar Borrador/Guardar Definitivo).
 - En el listado existe menú por fila para:

@@ -18,6 +18,14 @@ export const navItems: NavItem[] = [
     items: []
   },
   {
+    title: 'Lista de ordenes de trabajo',
+    url: '/dashboard/work-orders',
+    icon: 'checklist',
+    shortcut: ['r', 'r'],
+    isActive: false,
+    items: []
+  },
+  {
     title: 'Configuración',
     url: '/dashboard/settings',
     icon: 'settings',

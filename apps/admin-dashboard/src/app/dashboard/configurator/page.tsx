@@ -11,7 +11,7 @@ export default function ConfiguratorPage() {
       pageTitle='Configurador de proformas y OT'
       pageDescription='Crea y configura Proformas y Órdenes de Trabajo'
     >
-      <div className='mt-6'>
+      <div className='mt-2'>
         <ConfiguratorForm />
       </div>
     </PageContainer>
