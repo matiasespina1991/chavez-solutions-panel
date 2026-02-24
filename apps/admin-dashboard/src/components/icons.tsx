@@ -40,7 +40,11 @@ import {
   IconAt,
   IconHome,
   IconPhotoPlus,
-  IconLayoutGrid
+  IconLayoutGrid,
+  IconListDetails,
+  IconWand,
+  IconChecklist,
+  IconList
 } from '@tabler/icons-react';
 
 export type Icon = React.ComponentType<IconProps>;
@@ -88,5 +92,7 @@ export const Icons = {
   contact: IconAt,
   home: IconHome,
   gallery: IconPhotoPlus,
-  works: IconLayoutGrid
+  works: IconLayoutGrid,
+  list: IconList,
+  configurator: IconWand
 };

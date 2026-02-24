@@ -17,10 +17,7 @@ export function useFilteredNavItems(items: NavItem[]) {
     }
 
     const allowedUrls = new Set([
-      '/dashboard/exhibitions',
-      '/dashboard/gallery',
-      '/dashboard/about-me',
-      '/dashboard/contact',
+      '/dashboard/service-requests',
       '/dashboard/settings',
       '/dashboard/configurator'
     ]);

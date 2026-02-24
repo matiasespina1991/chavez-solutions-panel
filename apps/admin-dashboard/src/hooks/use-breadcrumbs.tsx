@@ -1,10 +1,8 @@
 'use client';
 
 import { navItems } from '@/config/nav-config';
-import { db } from '@/lib/firebase';
 import { usePathname } from 'next/navigation';
-import { doc, getDoc } from 'firebase/firestore';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 type BreadcrumbItem = {
   title: string;
@@ -36,34 +34,6 @@ function buildNavTitleMap() {
 
 export function useBreadcrumbs() {
   const pathname = usePathname();
-  const [exhibitionTitle, setExhibitionTitle] = useState<string | null>(null);
-  const [exhibitionId, setExhibitionId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const match = pathname.match(/^\/dashboard\/exhibitions\/([^/]+)$/);
-    if (!match) {
-      setExhibitionId(null);
-      setExhibitionTitle(null);
-      return;
-    }
-    const nextId = match[1];
-    setExhibitionId(nextId);
-    let isActive = true;
-
-    getDoc(doc(db, 'exhibitions', nextId))
-      .then((snap) => {
-        if (!isActive) return;
-        const data = snap.data() as { title?: string } | undefined;
-        setExhibitionTitle(data?.title?.trim() || null);
-      })
-      .catch(() => {
-        if (isActive) setExhibitionTitle(null);
-      });
-
-    return () => {
-      isActive = false;
-    };
-  }, [pathname]);
 
   const breadcrumbs = useMemo(() => {
     const navTitleMap = buildNavTitleMap();
@@ -80,19 +50,16 @@ export function useBreadcrumbs() {
 
         .join('/')}`;
       const mappedTitle = navTitleMap.get(path);
-      const isExhibitionDetail =
-        exhibitionId && path === `/dashboard/exhibitions/${exhibitionId}`;
       const isDashboardRoot = path === '/dashboard';
       return {
         title:
           (isDashboardRoot && 'Panel') ||
-          (isExhibitionDetail && (exhibitionTitle || 'Exhibición')) ||
           mappedTitle ||
           segment.charAt(0).toUpperCase() + segment.slice(1),
         link: path
       };
     });
-  }, [exhibitionId, exhibitionTitle, pathname]);
+  }, [pathname]);
 
   return breadcrumbs;
 }
