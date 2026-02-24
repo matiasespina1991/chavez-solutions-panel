@@ -778,7 +778,7 @@ export default function ServiceRequestsListing() {
           <table className='w-full min-w-[1120px] text-left text-sm'>
             <thead className='bg-muted text-muted-foreground sticky top-0 z-10'>
               <tr>
-                <th className='px-4 py-3'>
+                <th className='w-[155px] px-4 py-3'>
                   <button
                     type='button'
                     className='cursor-pointer select-none'
@@ -893,7 +893,7 @@ export default function ServiceRequestsListing() {
                       setIsViewDialogOpen(true);
                     }}
                   >
-                    <td className='px-4 py-3'>
+                    <td className='w-[155px] px-4 py-3'>
                       <span className={isDraft ? 'text-destructive' : ''}>
                         {row.reference}
                       </span>

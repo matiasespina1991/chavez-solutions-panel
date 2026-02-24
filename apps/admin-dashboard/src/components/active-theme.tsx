@@ -9,11 +9,11 @@ import {
 } from 'react';
 
 const COOKIE_NAME = 'active_theme';
-const DEFAULT_THEME = 'default';
+const DEFAULT_THEME = 'auto-gray';
 const AUTO_SCALE_MIN_HEIGHT = 900;
 const AUTO_THEME_MAP: Record<string, { base: string; scaled: string }> = {
-  auto: { base: 'default', scaled: 'default-scaled' },
-  'auto-default': { base: 'default', scaled: 'default-scaled' },
+  auto: { base: 'gray', scaled: 'gray-scaled' },
+  'auto-default': { base: 'gray', scaled: 'gray-scaled' },
   'auto-gray': { base: 'gray', scaled: 'gray-scaled' },
   'auto-blue': { base: 'blue', scaled: 'blue-scaled' }
 };

@@ -571,7 +571,7 @@ export default function WorkOrdersListing() {
           <table className='w-full min-w-[1080px] text-left text-sm'>
             <thead className='bg-muted text-muted-foreground sticky top-0 z-10'>
               <tr>
-                <th className='px-4 py-3'>
+                <th className='w-[155px] px-4 py-3'>
                   <button
                     type='button'
                     className='cursor-pointer select-none'
@@ -675,7 +675,7 @@ export default function WorkOrdersListing() {
                       setIsViewDialogOpen(true);
                     }}
                   >
-                    <td className='px-4 py-3'>
+                    <td className='w-[155px] px-4 py-3'>
                       <div className='space-y-0.5'>
                         <p>
                           {row.workOrderNumber}
@@ -886,6 +886,16 @@ export default function WorkOrdersListing() {
                     {getWorkOrderDialogBanner(selectedRow)?.text}
                   </div>
                 ) : null}
+
+                {selectedRow.notes?.trim() ? (
+                  <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
+                    <h4 className='text-muted-foreground font-semibold'>
+                      Notas
+                    </h4>
+                    <p className='whitespace-pre-wrap'>{selectedRow.notes}</p>
+                  </div>
+                ) : null}
+
                 <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
                   <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
                     <h4 className='text-muted-foreground font-semibold'>
@@ -988,14 +998,6 @@ export default function WorkOrdersListing() {
                   </div>
                 ) : null}
 
-                {selectedRow.notes?.trim() ? (
-                  <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
-                    <h4 className='text-muted-foreground font-semibold'>
-                      Notas
-                    </h4>
-                    <p className='whitespace-pre-wrap'>{selectedRow.notes}</p>
-                  </div>
-                ) : null}
               </div>
             </div>
           )}
