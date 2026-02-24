@@ -163,7 +163,13 @@ export default function ConfiguratorForm() {
   const [activeTab, setActiveTab] = useState('type');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingRequest, setIsLoadingRequest] = useState(false);
+  const [loadedRequestStatus, setLoadedRequestStatus] = useState<
+    'draft' | 'final' | null
+  >(null);
   const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
+  const [isExecuteDialogOpen, setIsExecuteDialogOpen] = useState(false);
+  const [pendingExecutionData, setPendingExecutionData] =
+    useState<FormValues | null>(null);
   const requestedTab = searchParams.get('tab');
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -440,6 +446,8 @@ export default function ConfiguratorForm() {
           }
         };
 
+        setLoadedRequestStatus(existing.status);
+
         if (typeof window !== 'undefined') {
           try {
             const cached = window.localStorage.getItem(cacheKey);
@@ -464,6 +472,8 @@ export default function ConfiguratorForm() {
 
     loadRequest();
   }, [cacheKey, editRequestId, form, router]);
+
+  const isDraftEditMode = isEditMode && loadedRequestStatus === 'draft';
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -610,7 +620,14 @@ export default function ConfiguratorForm() {
         pricing: values.pricing
       };
 
-      const requestId = await createConfiguration(docData);
+      const requestId = editRequestId ?? (await createConfiguration(docData));
+
+      if (editRequestId) {
+        await updateConfiguration(editRequestId, {
+          ...docData,
+          status
+        });
+      }
 
       if (
         status === 'final' &&
@@ -622,13 +639,21 @@ export default function ConfiguratorForm() {
         );
       } else {
         if (status === 'draft') {
-          toast.success('Solicitud guardada como borrador');
+          toast.success(
+            editRequestId
+              ? 'Borrador actualizado correctamente'
+              : 'Solicitud guardada como borrador'
+          );
         } else {
-          toast.success('Proforma emitida correctamente');
+          toast.success(
+            editRequestId
+              ? 'Solicitud actualizada y ejecutada correctamente'
+              : 'Proforma emitida correctamente'
+          );
         }
       }
       removeCachedDraft();
-      router.push('/dashboard');
+      router.push('/dashboard/service-requests');
     } catch (error) {
       console.error('Error saving configuration:', error);
       toast.error('No se pudo guardar la solicitud');
@@ -676,9 +701,29 @@ export default function ConfiguratorForm() {
     }
   };
 
+  const handleExecuteClick = () => {
+    form.handleSubmit((data) => {
+      if (data.type === 'work_order' || data.type === 'both') {
+        setPendingExecutionData(data);
+        setIsExecuteDialogOpen(true);
+        return;
+      }
+
+      onSubmit(data, 'final');
+    })();
+  };
+
+  const handleConfirmExecute = () => {
+    if (!pendingExecutionData) return;
+    onSubmit(pendingExecutionData, 'final');
+    setIsExecuteDialogOpen(false);
+    setPendingExecutionData(null);
+  };
+
   const availablePackages = packages.filter((p) => p.matrix === matrix);
   const availableParameters =
     matrix === 'water' ? waterParameters : soilParameters;
+  const summaryNotes = (form.getValues('notes') || '').trim();
 
   return (
     <Form form={form} onSubmit={(e) => e.preventDefault()}>
@@ -736,7 +781,7 @@ export default function ConfiguratorForm() {
 
           {/* PASO A: TIPO Y METADATOS */}
           <TabsContent value='type' className='mt-4 space-y-4'>
-            <Card>
+            <Card className='border-0 shadow-none'>
               <CardHeader>
                 <CardTitle>Tipo de Documento y Metadatos</CardTitle>
               </CardHeader>
@@ -904,6 +949,14 @@ export default function ConfiguratorForm() {
 
                 <div className='flex justify-end gap-2'>
                   {clearCurrentDataButton}
+                  <Button
+                    type='button'
+                    variant='secondary'
+                    disabled={isSubmitting || isLoadingRequest}
+                    onClick={() => onSubmit(form.getValues(), 'draft')}
+                  >
+                    Guardar como Borrador
+                  </Button>
                   <Button type='button' onClick={() => setActiveTab('client')}>
                     Siguiente
                   </Button>
@@ -914,7 +967,7 @@ export default function ConfiguratorForm() {
 
           {/* PASO B: CLIENTE */}
           <TabsContent value='client' className='mt-4 space-y-4'>
-            <Card>
+            <Card className='border-0 shadow-none'>
               <CardHeader>
                 <CardTitle>Datos del Cliente</CardTitle>
               </CardHeader>
@@ -1037,6 +1090,14 @@ export default function ConfiguratorForm() {
                     {clearCurrentDataButton}
                     <Button
                       type='button'
+                      variant='secondary'
+                      disabled={isSubmitting || isLoadingRequest}
+                      onClick={() => onSubmit(form.getValues(), 'draft')}
+                    >
+                      Guardar como Borrador
+                    </Button>
+                    <Button
+                      type='button'
                       onClick={() => setActiveTab('samples')}
                     >
                       Siguiente
@@ -1049,7 +1110,7 @@ export default function ConfiguratorForm() {
 
           {/* PASO C: MUESTRAS */}
           <TabsContent value='samples' className='mt-4 space-y-4'>
-            <Card>
+            <Card className='border-0 shadow-none'>
               <CardHeader>
                 <CardTitle>Muestras / Fuentes</CardTitle>
               </CardHeader>
@@ -1204,6 +1265,14 @@ export default function ConfiguratorForm() {
                     {clearCurrentDataButton}
                     <Button
                       type='button'
+                      variant='secondary'
+                      disabled={isSubmitting || isLoadingRequest}
+                      onClick={() => onSubmit(form.getValues(), 'draft')}
+                    >
+                      Guardar como Borrador
+                    </Button>
+                    <Button
+                      type='button'
                       onClick={() => setActiveTab('analyses')}
                     >
                       Siguiente
@@ -1216,7 +1285,7 @@ export default function ConfiguratorForm() {
 
           {/* PASO D: ANÁLISIS */}
           <TabsContent value='analyses' className='mt-4 space-y-4'>
-            <Card>
+            <Card className='border-0 shadow-none'>
               <CardHeader>
                 <CardTitle>Análisis Solicitados</CardTitle>
               </CardHeader>
@@ -1396,6 +1465,14 @@ export default function ConfiguratorForm() {
                     {clearCurrentDataButton}
                     <Button
                       type='button'
+                      variant='secondary'
+                      disabled={isSubmitting || isLoadingRequest}
+                      onClick={() => onSubmit(form.getValues(), 'draft')}
+                    >
+                      Guardar como Borrador
+                    </Button>
+                    <Button
+                      type='button'
                       onClick={() => setActiveTab('summary')}
                     >
                       Siguiente
@@ -1408,13 +1485,7 @@ export default function ConfiguratorForm() {
 
           {/* PASO E: RESUMEN */}
           <TabsContent value='summary' className='mt-4'>
-            <Card className='p-0'>
-              <CardHeader className='border-b px-6 py-4'>
-                <CardTitle>Resumen de solicitud</CardTitle>
-                <p className='text-muted-foreground text-sm'>
-                  Vista consolidada de cliente, muestras, análisis y costos.
-                </p>
-              </CardHeader>
+            <Card className='border-0 p-0 shadow-none'>
               <CardContent className='space-y-5 px-6 py-5'>
                 <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
                   <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
@@ -1568,6 +1639,15 @@ export default function ConfiguratorForm() {
                   </div>
                 )}
 
+                {summaryNotes ? (
+                  <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
+                    <h4 className='text-muted-foreground font-semibold'>
+                      Notas
+                    </h4>
+                    <p className='whitespace-pre-wrap'>{summaryNotes}</p>
+                  </div>
+                ) : null}
+
                 <div className='mt-6 flex justify-between border-t pt-4'>
                   <Button
                     type='button'
@@ -1578,7 +1658,31 @@ export default function ConfiguratorForm() {
                   </Button>
                   <div className='flex items-center gap-2'>
                     {clearCurrentDataButton}
-                    {isEditMode ? (
+                    {isDraftEditMode ? (
+                      <>
+                        <Button
+                          type='button'
+                          variant='secondary'
+                          disabled={isSubmitting || isLoadingRequest}
+                          onClick={() => onSubmit(form.getValues(), 'draft')}
+                        >
+                          Guardar como Borrador
+                        </Button>
+                        <Button
+                          type='button'
+                          disabled={
+                            isSubmitting || isLoadingRequest || !canSubmitFinal
+                          }
+                          onClick={handleExecuteClick}
+                        >
+                          {type === 'proforma'
+                            ? 'Ejecutar Proforma'
+                            : type === 'both'
+                              ? 'Ejecutar Proforma + OT'
+                              : 'Ejecutar Orden de Trabajo'}
+                        </Button>
+                      </>
+                    ) : isEditMode ? (
                       <Button
                         type='button'
                         disabled={
@@ -1597,9 +1701,7 @@ export default function ConfiguratorForm() {
                           variant='secondary'
                           disabled={isSubmitting || isLoadingRequest}
                           onClick={() =>
-                            form.handleSubmit((data) =>
-                              onSubmit(data, 'draft')
-                            )()
+                            onSubmit(form.getValues(), 'draft')
                           }
                         >
                           Guardar como Borrador
@@ -1609,11 +1711,7 @@ export default function ConfiguratorForm() {
                           disabled={
                             isSubmitting || isLoadingRequest || !canSubmitFinal
                           }
-                          onClick={() =>
-                            form.handleSubmit((data) =>
-                              onSubmit(data, 'final')
-                            )()
-                          }
+                          onClick={handleExecuteClick}
                         >
                           {type === 'proforma'
                             ? 'Ejecutar Proforma'
@@ -1650,6 +1748,38 @@ export default function ConfiguratorForm() {
               onClick={handleConfirmClearCurrentData}
             >
               Vaciar datos
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={isExecuteDialogOpen}
+        onOpenChange={(open) => {
+          if (isSubmitting) return;
+          setIsExecuteDialogOpen(open);
+          if (!open) setPendingExecutionData(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar emisión de orden de trabajo</AlertDialogTitle>
+            <AlertDialogDescription>
+              Está por ejecutar una solicitud que emitirá una orden de trabajo.
+              Esta acción iniciará el proceso operativo y actualizará el estado
+              de la solicitud.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className='cursor-pointer' disabled={isSubmitting}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className='cursor-pointer'
+              onClick={handleConfirmExecute}
+              disabled={isSubmitting}
+            >
+              Confirmar y ejecutar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

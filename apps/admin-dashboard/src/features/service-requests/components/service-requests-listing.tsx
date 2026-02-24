@@ -3,6 +3,16 @@
 import { DataTableSkeleton } from '@/components/ui/table/data-table-skeleton';
 import { Button } from '@/components/ui/button';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -21,6 +31,7 @@ import {
   TooltipTrigger
 } from '@/components/ui/tooltip';
 import {
+  deleteServiceRequest,
   createWorkOrderFromRequest,
   pauseWorkOrderFromRequest,
   resumeWorkOrderFromRequest
@@ -34,9 +45,13 @@ import {
   Timestamp
 } from 'firebase/firestore';
 import {
+  IconDownload,
   IconDotsVertical,
+  IconPencil,
   IconPlayerPauseFilled,
-  IconPlayerPlayFilled
+  IconPlayerPlayFilled,
+  IconPrinter,
+  IconTrash
 } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -53,6 +68,7 @@ type ServiceRequestStatus =
 interface ServiceRequestRow {
   id: string;
   reference: string;
+  notes: string;
   isWorkOrder: boolean;
   matrix: ServiceRequestMatrix;
   status: ServiceRequestStatus;
@@ -78,7 +94,7 @@ const matrixLabelMap: Record<ServiceRequestMatrix, string> = {
 };
 
 const statusLabelMap: Record<ServiceRequestStatus, string> = {
-  draft: 'Borrador',
+  draft: '(Borrador)',
   submitted: 'Proforma enviada',
   converted_to_work_order: 'Convertida a OT',
   work_order_paused: 'Orden de trabajo pausada',
@@ -109,12 +125,28 @@ export default function ServiceRequestsListing() {
     null
   );
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [rowToDelete, setRowToDelete] = useState<ServiceRequestRow | null>(
+    null
+  );
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const hasIssuedWorkOrder = (row: ServiceRequestRow) =>
+    row.status === 'converted_to_work_order' ||
+    row.status === 'work_order_paused';
 
   const handleWorkOrderAction = async (row: ServiceRequestRow) => {
+    if (row.status === 'draft') {
+      toast.error('No se puede emitir una orden de trabajo desde un borrador');
+      return;
+    }
+
     try {
       setPendingActionId(row.id);
 
-      if (row.isWorkOrder) {
+      const workOrderIssued = hasIssuedWorkOrder(row);
+
+      if (workOrderIssued) {
         if (row.status === 'work_order_paused') {
           await resumeWorkOrderFromRequest(row.id);
           toast.success(`Orden de trabajo ${row.reference} reanudada`);
@@ -132,6 +164,58 @@ export default function ServiceRequestsListing() {
     } finally {
       setPendingActionId(null);
     }
+  };
+
+  const handleDeleteRequest = async () => {
+    if (!rowToDelete) return;
+
+    try {
+      setIsDeleting(true);
+      await deleteServiceRequest(rowToDelete.id);
+      toast.success('Solicitud eliminada correctamente');
+      setIsDeleteDialogOpen(false);
+      setRowToDelete(null);
+      if (selectedRow?.id === rowToDelete.id) {
+        setIsViewDialogOpen(false);
+        setSelectedRow(null);
+      }
+    } catch (error) {
+      console.error('[ServiceRequests] delete error', error);
+      toast.error('No se pudo eliminar la solicitud');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDialogEdit = () => {
+    if (!selectedRow) return;
+
+    const workOrderIssued = hasIssuedWorkOrder(selectedRow);
+    const isWorkOrderPaused = selectedRow.status === 'work_order_paused';
+
+    if (workOrderIssued && !isWorkOrderPaused) {
+      toast.error('No se puede editar una orden de trabajo ya emitida');
+      return;
+    }
+
+    setIsViewDialogOpen(false);
+    router.push(
+      `/dashboard/configurator?requestId=${encodeURIComponent(selectedRow.id)}&tab=summary`
+    );
+  };
+
+  const handleDialogDelete = () => {
+    if (!selectedRow) return;
+    setRowToDelete(selectedRow);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDialogDownload = () => {
+    toast.info('Descargar solicitud estará disponible próximamente');
+  };
+
+  const handleDialogPrint = () => {
+    toast.info('Imprimir solicitud estará disponible próximamente');
   };
 
   useEffect(() => {
@@ -251,6 +335,7 @@ export default function ServiceRequestsListing() {
           return {
             id: docSnap.id,
             reference: String(value.reference ?? '—'),
+            notes: String(value.notes ?? ''),
             isWorkOrder,
             matrix,
             status,
@@ -285,7 +370,7 @@ export default function ServiceRequestsListing() {
   if (loading) {
     return (
       <DataTableSkeleton
-        columnCount={10}
+        columnCount={11}
         rowCount={8}
         filterCount={0}
         withViewOptions={false}
@@ -297,6 +382,7 @@ export default function ServiceRequestsListing() {
           '14rem',
           '6rem',
           '6rem',
+          '14rem',
           '10rem',
           '8rem',
           '12rem',
@@ -317,7 +403,7 @@ export default function ServiceRequestsListing() {
   return (
     <div className='rounded-md border'>
       <div className='max-h-[calc(100vh-240px)] overflow-auto'>
-        <table className='w-full min-w-[980px] text-left text-sm'>
+        <table className='w-full min-w-[1120px] text-left text-sm'>
           <thead className='bg-muted text-muted-foreground sticky top-0 z-10'>
             <tr>
               <th className='px-4 py-3'>Referencia</th>
@@ -327,158 +413,203 @@ export default function ServiceRequestsListing() {
               <th className='px-4 py-3 text-right'>Muestras</th>
               <th className='px-4 py-3 text-right'>Análisis</th>
               <th className='px-4 py-3'>Estado</th>
+              <th className='px-4 py-3'>Notas</th>
               <th className='px-4 py-3 text-right'>Total (USD)</th>
               <th className='px-4 py-3'>Última Actualización</th>
               <th className='w-12 px-2 py-3 text-right'></th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
-              <tr
-                key={row.id}
-                className='hover:bg-muted/40 cursor-pointer border-t transition-colors duration-200'
-                onClick={() => {
-                  setSelectedRow(row);
-                  setIsViewDialogOpen(true);
-                }}
-              >
-                <td className='px-4 py-3'>{row.reference}</td>
-                <td className='px-4 py-3 text-center'>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span
-                        className={`inline-block h-2 w-2 rounded-full ${
-                          row.status === 'work_order_paused'
-                            ? 'bg-yellow-400'
-                            : row.isWorkOrder
-                              ? 'bg-emerald-500'
-                              : 'bg-red-500'
-                        }`}
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {row.status === 'work_order_paused'
-                        ? 'Orden de trabajo pausada'
-                        : row.isWorkOrder
-                          ? 'Orden de trabajo emitida'
-                          : 'Sin orden de trabajo'}
-                    </TooltipContent>
-                  </Tooltip>
-                </td>
-                <td className='px-4 py-3'>{matrixLabelMap[row.matrix]}</td>
-                <td className='px-4 py-3'>{row.clientBusinessName}</td>
-                <td className='px-4 py-3 text-right'>{row.agreedCount}</td>
-                <td className='px-4 py-3 text-right'>{row.analysesCount}</td>
-                <td className='px-4 py-3'>{statusLabelMap[row.status]}</td>
-                <td className='px-4 py-3 text-right'>
-                  {row.total.toFixed(2).replace('.', ',')}
-                </td>
-                <td className='px-4 py-3'>{row.updatedAtLabel}</td>
-                <td className='w-12 px-2 py-3 text-right'>
-                  <div
-                    className='flex justify-end'
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    <DropdownMenu modal={false}>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant='ghost'
-                          className='h-8 w-8 cursor-pointer p-0'
-                          disabled={pendingActionId === row.id}
-                        >
-                          <span className='sr-only'>Abrir acciones</span>
-                          <IconDotsVertical className='h-4 w-4' />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align='end' side='bottom'>
-                        <DropdownMenuItem
-                          className='cursor-pointer transition-colors duration-150'
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setSelectedRow(row);
-                            setIsViewDialogOpen(true);
-                          }}
-                        >
-                          Ver solicitud
-                        </DropdownMenuItem>
-                        {row.isWorkOrder &&
-                        row.status !== 'work_order_paused' ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className='block'>
-                                <DropdownMenuItem
-                                  disabled
-                                  className='text-muted-foreground cursor-not-allowed opacity-60'
-                                >
-                                  Editar solicitud...
-                                </DropdownMenuItem>
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              No se puede editar una orden de trabajo ya emitida
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : (
+            {rows.map((row) => {
+              const workOrderIssued = hasIssuedWorkOrder(row);
+              const isWorkOrderPaused = row.status === 'work_order_paused';
+              const isDraft = row.status === 'draft';
+
+              return (
+                <tr
+                  key={row.id}
+                  className='hover:bg-muted/40 cursor-pointer border-t transition-colors duration-200'
+                  onClick={() => {
+                    setSelectedRow(row);
+                    setIsViewDialogOpen(true);
+                  }}
+                >
+                  <td className='px-4 py-3'>
+                    {row.reference}
+                    {row.status === 'draft' && (
+                      <span className='text-muted-foreground ml-1 text-xs'>
+                        (borrador)
+                      </span>
+                    )}
+                  </td>
+                  <td className='px-4 py-3 text-center'>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span
+                          className={`inline-block h-2 w-2 rounded-full ${
+                            isWorkOrderPaused
+                              ? 'bg-yellow-400'
+                              : workOrderIssued
+                                ? 'bg-emerald-500'
+                                : 'bg-red-500'
+                          }`}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {isWorkOrderPaused
+                          ? 'Orden de trabajo pausada'
+                          : workOrderIssued
+                            ? 'Orden de trabajo emitida'
+                            : 'Sin orden de trabajo'}
+                      </TooltipContent>
+                    </Tooltip>
+                  </td>
+                  <td className='px-4 py-3'>{matrixLabelMap[row.matrix]}</td>
+                  <td className='px-4 py-3'>{row.clientBusinessName}</td>
+                  <td className='px-4 py-3 text-right'>{row.agreedCount}</td>
+                  <td className='px-4 py-3 text-right'>{row.analysesCount}</td>
+                  <td className='px-4 py-3'>{statusLabelMap[row.status]}</td>
+                  <td className='px-4 py-3'>
+                    {row.notes?.trim() ? (
+                      <span className='inline-block max-w-[14rem] truncate align-bottom'>
+                        {row.notes}
+                      </span>
+                    ) : (
+                      '—'
+                    )}
+                  </td>
+                  <td className='px-4 py-3 text-right'>
+                    {row.total.toFixed(2).replace('.', ',')}
+                  </td>
+                  <td className='px-4 py-3'>{row.updatedAtLabel}</td>
+                  <td className='w-12 px-2 py-3 text-right'>
+                    <div
+                      className='flex justify-end'
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <DropdownMenu modal={false}>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant='ghost'
+                            className='h-8 w-8 cursor-pointer p-0'
+                            disabled={pendingActionId === row.id}
+                          >
+                            <span className='sr-only'>Abrir acciones</span>
+                            <IconDotsVertical className='h-4 w-4' />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align='end' side='bottom'>
                           <DropdownMenuItem
                             className='cursor-pointer transition-colors duration-150'
                             onClick={(event) => {
                               event.stopPropagation();
-                              router.push(
-                                `/dashboard/configurator?requestId=${encodeURIComponent(row.id)}&tab=summary`
-                              );
+                              setSelectedRow(row);
+                              setIsViewDialogOpen(true);
                             }}
                           >
-                            Editar solicitud...
+                            Ver solicitud
                           </DropdownMenuItem>
-                        )}
-                        <DropdownMenuItem
-                          className={`cursor-pointer justify-start transition-colors duration-150 ${
-                            !row.isWorkOrder
-                              ? 'text-foreground focus:text-foreground'
-                              : row.status === 'work_order_paused'
-                                ? 'text-emerald-600 focus:text-emerald-600'
-                                : 'text-destructive focus:text-destructive'
-                          }`}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleWorkOrderAction(row);
-                          }}
-                          disabled={pendingActionId === row.id}
-                        >
-                          {row.isWorkOrder ? (
-                            row.status === 'work_order_paused' ? (
-                              <span className='inline-flex items-center justify-start gap-0'>
-                                <IconPlayerPlayFilled
-                                  className='h-[0.64rem] w-[0.64rem] text-emerald-600'
-                                  style={{
-                                    transform: 'scale(0.9)',
-                                    marginRight: '5px'
-                                  }}
-                                />
-                                <span>Reanudar orden de trabajo</span>
-                              </span>
-                            ) : (
-                              <span className='inline-flex items-center justify-start gap-0'>
-                                <IconPlayerPauseFilled
-                                  className='text-destructive h-[0.64rem] w-[0.64rem]'
-                                  style={{
-                                    transform: 'scale(0.9)',
-                                    marginRight: '5px'
-                                  }}
-                                />
-                                <span>Pausar orden de trabajo</span>
-                              </span>
-                            )
+                          {workOrderIssued && !isWorkOrderPaused ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className='block'>
+                                  <DropdownMenuItem
+                                    disabled
+                                    className='text-muted-foreground cursor-not-allowed opacity-60'
+                                  >
+                                    Editar solicitud...
+                                  </DropdownMenuItem>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                No se puede editar una orden de trabajo ya
+                                emitida
+                              </TooltipContent>
+                            </Tooltip>
                           ) : (
-                            'Emitir orden de trabajo'
+                            <DropdownMenuItem
+                              className='cursor-pointer transition-colors duration-150'
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                router.push(
+                                  `/dashboard/configurator?requestId=${encodeURIComponent(row.id)}&tab=summary`
+                                );
+                              }}
+                            >
+                              Editar solicitud...
+                            </DropdownMenuItem>
                           )}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                          <DropdownMenuItem
+                            className={`cursor-pointer justify-start transition-colors duration-150 ${
+                              isDraft
+                                ? 'text-muted-foreground focus:text-muted-foreground cursor-not-allowed opacity-60'
+                                : !workOrderIssued
+                                  ? 'text-foreground focus:text-foreground'
+                                  : isWorkOrderPaused
+                                    ? 'text-emerald-600 focus:text-emerald-600'
+                                    : 'text-destructive focus:text-destructive'
+                            }`}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleWorkOrderAction(row);
+                            }}
+                            disabled={pendingActionId === row.id || isDraft}
+                          >
+                            {workOrderIssued ? (
+                              isWorkOrderPaused ? (
+                                <span className='inline-flex items-center justify-start gap-0'>
+                                  <IconPlayerPlayFilled
+                                    className='h-[0.64rem] w-[0.64rem] text-emerald-600'
+                                    style={{
+                                      transform: 'scale(0.9)',
+                                      marginRight: '5px'
+                                    }}
+                                  />
+                                  <span>Reanudar orden de trabajo</span>
+                                </span>
+                              ) : (
+                                <span className='inline-flex items-center justify-start gap-0'>
+                                  <IconPlayerPauseFilled
+                                    className='text-destructive h-[0.64rem] w-[0.64rem]'
+                                    style={{
+                                      transform: 'scale(0.9)',
+                                      marginRight: '5px'
+                                    }}
+                                  />
+                                  <span>Pausar orden de trabajo</span>
+                                </span>
+                              )
+                            ) : (
+                              'Emitir orden de trabajo'
+                            )}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className='text-destructive focus:text-destructive cursor-pointer transition-colors duration-150'
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setRowToDelete(row);
+                              setIsDeleteDialogOpen(true);
+                            }}
+                            disabled={isDeleting}
+                          >
+                            <span className='inline-flex items-center justify-start gap-0'>
+                              <IconTrash
+                                className='text-destructive h-[0.64rem] w-[0.64rem]'
+                                style={{
+                                  transform: 'scale(0.9)',
+                                  marginRight: '5px'
+                                }}
+                              />
+                              <span>Eliminar Solicitud</span>
+                            </span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -486,10 +617,79 @@ export default function ServiceRequestsListing() {
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
         <DialogContent className='max-h-[90vh] gap-0 overflow-hidden p-0 sm:max-w-3xl'>
           <DialogHeader className='bg-background shrink-0 border-b px-6 py-4 pr-12'>
-            <DialogTitle>Resumen de solicitud</DialogTitle>
-            <DialogDescription>
-              Vista consolidada de cliente, muestras, análisis y costos.
-            </DialogDescription>
+            <div className='flex items-start justify-between gap-3'>
+              <div>
+                <DialogTitle>Resumen de solicitud</DialogTitle>
+                <DialogDescription>
+                  Vista consolidada de cliente, muestras, análisis y costos.
+                </DialogDescription>
+              </div>
+              <div className='flex items-center gap-1'>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type='button'
+                      variant='ghost'
+                      size='icon'
+                      className='h-8 w-8 cursor-pointer p-0'
+                      onClick={handleDialogEdit}
+                      aria-label='Editar solicitud'
+                    >
+                      <IconPencil className='h-4 w-4' />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Editar solicitud</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type='button'
+                      variant='ghost'
+                      size='icon'
+                      className='h-8 w-8 cursor-pointer p-0'
+                      onClick={handleDialogDownload}
+                      aria-label='Descargar solicitud'
+                    >
+                      <IconDownload className='h-4 w-4' />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Descargar solicitud</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type='button'
+                      variant='ghost'
+                      size='icon'
+                      className='h-8 w-8 cursor-pointer p-0'
+                      onClick={handleDialogPrint}
+                      aria-label='Imprimir solicitud'
+                    >
+                      <IconPrinter className='h-4 w-4' />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Imprimir solicitud</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type='button'
+                      variant='ghost'
+                      size='icon'
+                      className='text-destructive hover:text-destructive h-8 w-8 cursor-pointer p-0'
+                      onClick={handleDialogDelete}
+                      aria-label='Eliminar solicitud'
+                    >
+                      <IconTrash className='h-4 w-4' />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Eliminar solicitud</TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
           </DialogHeader>
 
           {selectedRow && (
@@ -638,11 +838,53 @@ export default function ServiceRequestsListing() {
                     </div>
                   </div>
                 </div>
+
+                {selectedRow.notes?.trim() ? (
+                  <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
+                    <h4 className='text-muted-foreground font-semibold'>
+                      Notas
+                    </h4>
+                    <p className='whitespace-pre-wrap'>{selectedRow.notes}</p>
+                  </div>
+                ) : null}
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={(open) => {
+          if (isDeleting) return;
+          setIsDeleteDialogOpen(open);
+          if (!open) setRowToDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Confirmar eliminación de solicitud
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Está seguro de que desea eliminar esta solicitud? Esta acción la
+              removerá y no podrá deshacerse.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className='cursor-pointer' disabled={isDeleting}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className='bg-destructive hover:bg-destructive/90 cursor-pointer text-white'
+              onClick={handleDeleteRequest}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Eliminando…' : 'Eliminar Solicitud'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

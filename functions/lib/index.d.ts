@@ -6,3 +6,4 @@ export { validateDelete } from './callable/validateDelete.js';
 export { createWorkOrder } from './callable/createWorkOrder.js';
 export { pauseWorkOrder } from './callable/pauseWorkOrder.js';
 export { resumeWorkOrder } from './callable/resumeWorkOrder.js';
+export { deleteServiceRequest } from './callable/deleteServiceRequest.js';
