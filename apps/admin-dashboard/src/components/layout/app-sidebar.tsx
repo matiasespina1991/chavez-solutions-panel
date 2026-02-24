@@ -51,7 +51,7 @@ import { useAuthSession } from '@/contexts/auth-session';
 
 export default function AppSidebar() {
   const pathname = usePathname();
-  const { isMobile, setOpenMobile } = useSidebar();
+  const { isMobile, setOpenMobile, state } = useSidebar();
   const { user, activeOrganization, signOut } = useAuthSession();
   const router = useRouter();
   const filteredItems = useFilteredNavItems(navItems);
@@ -65,7 +65,23 @@ export default function AppSidebar() {
   return (
     <Sidebar collapsible='icon'>
       <SidebarHeader>
-        <div className='flex items-center space-x-2 px-4 py-5'></div>
+        {state === 'collapsed' && !isMobile ? (
+          <div className='w-full px-2 py-3'>
+            <img
+              src='/assets/branding/logos/chavez_solutions/world-logo.png'
+              alt='Chavez Solutions'
+              className='h-auto w-full max-w-8 object-contain'
+            />
+          </div>
+        ) : (
+          <div className='flex items-center justify-start px-4 py-3'>
+            <img
+              src='/assets/branding/logos/chavez_solutions/chavez%20logo.png'
+              alt='Chavez Solutions'
+              className='h-auto w-auto max-h-14 object-contain'
+            />
+          </div>
+        )}
         {/* <OrgSwitcher /> */}
       </SidebarHeader>
       <SidebarContent className='overflow-x-hidden'>

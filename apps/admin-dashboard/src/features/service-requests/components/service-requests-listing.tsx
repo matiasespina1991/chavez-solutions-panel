@@ -125,13 +125,24 @@ const statusLabelMap: Record<ServiceRequestStatus, string> = {
 };
 
 const formatTimestamp = (value: unknown) => {
+  const formatOptions: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  };
+
   if (!value) return '—';
   if (value instanceof Timestamp) {
-    return value.toDate().toLocaleString('es-EC');
+    return `${value.toDate().toLocaleString('es-EC', formatOptions)} hs`;
   }
   if (typeof value === 'object' && value !== null && 'toDate' in value) {
     try {
-      return (value as { toDate: () => Date }).toDate().toLocaleString('es-EC');
+      return `${(value as { toDate: () => Date })
+        .toDate()
+        .toLocaleString('es-EC', formatOptions)} hs`;
     } catch {
       return '—';
     }
@@ -776,15 +787,6 @@ export default function ServiceRequestsListing() {
                     Referencia{getSortIndicator('reference')}
                   </button>
                 </th>
-                <th className='px-4 py-3 text-center'>
-                  <button
-                    type='button'
-                    className='cursor-pointer select-none'
-                    onClick={() => handleSort('ot')}
-                  >
-                    OT{getSortIndicator('ot')}
-                  </button>
-                </th>
                 <th className='px-4 py-3'>
                   <button
                     type='button'
@@ -837,6 +839,15 @@ export default function ServiceRequestsListing() {
                     onClick={() => handleSort('notes')}
                   >
                     Notas{getSortIndicator('notes')}
+                  </button>
+                </th>
+                <th className='px-4 py-3 text-center'>
+                  <button
+                    type='button'
+                    className='cursor-pointer select-none'
+                    onClick={() => handleSort('ot')}
+                  >
+                    OT{getSortIndicator('ot')}
                   </button>
                 </th>
                 <th className='px-4 py-3 text-right'>
@@ -903,38 +914,6 @@ export default function ServiceRequestsListing() {
                         </span>
                       )}
                     </td>
-                    <td className='px-4 py-3 text-center'>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          {isWorkOrderCompleted ? (
-                            <span className='inline-flex h-4 w-4 items-center justify-center text-[0.8rem] leading-none'>
-                              ✅
-                            </span>
-                          ) : (
-                            <span
-                              className={`inline-block h-2 w-2 rounded-full ${
-                                isWorkOrderPaused
-                                  ? 'bg-yellow-400'
-                                  : isDraft
-                                    ? 'bg-slate-400'
-                                    : workOrderIssued
-                                      ? 'bg-emerald-500'
-                                      : 'bg-red-500'
-                              }`}
-                            />
-                          )}
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {isWorkOrderPaused
-                            ? 'Orden de trabajo pausada'
-                            : isWorkOrderCompleted
-                              ? 'Orden de trabajo finalizada. ✅'
-                              : workOrderIssued
-                                ? 'Orden de trabajo emitida'
-                                : 'Orden de trabajo sin emitir'}
-                        </TooltipContent>
-                      </Tooltip>
-                    </td>
                     <td className='px-4 py-3'>{matrixLabelMap[row.matrix]}</td>
                     <td className='px-4 py-3'>{row.clientBusinessName}</td>
                     <td className='px-4 py-3 text-right'>{row.agreedCount}</td>
@@ -966,6 +945,38 @@ export default function ServiceRequestsListing() {
                       ) : (
                         '—'
                       )}
+                    </td>
+                    <td className='px-4 py-3 text-center'>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          {isWorkOrderCompleted ? (
+                            <span className='inline-flex h-4 w-4 items-center justify-center text-[0.8rem] leading-none'>
+                              ✅
+                            </span>
+                          ) : (
+                            <span
+                              className={`inline-block h-2 w-2 rounded-full ${
+                                isWorkOrderPaused
+                                  ? 'bg-yellow-400'
+                                  : isDraft
+                                    ? 'bg-slate-400'
+                                    : workOrderIssued
+                                      ? 'bg-emerald-500'
+                                      : 'bg-red-500'
+                              }`}
+                            />
+                          )}
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {isWorkOrderPaused
+                            ? 'Orden de trabajo pausada'
+                            : isWorkOrderCompleted
+                              ? 'Orden de trabajo finalizada. ✅'
+                              : workOrderIssued
+                                ? 'Orden de trabajo emitida'
+                                : 'Orden de trabajo sin emitir'}
+                        </TooltipContent>
+                      </Tooltip>
                     </td>
                     <td className='px-4 py-3 text-right'>
                       ${row.total.toFixed(2).replace('.', ',')}
