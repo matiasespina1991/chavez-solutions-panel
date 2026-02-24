@@ -1,31 +1,30 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { buttonVariants } from '@/components/ui/button';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { Metadata } from 'next';
-import Link from 'next/link';
 import { useAuthSession } from '@/contexts/auth-session';
 import { toast } from 'sonner';
-import { useStorageAssetSrc } from '@/hooks/use-storage-asset-src';
 import { useTheme } from 'next-themes';
+import { IconEye, IconEyeOff, IconLock } from '@tabler/icons-react';
 
 export const metadata: Metadata = {
   title: 'Authentication',
   description: 'Authentication forms built using the components.'
 };
 
-export default function SignInViewPage({ stars }: { stars: number }) {
-  const { signInWithGoogle, authReady, authError, clearAuthError } =
+export default function SignInViewPage({ stars: _stars }: { stars: number }) {
+  const { signInWithEmailPassword, authReady, authError, clearAuthError } =
     useAuthSession();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
   const { setTheme } = useTheme();
   const previousThemeRef = useRef<string | null>(null);
-  const { src: coverSrc, hasSource: hasCoverSrc } = useStorageAssetSrc(
-    { storagePath: 'system/assets/sign-in-screen/cover-image.webp' },
-    { preferDirect: false }
-  );
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -47,10 +46,18 @@ export default function SignInViewPage({ stars }: { stars: number }) {
     clearAuthError();
   }, [authError, clearAuthError]);
 
-  const handleGoogleSignIn = async () => {
+  const handleEmailSignIn = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!email.trim() || !password.trim()) {
+      toast.error('Ingresa tu correo y contraseña para continuar.');
+      return;
+    }
+
     try {
       setSigningIn(true);
-      await signInWithGoogle();
+      await signInWithEmailPassword(email.trim(), password);
+      toast.success('Ingreso correcto. Redirigiendo al panel...');
     } finally {
       setSigningIn(false);
     }
@@ -58,15 +65,6 @@ export default function SignInViewPage({ stars }: { stars: number }) {
 
   return (
     <div className='relative h-screen flex-col items-center justify-center md:grid lg:max-w-none lg:grid-cols-2 lg:px-0'>
-      <Link
-        href='/examples/authentication'
-        className={cn(
-          buttonVariants({ variant: 'ghost' }),
-          'absolute top-4 right-4 hidden md:top-8 md:right-8'
-        )}
-      >
-        Login
-      </Link>
       <div className='bg-muted relative hidden h-full flex-col p-10 text-white lg:flex dark:border-r'>
         <div className='absolute inset-0 bg-zinc-900' />
 
@@ -96,52 +94,76 @@ export default function SignInViewPage({ stars }: { stars: number }) {
         </div> */}
       </div>
       <div className='relative flex h-full items-center justify-center p-4 lg:p-8'>
-        {/* <div className='text-foreground absolute top-6 right-6 flex items-center gap-2 text-lg font-semibold'>
-          <img
-            src='/assets/branding/logos/cueva.png'
-            alt='Cueva logo'
-            className='h-5 w-5'
-          />
-          <span>Chavez Solutions Web</span>
-          <span className='text-muted-foreground'>·</span>
-          <span>Dashboard</span>
-        </div> */}
-        <div className='flex w-full max-w-md flex-col items-center justify-center space-y-6'>
-          <div className='text-center text-lg font-bold'>Hola de nuevo 👋</div>
-          <div className='flex w-full flex-col items-center space-y-4'>
-            <Button
-              type='button'
-              variant='outline'
-              className='flex h-11 w-full max-w-[16rem] cursor-pointer items-center justify-center gap-3 rounded-full border border-[#747775] text-[15px] font-semibold'
-              onClick={handleGoogleSignIn}
-              disabled={!authReady || signingIn}
-            >
-              <img
-                src='/assets/branding/logos/google_g_logo.svg'
-                alt='Google'
-                className='h-4 w-4'
-              />
-              {signingIn ? 'Ingresando…' : 'Iniciar sesión con Google'}
-            </Button>
+        <div className='w-full max-w-md space-y-3'>
+          <div className='space-y-3'>
+            <div className='bg-primary/10 text-primary flex h-10 w-10 items-center justify-center rounded-full'>
+              <IconLock className='h-5 w-5' />
+            </div>
+            <h1 className='text-2xl font-semibold'>
+              Acceso al panel de control de Chavez Solutions
+            </h1>
+            <p className='text-muted-foreground text-sm leading-relaxed'>
+              Ingrese sus credenciales corporativas para continuar. El acceso
+              está restringido al personal autorizado.
+            </p>
           </div>
+          <div>
+            <form className='space-y-4' onSubmit={handleEmailSignIn}>
+              <div className='space-y-2'>
+                <Label htmlFor='email'>Correo electrónico</Label>
+                <Input
+                  id='email'
+                  type='email'
+                  autoComplete='email'
+                  placeholder='nombre@chavezsolutions.com'
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  disabled={!authReady || signingIn}
+                />
+              </div>
 
-          <p className='text-muted-foreground px-8 text-center text-xs'>
-            Al hacer clic en continuar, aceptas nuestros{' '}
-            <Link
-              href='/terms'
-              className='hover:text-primary underline underline-offset-4'
-            >
-              Términos de Servicio
-            </Link>{' '}
-            y la{' '}
-            <Link
-              href='/privacy'
-              className='hover:text-primary underline underline-offset-4'
-            >
-              Política de Privacidad
-            </Link>
-            .
-          </p>
+              <div className='space-y-2'>
+                <Label htmlFor='password'>Contraseña</Label>
+                <div className='relative'>
+                  <Input
+                    id='password'
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete='current-password'
+                    className='pr-10'
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    disabled={!authReady || signingIn}
+                  />
+                  <button
+                    type='button'
+                    aria-label={
+                      showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
+                    }
+                    title={
+                      showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
+                    }
+                    className='text-muted-foreground hover:text-foreground absolute inset-y-0 right-0 flex w-10 cursor-pointer items-center justify-center transition-colors'
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    disabled={!authReady || signingIn}
+                  >
+                    {showPassword ? (
+                      <IconEyeOff className='h-4 w-4' />
+                    ) : (
+                      <IconEye className='h-4 w-4' />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <Button
+                type='submit'
+                className='h-11 w-full cursor-pointer'
+                disabled={!authReady || signingIn}
+              >
+                {signingIn ? 'Validando acceso…' : 'Iniciar sesión'}
+              </Button>
+            </form>
+          </div>
         </div>
       </div>
     </div>
