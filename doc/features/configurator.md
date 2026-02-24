@@ -103,14 +103,14 @@ Busca el `useEffect` dentro de `src/features/configurator/components/configurato
 ## 8. Dashboard y Operación
 
 - El menú lateral del dashboard se redujo a tres entradas operativas para este alcance:
-   - `Configurador de proformas y OT`
-   - `Lista de solicitudes` (ruta actual: `/dashboard/service-requests`)
-   - `Configuración`
+  - `Configurador de proformas y OT`
+  - `Lista de solicitudes` (ruta actual: `/dashboard/service-requests`)
+  - `Configuración`
 - La sección de lista muestra `service_requests` y permite acciones por fila.
 - Desde "Editar solicitud..." se abre el configurador con query `requestId` para edición.
 - En modo edición, el resumen muestra solo el botón **Actualizar solicitud** (sin Guardar Borrador/Guardar Definitivo).
 - En el listado existe menú por fila para:
-   - Emitir orden de trabajo (si aún no existe OT)
-   - Pausar orden de trabajo (si ya existe OT)
-   - Ver / Editar solicitud (UI presente, sin flujo de detalle aún)
+  - Emitir orden de trabajo (si aún no existe OT)
+  - Pausar orden de trabajo (si ya existe OT)
+  - Ver / Editar solicitud (UI presente, sin flujo de detalle aún)
 - Cuando una OT está pausada, el punto OT se muestra en amarillo, el tooltip indica "Orden de trabajo pausada" y el estado textual también refleja pausa.

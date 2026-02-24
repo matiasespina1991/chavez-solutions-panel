@@ -39,7 +39,9 @@ export const createWorkOrder = onCall(async (req) => {
     throw new HttpsError('invalid-argument', 'sourceRequestId is required.');
   }
 
-  const sourceRequestRef = db.collection('service_requests').doc(sourceRequestId);
+  const sourceRequestRef = db
+    .collection('service_requests')
+    .doc(sourceRequestId);
 
   const result = await db.runTransaction(async (tx) => {
     const sourceSnap = await tx.get(sourceRequestRef);
@@ -58,7 +60,9 @@ export const createWorkOrder = onCall(async (req) => {
     }
 
     if (source.linkedWorkOrderId) {
-      const existingWoSnap = await tx.get(db.collection('work_orders').doc(source.linkedWorkOrderId));
+      const existingWoSnap = await tx.get(
+        db.collection('work_orders').doc(source.linkedWorkOrderId)
+      );
       const existingNumber = existingWoSnap.exists
         ? (existingWoSnap.data()?.workOrderNumber as string | undefined)
         : undefined;
@@ -66,7 +70,7 @@ export const createWorkOrder = onCall(async (req) => {
       return {
         workOrderId: source.linkedWorkOrderId,
         workOrderNumber: existingNumber || 'OT-EXISTING',
-        alreadyExists: true
+        alreadyExists: true,
       };
     }
 
@@ -86,25 +90,25 @@ export const createWorkOrder = onCall(async (req) => {
       pricing: source.pricing ?? null,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      issuedAt: admin.firestore.FieldValue.serverTimestamp()
+      issuedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
     tx.update(sourceRequestRef, {
       isWorkOrder: true,
       status: 'converted_to_work_order',
       linkedWorkOrderId: workOrderRef.id,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
     return {
       workOrderId: workOrderRef.id,
       workOrderNumber,
-      alreadyExists: false
+      alreadyExists: false,
     };
   });
 
   return {
     workOrderId: result.workOrderId,
-    workOrderNumber: result.workOrderNumber
+    workOrderNumber: result.workOrderNumber,
   };
 });
