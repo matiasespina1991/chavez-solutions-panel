@@ -46,6 +46,7 @@ import {
   Timestamp
 } from 'firebase/firestore';
 import {
+  IconCircleCheckFilled,
   IconDownload,
   IconDotsVertical,
   IconPencil,
@@ -224,7 +225,7 @@ export default function ServiceRequestsListing() {
     if (row.status === 'work_order_completed') {
       return {
         className:
-          'mb-[1rem] rounded-md border border-emerald-600/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300',
+          'rounded-md border border-emerald-600/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300',
         text: 'Orden de trabajo finalizada. ✅'
       };
     }
@@ -232,7 +233,7 @@ export default function ServiceRequestsListing() {
     if (row.status === 'cancelled') {
       return {
         className:
-          'mb-[1rem] rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive',
+          'rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive',
         text: 'Solicitud cancelada.'
       };
     }
@@ -240,7 +241,7 @@ export default function ServiceRequestsListing() {
     if (row.status === 'draft') {
       return {
         className:
-          'mb-[1rem] rounded-md border border-slate-500/30 bg-slate-500/10 px-3 py-2 text-sm text-slate-700 dark:text-slate-300',
+          'rounded-md border border-slate-500/30 bg-slate-500/10 px-3 py-2 text-sm text-slate-700 dark:text-slate-300',
         text: 'Borrador.'
       };
     }
@@ -274,7 +275,9 @@ export default function ServiceRequestsListing() {
         }
       } else {
         await createWorkOrderFromRequest(row.id);
-        toast.success(`Orden de Trabajo emitida (${row.reference})`);
+        toast.success(`Orden de Trabajo emitida (${row.reference})`, {
+          icon: <IconCircleCheckFilled className='h-4 w-4 text-emerald-600' />
+        });
       }
     } catch (error) {
       console.error('[ServiceRequests] action error', error);
@@ -831,7 +834,7 @@ export default function ServiceRequestsListing() {
                           {isWorkOrderPaused
                             ? 'Orden de trabajo pausada'
                             : isWorkOrderCompleted
-                              ? 'Orden de trabajo finalizada'
+                              ? 'Orden de trabajo finalizada. ✅'
                               : workOrderIssued
                                 ? 'Orden de trabajo emitida'
                                 : 'Orden de trabajo sin emitir'}
