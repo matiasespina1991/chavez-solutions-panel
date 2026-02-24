@@ -77,6 +77,7 @@ export interface ConfigurationDocument {
   createdAt?: any;
   updatedAt?: any;
   status: ConfigurationStatus;
+  serviceRequestStatus?: ServiceRequestStatus;
   notes: string;
   client: ConfigurationClient;
   samples: ConfigurationSamples;
@@ -120,7 +121,7 @@ export const createConfiguration = async (
   data: Omit<ConfigurationDocument, 'id' | 'createdAt' | 'updatedAt'>
 ) => {
   const newDocRef = doc(collection(db, SERVICE_REQUEST_COLLECTION));
-  const { type, ...restData } = data;
+  const { type, serviceRequestStatus, ...restData } = data;
   const docData = {
     ...restData,
     isWorkOrder: toIsWorkOrder(type),
@@ -138,7 +139,7 @@ export const updateConfiguration = async (
   data: Partial<ConfigurationDocument>
 ) => {
   const docRef = doc(db, SERVICE_REQUEST_COLLECTION, id);
-  const { type, ...restData } = data;
+  const { type, serviceRequestStatus, ...restData } = data;
   const docData = {
     ...restData,
     ...(type ? { isWorkOrder: toIsWorkOrder(type) } : {}),
@@ -159,7 +160,8 @@ export const getConfigurationById = async (
     ...data,
     id: snapshot.id,
     type: data.isWorkOrder ? 'both' : 'proforma',
-    status: toConfigurationStatus(data.status)
+    status: toConfigurationStatus(data.status),
+    serviceRequestStatus: data.status
   } as ConfigurationDocument;
 };
 

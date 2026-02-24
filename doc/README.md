@@ -7,3 +7,4 @@ El objetivo de esta documentación es servir como mapa estructural y guía de in
 ## Índice de Funcionalidades (Features)
 
 - [Configurador (Proformas y Órdenes de Trabajo)](./features/configurator.md)
+- [Lista de Órdenes de Trabajo](./features/work-orders.md)

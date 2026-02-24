@@ -18,6 +18,7 @@ export function useFilteredNavItems(items: NavItem[]) {
 
     const allowedUrls = new Set([
       '/dashboard/service-requests',
+      '/dashboard/work-orders',
       '/dashboard/settings',
       '/dashboard/configurator'
     ]);

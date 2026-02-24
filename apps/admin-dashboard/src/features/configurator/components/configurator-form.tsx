@@ -164,7 +164,7 @@ export default function ConfiguratorForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingRequest, setIsLoadingRequest] = useState(false);
   const [loadedRequestStatus, setLoadedRequestStatus] = useState<
-    'draft' | 'final' | null
+    'draft' | 'final' | 'paused' | null
   >(null);
   const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
   const [isExecuteDialogOpen, setIsExecuteDialogOpen] = useState(false);
@@ -209,6 +209,7 @@ export default function ConfiguratorForm() {
   }, [requestedTab]);
 
   const matrix = form.watch('matrix');
+  const reference = form.watch('reference');
   const agreedCount = form.watch('samples.agreedCount');
   const type = form.watch('type');
   const analysesItemsWatch = useWatch({
@@ -225,7 +226,6 @@ export default function ConfiguratorForm() {
     'ok' | 'error'
   > = {
     type: (() => {
-      const reference = form.watch('reference');
       const matrixValue = matrix;
       const typeValue = type;
       const validDays = form.watch('validDays');
@@ -446,7 +446,11 @@ export default function ConfiguratorForm() {
           }
         };
 
-        setLoadedRequestStatus(existing.status);
+        setLoadedRequestStatus(
+          existing.serviceRequestStatus === 'work_order_paused'
+            ? 'paused'
+            : existing.status
+        );
 
         if (typeof window !== 'undefined') {
           try {
@@ -474,6 +478,9 @@ export default function ConfiguratorForm() {
   }, [cacheKey, editRequestId, form, router]);
 
   const isDraftEditMode = isEditMode && loadedRequestStatus === 'draft';
+  const isPausedEditMode = isEditMode && loadedRequestStatus === 'paused';
+  const isDraftSaveDisabled =
+    isSubmitting || isLoadingRequest || isPausedEditMode;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -592,6 +599,13 @@ export default function ConfiguratorForm() {
   };
 
   const onSubmit = async (values: FormValues, status: 'draft' | 'final') => {
+    if (status === 'draft' && isPausedEditMode) {
+      toast.error(
+        'No se puede guardar como borrador una solicitud con orden de trabajo pausada.'
+      );
+      return;
+    }
+
     try {
       setIsSubmitting(true);
 
@@ -724,10 +738,25 @@ export default function ConfiguratorForm() {
   const availableParameters =
     matrix === 'water' ? waterParameters : soilParameters;
   const summaryNotes = (form.getValues('notes') || '').trim();
+  const referenceLabel = reference?.trim() || '—';
 
   return (
     <Form form={form} onSubmit={(e) => e.preventDefault()}>
-      <div className='space-y-8'>
+      <div className='space-y-2'>
+        {isEditMode ? (
+          <p className='text-base text-black'>
+            <span className='font-medium'>
+              Referencia de la solicitud actual:
+            </span>{' '}
+            {referenceLabel}
+            {loadedRequestStatus === 'draft' ? (
+              <span className='text-muted-foreground'> (borrador)</span>
+            ) : loadedRequestStatus === 'paused' ? (
+              <span className='text-muted-foreground'> (pausada)</span>
+            ) : null}
+          </p>
+        ) : null}
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className='w-full'>
           <TabsList className='grid w-full grid-cols-5'>
             <TabsTrigger
@@ -952,7 +981,7 @@ export default function ConfiguratorForm() {
                   <Button
                     type='button'
                     variant='secondary'
-                    disabled={isSubmitting || isLoadingRequest}
+                    disabled={isDraftSaveDisabled}
                     onClick={() => onSubmit(form.getValues(), 'draft')}
                   >
                     Guardar como Borrador
@@ -1091,7 +1120,7 @@ export default function ConfiguratorForm() {
                     <Button
                       type='button'
                       variant='secondary'
-                      disabled={isSubmitting || isLoadingRequest}
+                      disabled={isDraftSaveDisabled}
                       onClick={() => onSubmit(form.getValues(), 'draft')}
                     >
                       Guardar como Borrador
@@ -1266,7 +1295,7 @@ export default function ConfiguratorForm() {
                     <Button
                       type='button'
                       variant='secondary'
-                      disabled={isSubmitting || isLoadingRequest}
+                      disabled={isDraftSaveDisabled}
                       onClick={() => onSubmit(form.getValues(), 'draft')}
                     >
                       Guardar como Borrador
@@ -1466,7 +1495,7 @@ export default function ConfiguratorForm() {
                     <Button
                       type='button'
                       variant='secondary'
-                      disabled={isSubmitting || isLoadingRequest}
+                      disabled={isDraftSaveDisabled}
                       onClick={() => onSubmit(form.getValues(), 'draft')}
                     >
                       Guardar como Borrador
@@ -1663,7 +1692,7 @@ export default function ConfiguratorForm() {
                         <Button
                           type='button'
                           variant='secondary'
-                          disabled={isSubmitting || isLoadingRequest}
+                          disabled={isDraftSaveDisabled}
                           onClick={() => onSubmit(form.getValues(), 'draft')}
                         >
                           Guardar como Borrador
@@ -1699,10 +1728,8 @@ export default function ConfiguratorForm() {
                         <Button
                           type='button'
                           variant='secondary'
-                          disabled={isSubmitting || isLoadingRequest}
-                          onClick={() =>
-                            onSubmit(form.getValues(), 'draft')
-                          }
+                          disabled={isDraftSaveDisabled}
+                          onClick={() => onSubmit(form.getValues(), 'draft')}
                         >
                           Guardar como Borrador
                         </Button>
@@ -1763,7 +1790,9 @@ export default function ConfiguratorForm() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar emisión de orden de trabajo</AlertDialogTitle>
+            <AlertDialogTitle>
+              Confirmar emisión de orden de trabajo
+            </AlertDialogTitle>
             <AlertDialogDescription>
               Está por ejecutar una solicitud que emitirá una orden de trabajo.
               Esta acción iniciará el proceso operativo y actualizará el estado
@@ -1771,7 +1800,10 @@ export default function ConfiguratorForm() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className='cursor-pointer' disabled={isSubmitting}>
+            <AlertDialogCancel
+              className='cursor-pointer'
+              disabled={isSubmitting}
+            >
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction

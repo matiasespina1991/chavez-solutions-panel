@@ -4,16 +4,6 @@ import { DataTableSkeleton } from '@/components/ui/table/data-table-skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle
-} from '@/components/ui/alert-dialog';
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -31,12 +21,6 @@ import {
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip';
-import {
-  deleteServiceRequest,
-  createWorkOrderFromRequest,
-  pauseWorkOrderFromRequest,
-  resumeWorkOrderFromRequest
-} from '@/features/configurator/services/configurations';
 import { db } from '@/lib/firebase';
 import {
   collection,
@@ -45,35 +29,20 @@ import {
   query,
   Timestamp
 } from 'firebase/firestore';
-import {
-  IconDownload,
-  IconDotsVertical,
-  IconPencil,
-  IconPlayerPauseFilled,
-  IconPlayerPlayFilled,
-  IconPrinter,
-  IconSearch,
-  IconTrash
-} from '@tabler/icons-react';
-import { useRouter } from 'next/navigation';
+import { IconDotsVertical, IconSearch } from '@tabler/icons-react';
 import { useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
 
-type ServiceRequestMatrix = 'water' | 'soil';
-type ServiceRequestStatus =
-  | 'draft'
-  | 'submitted'
-  | 'converted_to_work_order'
-  | 'work_order_paused'
-  | 'cancelled';
+type WorkOrderMatrix = 'water' | 'soil';
+type WorkOrderStatus = 'issued' | 'paused' | 'cancelled' | 'unknown';
 
-interface ServiceRequestRow {
+interface WorkOrderRow {
   id: string;
-  reference: string;
+  workOrderNumber: string;
+  sourceReference: string;
+  sourceRequestId: string;
   notes: string;
-  isWorkOrder: boolean;
-  matrix: ServiceRequestMatrix;
-  status: ServiceRequestStatus;
+  matrix: WorkOrderMatrix;
+  status: WorkOrderStatus;
   client: {
     businessName: string;
     taxId: string;
@@ -100,22 +69,20 @@ type SortKey =
   | 'analyses'
   | 'status'
   | 'notes'
-  | 'total'
   | 'updatedAt';
 
 type SortDirection = 'asc' | 'desc';
 
-const matrixLabelMap: Record<ServiceRequestMatrix, string> = {
+const matrixLabelMap: Record<WorkOrderMatrix, string> = {
   water: 'Agua',
   soil: 'Suelo'
 };
 
-const statusLabelMap: Record<ServiceRequestStatus, string> = {
-  draft: '(Borrador)',
-  submitted: 'Proforma enviada',
-  converted_to_work_order: 'Convertida a OT',
-  work_order_paused: 'Orden de trabajo pausada',
-  cancelled: 'Cancelada'
+const statusLabelMap: Record<WorkOrderStatus, string> = {
+  issued: 'Orden de trabajo emitida',
+  paused: 'Orden de trabajo pausada',
+  cancelled: 'Orden de trabajo cancelada',
+  unknown: 'Estado desconocido'
 };
 
 const formatTimestamp = (value: unknown) => {
@@ -146,31 +113,19 @@ const toTimestampMs = (value: unknown) => {
   return 0;
 };
 
-export default function ServiceRequestsListing() {
-  const router = useRouter();
-  const [rows, setRows] = useState<ServiceRequestRow[]>([]);
+export default function WorkOrdersListing() {
+  const [rows, setRows] = useState<WorkOrderRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [pendingActionId, setPendingActionId] = useState<string | null>(null);
-  const [selectedRow, setSelectedRow] = useState<ServiceRequestRow | null>(
-    null
-  );
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [rowToDelete, setRowToDelete] = useState<ServiceRequestRow | null>(
-    null
-  );
-  const [isDeleting, setIsDeleting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('updatedAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [selectedRow, setSelectedRow] = useState<WorkOrderRow | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
-  const hasIssuedWorkOrder = (row: ServiceRequestRow) =>
-    row.status === 'converted_to_work_order' ||
-    row.status === 'work_order_paused';
-
-  const getOtSortRank = (row: ServiceRequestRow) => {
-    if (row.status === 'work_order_paused') return 1;
-    if (hasIssuedWorkOrder(row)) return 2;
+  const getOtSortRank = (row: WorkOrderRow) => {
+    if (row.status === 'paused') return 1;
+    if (row.status === 'issued') return 2;
+    if (row.status === 'cancelled') return 3;
     return 0;
   };
 
@@ -189,109 +144,27 @@ export default function ServiceRequestsListing() {
     return sortDirection === 'asc' ? ' ↑' : ' ↓';
   };
 
-  const dialogActionButtonClass =
-    'h-[2.4rem] w-[2.4rem] cursor-pointer rounded-md border bg-background p-0 transition-colors duration-150 hover:bg-muted/60';
-
-  const handleWorkOrderAction = async (row: ServiceRequestRow) => {
-    if (row.status === 'draft') {
-      toast.error('No se puede emitir una orden de trabajo desde un borrador');
-      return;
-    }
-
-    try {
-      setPendingActionId(row.id);
-
-      const workOrderIssued = hasIssuedWorkOrder(row);
-
-      if (workOrderIssued) {
-        if (row.status === 'work_order_paused') {
-          await resumeWorkOrderFromRequest(row.id);
-          toast.success(`Orden de trabajo ${row.reference} reanudada`);
-        } else {
-          await pauseWorkOrderFromRequest(row.id);
-          toast.success(`Orden de trabajo ${row.reference} pausada`);
-        }
-      } else {
-        await createWorkOrderFromRequest(row.id);
-        toast.success(`Orden de Trabajo emitida (${row.reference})`);
-      }
-    } catch (error) {
-      console.error('[ServiceRequests] action error', error);
-      toast.error('No se pudo completar la acción de la orden de trabajo');
-    } finally {
-      setPendingActionId(null);
-    }
-  };
-
-  const handleDeleteRequest = async () => {
-    if (!rowToDelete) return;
-
-    try {
-      setIsDeleting(true);
-      await deleteServiceRequest(rowToDelete.id);
-      toast.success('Solicitud eliminada correctamente');
-      setIsDeleteDialogOpen(false);
-      setRowToDelete(null);
-      if (selectedRow?.id === rowToDelete.id) {
-        setIsViewDialogOpen(false);
-        setSelectedRow(null);
-      }
-    } catch (error) {
-      console.error('[ServiceRequests] delete error', error);
-      toast.error('No se pudo eliminar la solicitud');
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const handleDialogEdit = () => {
-    if (!selectedRow) return;
-
-    const workOrderIssued = hasIssuedWorkOrder(selectedRow);
-    const isWorkOrderPaused = selectedRow.status === 'work_order_paused';
-
-    if (workOrderIssued && !isWorkOrderPaused) {
-      toast.error('No se puede editar una orden de trabajo ya emitida');
-      return;
-    }
-
-    setIsViewDialogOpen(false);
-    router.push(
-      `/dashboard/configurator?requestId=${encodeURIComponent(selectedRow.id)}&tab=summary`
-    );
-  };
-
-  const handleDialogDelete = () => {
-    if (!selectedRow) return;
-    setRowToDelete(selectedRow);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleDialogDownload = () => {
-    toast.info('Descargar solicitud estará disponible próximamente');
-  };
-
-  const handleDialogPrint = () => {
-    toast.info('Imprimir solicitud estará disponible próximamente');
-  };
-
   useEffect(() => {
-    const requestsQuery = query(
-      collection(db, 'service_requests'),
+    const workOrdersQuery = query(
+      collection(db, 'work_orders'),
       orderBy('updatedAt', 'desc')
     );
 
     const unsubscribe = onSnapshot(
-      requestsQuery,
+      workOrdersQuery,
       (snapshot) => {
-        const nextRows: ServiceRequestRow[] = snapshot.docs.map((docSnap) => {
+        const nextRows: WorkOrderRow[] = snapshot.docs.map((docSnap) => {
           const value = docSnap.data() as Record<string, unknown>;
 
-          const isWorkOrder = Boolean(value.isWorkOrder);
-          const matrix = (value.matrix as ServiceRequestMatrix) ?? 'water';
-          const status =
-            (value.status as ServiceRequestStatus) ??
-            ('draft' as ServiceRequestStatus);
+          const matrix = (value.matrix as WorkOrderMatrix) ?? 'water';
+          const rawStatus = String(value.status ?? '').toLowerCase();
+          const status: WorkOrderStatus =
+            rawStatus === 'issued' ||
+            rawStatus === 'paused' ||
+            rawStatus === 'cancelled'
+              ? (rawStatus as WorkOrderStatus)
+              : 'unknown';
+
           const total =
             typeof value.pricing === 'object' && value.pricing !== null
               ? Number((value.pricing as { total?: number | null }).total ?? 0)
@@ -391,9 +264,10 @@ export default function ServiceRequestsListing() {
 
           return {
             id: docSnap.id,
-            reference: String(value.reference ?? '—'),
+            workOrderNumber: String(value.workOrderNumber ?? docSnap.id),
+            sourceReference: String(value.sourceReference ?? '—'),
+            sourceRequestId: String(value.sourceRequestId ?? ''),
             notes: String(value.notes ?? ''),
-            isWorkOrder,
             matrix,
             status,
             client,
@@ -414,7 +288,7 @@ export default function ServiceRequestsListing() {
         setLoading(false);
       },
       (error) => {
-        console.error('[ServiceRequests] load error', error);
+        console.error('[WorkOrders] load error', error);
         setRows([]);
         setLoading(false);
       }
@@ -437,7 +311,10 @@ export default function ServiceRequestsListing() {
 
       switch (sortKey) {
         case 'reference':
-          compare = collator.compare(left.reference, right.reference);
+          compare = collator.compare(
+            left.workOrderNumber,
+            right.workOrderNumber
+          );
           break;
         case 'ot':
           compare = getOtSortRank(left) - getOtSortRank(right);
@@ -472,9 +349,6 @@ export default function ServiceRequestsListing() {
             getString(right.notes)
           );
           break;
-        case 'total':
-          compare = left.total - right.total;
-          break;
         case 'updatedAt':
           compare = left.updatedAtMs - right.updatedAtMs;
           break;
@@ -483,7 +357,7 @@ export default function ServiceRequestsListing() {
       }
 
       if (compare === 0) {
-        compare = collator.compare(left.reference, right.reference);
+        compare = collator.compare(left.workOrderNumber, right.workOrderNumber);
       }
 
       return sortDirection === 'asc' ? compare : compare * -1;
@@ -498,14 +372,18 @@ export default function ServiceRequestsListing() {
 
     return sortedRows.filter((row) => {
       const otLabel =
-        row.status === 'work_order_paused'
+        row.status === 'paused'
           ? 'amarillo'
-          : hasIssuedWorkOrder(row)
+          : row.status === 'cancelled'
+            ? 'gris'
+          : row.status === 'issued'
             ? 'verde'
             : 'rojo';
 
       const searchableParts = [
-        row.reference,
+        row.workOrderNumber,
+        row.sourceReference,
+        row.sourceRequestId,
         row.notes,
         row.matrix,
         matrixLabelMap[row.matrix],
@@ -545,20 +423,19 @@ export default function ServiceRequestsListing() {
   if (loading) {
     return (
       <DataTableSkeleton
-        columnCount={11}
+        columnCount={10}
         rowCount={8}
         filterCount={0}
         withViewOptions={false}
         withPagination={false}
         cellWidths={[
-          '10rem',
+          '12rem',
           '4rem',
           '6rem',
           '14rem',
           '6rem',
           '6rem',
           '14rem',
-          '10rem',
           '8rem',
           '12rem',
           '3rem'
@@ -570,7 +447,7 @@ export default function ServiceRequestsListing() {
   if (!hasRows) {
     return (
       <div className='text-muted-foreground rounded-md border p-8 text-center text-sm'>
-        Aún no hay solicitudes de servicio registradas.
+        Aún no hay órdenes de trabajo registradas.
       </div>
     );
   }
@@ -581,7 +458,7 @@ export default function ServiceRequestsListing() {
         <Input
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
-          placeholder='Buscar en todas las solicitudes...'
+          placeholder='Buscar en todas las órdenes de trabajo...'
           className='pr-10'
         />
         <IconSearch className='text-muted-foreground pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2' />
@@ -589,7 +466,7 @@ export default function ServiceRequestsListing() {
 
       <div className='rounded-md border'>
         <div className='max-h-[calc(100vh-240px)] overflow-auto'>
-          <table className='w-full min-w-[1120px] text-left text-sm'>
+          <table className='w-full min-w-[1080px] text-left text-sm'>
             <thead className='bg-muted text-muted-foreground sticky top-0 z-10'>
               <tr>
                 <th className='px-4 py-3'>
@@ -664,15 +541,6 @@ export default function ServiceRequestsListing() {
                     Notas{getSortIndicator('notes')}
                   </button>
                 </th>
-                <th className='px-4 py-3 text-right'>
-                  <button
-                    type='button'
-                    className='cursor-pointer select-none'
-                    onClick={() => handleSort('total')}
-                  >
-                    Total (USD){getSortIndicator('total')}
-                  </button>
-                </th>
                 <th className='px-4 py-3'>
                   <button
                     type='button'
@@ -687,9 +555,9 @@ export default function ServiceRequestsListing() {
             </thead>
             <tbody>
               {visibleRows.map((row) => {
-                const workOrderIssued = hasIssuedWorkOrder(row);
-                const isWorkOrderPaused = row.status === 'work_order_paused';
-                const isDraft = row.status === 'draft';
+                const isWorkOrderPaused = row.status === 'paused';
+                const isWorkOrderIssued = row.status === 'issued';
+                const isWorkOrderCancelled = row.status === 'cancelled';
 
                 return (
                   <tr
@@ -701,17 +569,19 @@ export default function ServiceRequestsListing() {
                     }}
                   >
                     <td className='px-4 py-3'>
-                      {row.reference}
-                      {row.status === 'draft' && (
-                        <span className='text-muted-foreground ml-1 text-xs'>
-                          (borrador)
-                        </span>
-                      )}
-                      {row.status === 'work_order_paused' && (
-                        <span className='text-muted-foreground ml-1 text-xs'>
-                          (pausada)
-                        </span>
-                      )}
+                      <div className='space-y-0.5'>
+                        <p>
+                          {row.workOrderNumber}
+                          {row.status === 'paused' ? (
+                            <span className='text-muted-foreground ml-1 text-xs'>
+                              (pausada)
+                            </span>
+                          ) : null}
+                        </p>
+                        <p className='text-muted-foreground text-xs'>
+                          {row.sourceReference || '—'}
+                        </p>
+                      </div>
                     </td>
                     <td className='px-4 py-3 text-center'>
                       <Tooltip>
@@ -720,7 +590,9 @@ export default function ServiceRequestsListing() {
                             className={`inline-block h-2 w-2 rounded-full ${
                               isWorkOrderPaused
                                 ? 'bg-yellow-400'
-                                : workOrderIssued
+                                : isWorkOrderCancelled
+                                  ? 'bg-slate-400'
+                                : isWorkOrderIssued
                                   ? 'bg-emerald-500'
                                   : 'bg-red-500'
                             }`}
@@ -729,7 +601,9 @@ export default function ServiceRequestsListing() {
                         <TooltipContent>
                           {isWorkOrderPaused
                             ? 'Orden de trabajo pausada'
-                            : workOrderIssued
+                            : isWorkOrderCancelled
+                              ? 'Orden de trabajo cancelada'
+                            : isWorkOrderIssued
                               ? 'Orden de trabajo emitida'
                               : 'Orden de trabajo sin emitir'}
                         </TooltipContent>
@@ -741,7 +615,13 @@ export default function ServiceRequestsListing() {
                     <td className='px-4 py-3 text-right'>
                       {row.analysesCount}
                     </td>
-                    <td className='px-4 py-3'>{statusLabelMap[row.status]}</td>
+                    <td
+                      className={`px-4 py-3 ${
+                        row.status === 'paused' ? 'text-destructive' : ''
+                      }`}
+                    >
+                      {statusLabelMap[row.status]}
+                    </td>
                     <td className='px-4 py-3'>
                       {row.notes?.trim() ? (
                         <span className='inline-block max-w-[14rem] truncate align-bottom'>
@@ -750,9 +630,6 @@ export default function ServiceRequestsListing() {
                       ) : (
                         '—'
                       )}
-                    </td>
-                    <td className='px-4 py-3 text-right'>
-                      ${row.total.toFixed(2).replace('.', ',')}
                     </td>
                     <td className='px-4 py-3'>{row.updatedAtLabel}</td>
                     <td className='w-12 px-2 py-3 text-right'>
@@ -765,7 +642,6 @@ export default function ServiceRequestsListing() {
                             <Button
                               variant='ghost'
                               className='h-8 w-8 cursor-pointer p-0'
-                              disabled={pendingActionId === row.id}
                             >
                               <span className='sr-only'>Abrir acciones</span>
                               <IconDotsVertical className='h-4 w-4' />
@@ -780,118 +656,7 @@ export default function ServiceRequestsListing() {
                                 setIsViewDialogOpen(true);
                               }}
                             >
-                              Ver solicitud
-                            </DropdownMenuItem>
-                            {workOrderIssued && !isWorkOrderPaused ? (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className='block'>
-                                    <DropdownMenuItem
-                                      disabled
-                                      className='text-muted-foreground cursor-not-allowed opacity-60'
-                                    >
-                                      Editar solicitud...
-                                    </DropdownMenuItem>
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  No se puede editar una orden de trabajo ya
-                                  emitida
-                                </TooltipContent>
-                              </Tooltip>
-                            ) : (
-                              <DropdownMenuItem
-                                className='cursor-pointer transition-colors duration-150'
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  router.push(
-                                    `/dashboard/configurator?requestId=${encodeURIComponent(row.id)}&tab=summary`
-                                  );
-                                }}
-                              >
-                                Editar solicitud...
-                              </DropdownMenuItem>
-                            )}
-                            {isDraft ? (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className='block'>
-                                    <DropdownMenuItem
-                                      disabled
-                                      className='text-muted-foreground focus:text-muted-foreground cursor-not-allowed justify-start opacity-60'
-                                    >
-                                      Emitir orden de trabajo
-                                    </DropdownMenuItem>
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  Finalice el borrador para poder emitir una
-                                  Orden de trabajo
-                                </TooltipContent>
-                              </Tooltip>
-                            ) : (
-                              <DropdownMenuItem
-                                className={`cursor-pointer justify-start transition-colors duration-150 ${
-                                  !workOrderIssued
-                                    ? 'text-foreground focus:text-foreground'
-                                    : isWorkOrderPaused
-                                      ? 'text-emerald-600 focus:text-emerald-600'
-                                      : 'text-destructive focus:text-destructive'
-                                }`}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  handleWorkOrderAction(row);
-                                }}
-                                disabled={pendingActionId === row.id}
-                              >
-                                {workOrderIssued ? (
-                                  isWorkOrderPaused ? (
-                                    <span className='inline-flex items-center justify-start gap-0'>
-                                      <IconPlayerPlayFilled
-                                        className='h-[0.64rem] w-[0.64rem] text-emerald-600'
-                                        style={{
-                                          transform: 'scale(0.9)',
-                                          marginRight: '5px'
-                                        }}
-                                      />
-                                      <span>Reanudar orden de trabajo</span>
-                                    </span>
-                                  ) : (
-                                    <span className='inline-flex items-center justify-start gap-0'>
-                                      <IconPlayerPauseFilled
-                                        className='text-destructive h-[0.64rem] w-[0.64rem]'
-                                        style={{
-                                          transform: 'scale(0.9)',
-                                          marginRight: '5px'
-                                        }}
-                                      />
-                                      <span>Pausar orden de trabajo</span>
-                                    </span>
-                                  )
-                                ) : (
-                                  'Emitir orden de trabajo'
-                                )}
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem
-                              className='text-destructive focus:text-destructive cursor-pointer transition-colors duration-150'
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                setRowToDelete(row);
-                                setIsDeleteDialogOpen(true);
-                              }}
-                              disabled={isDeleting}
-                            >
-                              <span className='inline-flex items-center justify-start gap-0'>
-                                <IconTrash
-                                  className='text-destructive h-[0.64rem] w-[0.64rem]'
-                                  style={{
-                                    transform: 'scale(0.9)',
-                                    marginRight: '5px'
-                                  }}
-                                />
-                                <span>Eliminar Solicitud</span>
-                              </span>
+                              Ver orden de trabajo
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -905,91 +670,19 @@ export default function ServiceRequestsListing() {
 
           {!hasVisibleRows ? (
             <div className='text-muted-foreground border-t p-8 text-center text-sm'>
-              No se encontraron solicitudes para la búsqueda actual.
+              No se encontraron órdenes de trabajo para la búsqueda actual.
             </div>
           ) : null}
         </div>
       </div>
 
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent
-          className='max-h-[90vh] gap-0 overflow-hidden p-0 sm:max-w-3xl'
-          onOpenAutoFocus={(event) => event.preventDefault()}
-        >
+        <DialogContent className='max-h-[90vh] gap-0 overflow-hidden p-0 sm:max-w-3xl'>
           <DialogHeader className='bg-background shrink-0 border-b px-6 py-4 pr-12'>
-            <div className='flex items-start justify-between gap-3'>
-              <div>
-                <DialogTitle>Resumen de solicitud</DialogTitle>
-                <DialogDescription>
-                  Vista consolidada de cliente, muestras, análisis y costos.
-                </DialogDescription>
-              </div>
-              <div className='flex items-center gap-1'>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type='button'
-                      variant='ghost'
-                      size='icon'
-                      className={dialogActionButtonClass}
-                      onClick={handleDialogEdit}
-                      aria-label='Editar solicitud'
-                    >
-                      <IconPencil className='h-4 w-4' />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Editar solicitud...</TooltipContent>
-                </Tooltip>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type='button'
-                      variant='ghost'
-                      size='icon'
-                      className={dialogActionButtonClass}
-                      onClick={handleDialogDownload}
-                      aria-label='Descargar solicitud'
-                    >
-                      <IconDownload className='h-4 w-4' />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Descargar solicitud</TooltipContent>
-                </Tooltip>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type='button'
-                      variant='ghost'
-                      size='icon'
-                      className={dialogActionButtonClass}
-                      onClick={handleDialogPrint}
-                      aria-label='Imprimir solicitud'
-                    >
-                      <IconPrinter className='h-4 w-4' />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Imprimir solicitud</TooltipContent>
-                </Tooltip>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type='button'
-                      variant='ghost'
-                      size='icon'
-                      className={`${dialogActionButtonClass} text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10`}
-                      onClick={handleDialogDelete}
-                      aria-label='Eliminar solicitud'
-                    >
-                      <IconTrash className='h-4 w-4' />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Eliminar solicitud</TooltipContent>
-                </Tooltip>
-              </div>
-            </div>
+            <DialogTitle>Resumen de orden de trabajo</DialogTitle>
+            <DialogDescription>
+              Vista consolidada de cliente, muestras, análisis y costos.
+            </DialogDescription>
           </DialogHeader>
 
           {selectedRow && (
@@ -1001,16 +694,16 @@ export default function ServiceRequestsListing() {
                       Datos Generales
                     </h4>
                     <p>
-                      <span className='font-medium'>Tipo:</span>{' '}
-                      {selectedRow.isWorkOrder ? 'Proforma + OT' : 'Proforma'}
+                      <span className='font-medium'>N° OT:</span>{' '}
+                      {selectedRow.workOrderNumber}
+                    </p>
+                    <p>
+                      <span className='font-medium'>Referencia origen:</span>{' '}
+                      {selectedRow.sourceReference}
                     </p>
                     <p>
                       <span className='font-medium'>Matriz:</span>{' '}
                       {selectedRow.matrix === 'water' ? 'Agua' : 'Suelo'}
-                    </p>
-                    <p>
-                      <span className='font-medium'>Referencia:</span>{' '}
-                      {selectedRow.reference}
                     </p>
                   </div>
                   <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
@@ -1152,39 +845,6 @@ export default function ServiceRequestsListing() {
           )}
         </DialogContent>
       </Dialog>
-
-      <AlertDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={(open) => {
-          if (isDeleting) return;
-          setIsDeleteDialogOpen(open);
-          if (!open) setRowToDelete(null);
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              Confirmar eliminación de solicitud
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              ¿Está seguro de que desea eliminar esta solicitud? Esta acción la
-              removerá y no podrá deshacerse.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className='cursor-pointer' disabled={isDeleting}>
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              className='bg-destructive hover:bg-destructive/90 cursor-pointer text-white'
-              onClick={handleDeleteRequest}
-              disabled={isDeleting}
-            >
-              {isDeleting ? 'Eliminando…' : 'Eliminar Solicitud'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
