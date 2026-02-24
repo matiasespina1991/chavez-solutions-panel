@@ -13,6 +13,6 @@ export { onVideoUpload } from './triggers/onVideoUpload.js';
 export { generateDownloadUrl } from './callable/generateDownloadUrl.js';
 export { regenerateDownloadUrl } from './callable/regenerateDownloadUrl.js';
 export { validateDelete } from './callable/validateDelete.js';
-
-// Migration functions
-export { migrateArtworksToAssets } from './migration/migrateArtworksToAssets.js';
+export { createWorkOrder } from './callable/createWorkOrder.js';
+export { pauseWorkOrder } from './callable/pauseWorkOrder.js';
+export { resumeWorkOrder } from './callable/resumeWorkOrder.js';

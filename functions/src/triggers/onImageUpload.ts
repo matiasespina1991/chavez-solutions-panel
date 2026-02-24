@@ -21,7 +21,7 @@ function getDb() {
 export const onImageUpload = onObjectFinalized(
   {
     region: 'europe-west3',
-    timeoutSeconds: 2000,
+    timeoutSeconds: 540,
     memory: '2GiB',
     cpu: 1,
     maxInstances: 10,
