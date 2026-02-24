@@ -1,2 +1,4 @@
 - Como se genera el numero de OT? y Proforma si aplica.
--
+- Como se debe mostrar los parametros urgentes?
+- Que datos se pueden o deben omitir en las ordenes de trabajo?
+- Que informacion es obligatoria en cada una?

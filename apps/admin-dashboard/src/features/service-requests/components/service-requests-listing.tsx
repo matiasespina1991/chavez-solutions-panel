@@ -65,6 +65,7 @@ type ServiceRequestStatus =
   | 'submitted'
   | 'converted_to_work_order'
   | 'work_order_paused'
+  | 'work_order_completed'
   | 'cancelled';
 
 interface ServiceRequestRow {
@@ -117,6 +118,7 @@ const statusLabelMap: Record<ServiceRequestStatus, string> = {
   submitted: 'Proforma enviada',
   converted_to_work_order: 'Convertida a OT',
   work_order_paused: 'Orden de trabajo pausada',
+  work_order_completed: 'Orden de trabajo finalizada',
   cancelled: 'Cancelada'
 };
 
@@ -178,7 +180,8 @@ export default function ServiceRequestsListing() {
 
   const hasIssuedWorkOrder = (row: ServiceRequestRow) =>
     row.status === 'converted_to_work_order' ||
-    row.status === 'work_order_paused';
+    row.status === 'work_order_paused' ||
+    row.status === 'work_order_completed';
 
   const isExpiredProforma = (row: ServiceRequestRow) => {
     if (row.status !== 'submitted') return false;
@@ -194,7 +197,8 @@ export default function ServiceRequestsListing() {
 
   const getOtSortRank = (row: ServiceRequestRow) => {
     if (row.status === 'work_order_paused') return 1;
-    if (hasIssuedWorkOrder(row)) return 2;
+    if (row.status === 'work_order_completed') return 2;
+    if (hasIssuedWorkOrder(row)) return 3;
     return 0;
   };
 
@@ -216,9 +220,42 @@ export default function ServiceRequestsListing() {
   const dialogActionButtonClass =
     'h-[2.4rem] w-[2.4rem] cursor-pointer rounded-md border bg-background p-0 transition-colors duration-150 hover:bg-muted/60';
 
+  const getRequestDialogBanner = (row: ServiceRequestRow) => {
+    if (row.status === 'work_order_completed') {
+      return {
+        className:
+          'mb-[1rem] rounded-md border border-emerald-600/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300',
+        text: 'Orden de trabajo finalizada. ✅'
+      };
+    }
+
+    if (row.status === 'cancelled') {
+      return {
+        className:
+          'mb-[1rem] rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive',
+        text: 'Solicitud cancelada.'
+      };
+    }
+
+    if (row.status === 'draft') {
+      return {
+        className:
+          'mb-[1rem] rounded-md border border-slate-500/30 bg-slate-500/10 px-3 py-2 text-sm text-slate-700 dark:text-slate-300',
+        text: 'Borrador.'
+      };
+    }
+
+    return null;
+  };
+
   const handleWorkOrderAction = async (row: ServiceRequestRow) => {
     if (row.status === 'draft') {
       toast.error('No se puede emitir una orden de trabajo desde un borrador');
+      return;
+    }
+
+    if (row.status === 'work_order_completed') {
+      toast.error('La orden de trabajo ya se encuentra finalizada');
       return;
     }
 
@@ -537,9 +574,11 @@ export default function ServiceRequestsListing() {
       const otLabel =
         row.status === 'work_order_paused'
           ? 'amarillo'
-          : hasIssuedWorkOrder(row)
-            ? 'verde'
-            : 'rojo';
+          : row.status === 'work_order_completed'
+            ? 'verde suave'
+            : hasIssuedWorkOrder(row)
+              ? 'verde'
+              : 'rojo';
 
       const searchableParts = [
         row.reference,
@@ -728,20 +767,28 @@ export default function ServiceRequestsListing() {
               {visibleRows.map((row) => {
                 const workOrderIssued = hasIssuedWorkOrder(row);
                 const isWorkOrderPaused = row.status === 'work_order_paused';
+                const isWorkOrderCompleted =
+                  row.status === 'work_order_completed';
                 const isDraft = row.status === 'draft';
                 const isProformaExpired = isExpiredProforma(row);
 
                 return (
                   <tr
                     key={row.id}
-                    className='hover:bg-muted/40 cursor-pointer border-t transition-colors duration-200'
+                    className={`cursor-pointer border-t transition-colors duration-200 ${
+                      isWorkOrderCompleted
+                        ? 'bg-emerald-50/40 hover:bg-emerald-50/40 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/10'
+                        : 'hover:bg-muted/40'
+                    }`}
                     onClick={() => {
                       setSelectedRow(row);
                       setIsViewDialogOpen(true);
                     }}
                   >
                     <td className='px-4 py-3'>
-                      {row.reference}
+                      <span className={isDraft ? 'text-destructive' : ''}>
+                        {row.reference}
+                      </span>
                       {row.status === 'draft' && (
                         <span className='text-muted-foreground ml-1 text-xs'>
                           (borrador)
@@ -752,6 +799,7 @@ export default function ServiceRequestsListing() {
                           (pausada)
                         </span>
                       )}
+
                       {isProformaExpired && (
                         <span className='text-muted-foreground ml-1 text-xs'>
                           (vencida)
@@ -761,22 +809,32 @@ export default function ServiceRequestsListing() {
                     <td className='px-4 py-3 text-center'>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span
-                            className={`inline-block h-2 w-2 rounded-full ${
-                              isWorkOrderPaused
-                                ? 'bg-yellow-400'
-                                : workOrderIssued
-                                  ? 'bg-emerald-500'
-                                  : 'bg-red-500'
-                            }`}
-                          />
+                          {isWorkOrderCompleted ? (
+                            <span className='inline-flex h-4 w-4 items-center justify-center text-[0.8rem] leading-none'>
+                              ✅
+                            </span>
+                          ) : (
+                            <span
+                              className={`inline-block h-2 w-2 rounded-full ${
+                                isWorkOrderPaused
+                                  ? 'bg-yellow-400'
+                                  : isDraft
+                                    ? 'bg-slate-400'
+                                    : workOrderIssued
+                                      ? 'bg-emerald-500'
+                                      : 'bg-red-500'
+                              }`}
+                            />
+                          )}
                         </TooltipTrigger>
                         <TooltipContent>
                           {isWorkOrderPaused
                             ? 'Orden de trabajo pausada'
-                            : workOrderIssued
-                              ? 'Orden de trabajo emitida'
-                              : 'Orden de trabajo sin emitir'}
+                            : isWorkOrderCompleted
+                              ? 'Orden de trabajo finalizada'
+                              : workOrderIssued
+                                ? 'Orden de trabajo emitida'
+                                : 'Orden de trabajo sin emitir'}
                         </TooltipContent>
                       </Tooltip>
                     </td>
@@ -833,117 +891,121 @@ export default function ServiceRequestsListing() {
                             >
                               Ver solicitud
                             </DropdownMenuItem>
-                            {workOrderIssued && !isWorkOrderPaused ? (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className='block'>
-                                    <DropdownMenuItem
-                                      disabled
-                                      className='text-muted-foreground cursor-not-allowed opacity-60'
-                                    >
-                                      Editar solicitud...
-                                    </DropdownMenuItem>
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  No se puede editar una orden de trabajo ya
-                                  emitida
-                                </TooltipContent>
-                              </Tooltip>
-                            ) : (
-                              <DropdownMenuItem
-                                className='cursor-pointer transition-colors duration-150'
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  router.push(
-                                    `/dashboard/configurator?requestId=${encodeURIComponent(row.id)}&tab=summary`
-                                  );
-                                }}
-                              >
-                                Editar solicitud...
-                              </DropdownMenuItem>
-                            )}
-                            {isDraft ? (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className='block'>
-                                    <DropdownMenuItem
-                                      disabled
-                                      className='text-muted-foreground focus:text-muted-foreground cursor-not-allowed justify-start opacity-60'
-                                    >
-                                      Emitir orden de trabajo
-                                    </DropdownMenuItem>
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  Finalice el borrador para poder emitir una
-                                  Orden de trabajo
-                                </TooltipContent>
-                              </Tooltip>
-                            ) : (
-                              <DropdownMenuItem
-                                className={`cursor-pointer justify-start transition-colors duration-150 ${
-                                  !workOrderIssued
-                                    ? 'text-foreground focus:text-foreground'
-                                    : isWorkOrderPaused
-                                      ? 'text-emerald-600 focus:text-emerald-600'
-                                      : 'text-destructive focus:text-destructive'
-                                }`}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  handleWorkOrderAction(row);
-                                }}
-                                disabled={pendingActionId === row.id}
-                              >
-                                {workOrderIssued ? (
-                                  isWorkOrderPaused ? (
-                                    <span className='inline-flex items-center justify-start gap-0'>
-                                      <IconPlayerPlayFilled
-                                        className='h-[0.64rem] w-[0.64rem] text-emerald-600'
-                                        style={{
-                                          transform: 'scale(0.9)',
-                                          marginRight: '5px'
-                                        }}
-                                      />
-                                      <span>Reanudar orden de trabajo</span>
-                                    </span>
-                                  ) : (
-                                    <span className='inline-flex items-center justify-start gap-0'>
-                                      <IconPlayerPauseFilled
-                                        className='text-destructive h-[0.64rem] w-[0.64rem]'
-                                        style={{
-                                          transform: 'scale(0.9)',
-                                          marginRight: '5px'
-                                        }}
-                                      />
-                                      <span>Pausar orden de trabajo</span>
-                                    </span>
-                                  )
+                            {!isWorkOrderCompleted ? (
+                              <>
+                                {workOrderIssued && !isWorkOrderPaused ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className='block'>
+                                        <DropdownMenuItem
+                                          disabled
+                                          className='text-muted-foreground cursor-not-allowed opacity-60'
+                                        >
+                                          Editar solicitud...
+                                        </DropdownMenuItem>
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      No se puede editar una orden de trabajo ya
+                                      emitida
+                                    </TooltipContent>
+                                  </Tooltip>
                                 ) : (
-                                  'Emitir orden de trabajo'
+                                  <DropdownMenuItem
+                                    className='cursor-pointer transition-colors duration-150'
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      router.push(
+                                        `/dashboard/configurator?requestId=${encodeURIComponent(row.id)}&tab=summary`
+                                      );
+                                    }}
+                                  >
+                                    Editar solicitud...
+                                  </DropdownMenuItem>
                                 )}
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem
-                              className='text-destructive focus:text-destructive cursor-pointer transition-colors duration-150'
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                setRowToDelete(row);
-                                setIsDeleteDialogOpen(true);
-                              }}
-                              disabled={isDeleting}
-                            >
-                              <span className='inline-flex items-center justify-start gap-0'>
-                                <IconTrash
-                                  className='text-destructive h-[0.64rem] w-[0.64rem]'
-                                  style={{
-                                    transform: 'scale(0.9)',
-                                    marginRight: '5px'
+                                {isDraft ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className='block'>
+                                        <DropdownMenuItem
+                                          disabled
+                                          className='text-muted-foreground focus:text-muted-foreground cursor-not-allowed justify-start opacity-60'
+                                        >
+                                          Emitir orden de trabajo
+                                        </DropdownMenuItem>
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      Finalice el borrador para poder emitir una
+                                      Orden de trabajo
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ) : (
+                                  <DropdownMenuItem
+                                    className={`cursor-pointer justify-start transition-colors duration-150 ${
+                                      !workOrderIssued
+                                        ? 'text-foreground focus:text-foreground'
+                                        : isWorkOrderPaused
+                                          ? 'text-emerald-600 focus:text-emerald-600'
+                                          : 'text-destructive focus:text-destructive'
+                                    }`}
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      handleWorkOrderAction(row);
+                                    }}
+                                    disabled={pendingActionId === row.id}
+                                  >
+                                    {workOrderIssued ? (
+                                      isWorkOrderPaused ? (
+                                        <span className='inline-flex items-center justify-start gap-0'>
+                                          <IconPlayerPlayFilled
+                                            className='h-[0.64rem] w-[0.64rem] text-emerald-600'
+                                            style={{
+                                              transform: 'scale(0.9)',
+                                              marginRight: '5px'
+                                            }}
+                                          />
+                                          <span>Reanudar orden de trabajo</span>
+                                        </span>
+                                      ) : (
+                                        <span className='inline-flex items-center justify-start gap-0'>
+                                          <IconPlayerPauseFilled
+                                            className='text-destructive h-[0.64rem] w-[0.64rem]'
+                                            style={{
+                                              transform: 'scale(0.9)',
+                                              marginRight: '5px'
+                                            }}
+                                          />
+                                          <span>Pausar orden de trabajo</span>
+                                        </span>
+                                      )
+                                    ) : (
+                                      'Emitir orden de trabajo'
+                                    )}
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem
+                                  className='text-destructive focus:text-destructive cursor-pointer transition-colors duration-150'
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    setRowToDelete(row);
+                                    setIsDeleteDialogOpen(true);
                                   }}
-                                />
-                                <span>Eliminar Solicitud</span>
-                              </span>
-                            </DropdownMenuItem>
+                                  disabled={isDeleting}
+                                >
+                                  <span className='inline-flex items-center justify-start gap-0'>
+                                    <IconTrash
+                                      className='text-destructive h-[0.64rem] w-[0.64rem]'
+                                      style={{
+                                        transform: 'scale(0.9)',
+                                        marginRight: '5px'
+                                      }}
+                                    />
+                                    <span>Eliminar Solicitud</span>
+                                  </span>
+                                </DropdownMenuItem>
+                              </>
+                            ) : null}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
@@ -1046,6 +1108,22 @@ export default function ServiceRequestsListing() {
           {selectedRow && (
             <div className='max-h-[calc(90vh-88px)] overflow-y-auto overscroll-none'>
               <div className='space-y-5 px-6 py-5'>
+                {getRequestDialogBanner(selectedRow) ? (
+                  <div
+                    className={`${getRequestDialogBanner(selectedRow)?.className} mx-0 mt-0 flex items-center justify-start gap-1`}
+                  >
+                    <span>{getRequestDialogBanner(selectedRow)?.text}</span>
+                    {selectedRow.status === 'draft' ? (
+                      <button
+                        type='button'
+                        className='cursor-pointer text-blue-600 underline underline-offset-2 hover:text-blue-500'
+                        onClick={handleDialogEdit}
+                      >
+                        Editar
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
                 <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
                   <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
                     <h4 className='text-muted-foreground font-semibold'>

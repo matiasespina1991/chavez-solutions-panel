@@ -4,6 +4,16 @@ import { DataTableSkeleton } from '@/components/ui/table/data-table-skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -21,6 +31,7 @@ import {
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip';
+import { completeWorkOrder } from '@/features/configurator/services/configurations';
 import { db } from '@/lib/firebase';
 import {
   collection,
@@ -29,11 +40,22 @@ import {
   query,
   Timestamp
 } from 'firebase/firestore';
-import { IconDotsVertical, IconSearch } from '@tabler/icons-react';
+import {
+  IconDownload,
+  IconDotsVertical,
+  IconPrinter,
+  IconSearch
+} from '@tabler/icons-react';
 import { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
 type WorkOrderMatrix = 'water' | 'soil';
-type WorkOrderStatus = 'issued' | 'paused' | 'cancelled' | 'unknown';
+type WorkOrderStatus =
+  | 'issued'
+  | 'paused'
+  | 'completed'
+  | 'cancelled'
+  | 'unknown';
 
 interface WorkOrderRow {
   id: string;
@@ -81,6 +103,7 @@ const matrixLabelMap: Record<WorkOrderMatrix, string> = {
 const statusLabelMap: Record<WorkOrderStatus, string> = {
   issued: 'Orden de trabajo emitida',
   paused: 'Orden de trabajo pausada',
+  completed: 'Orden de trabajo finalizada',
   cancelled: 'Orden de trabajo cancelada',
   unknown: 'Estado desconocido'
 };
@@ -121,12 +144,38 @@ export default function WorkOrdersListing() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [selectedRow, setSelectedRow] = useState<WorkOrderRow | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [pendingActionId, setPendingActionId] = useState<string | null>(null);
+  const [isCompleteDialogOpen, setIsCompleteDialogOpen] = useState(false);
+  const [rowToComplete, setRowToComplete] = useState<WorkOrderRow | null>(null);
+  const [isCompleting, setIsCompleting] = useState(false);
 
   const getOtSortRank = (row: WorkOrderRow) => {
     if (row.status === 'paused') return 1;
     if (row.status === 'issued') return 2;
-    if (row.status === 'cancelled') return 3;
+    if (row.status === 'completed') return 3;
+    if (row.status === 'cancelled') return 4;
     return 0;
+  };
+
+  const handleConfirmCompleteWorkOrder = async () => {
+    if (!rowToComplete) return;
+
+    try {
+      setIsCompleting(true);
+      setPendingActionId(rowToComplete.id);
+      await completeWorkOrder(rowToComplete.id, rowToComplete.sourceRequestId);
+      toast.success(
+        `Orden de trabajo ${rowToComplete.workOrderNumber} finalizada`
+      );
+      setIsCompleteDialogOpen(false);
+      setRowToComplete(null);
+    } catch (error) {
+      console.error('[WorkOrders] complete action error', error);
+      toast.error('No se pudo finalizar la orden de trabajo');
+    } finally {
+      setIsCompleting(false);
+      setPendingActionId(null);
+    }
   };
 
   const handleSort = (key: SortKey) => {
@@ -142,6 +191,37 @@ export default function WorkOrdersListing() {
   const getSortIndicator = (key: SortKey) => {
     if (sortKey !== key) return '';
     return sortDirection === 'asc' ? ' ↑' : ' ↓';
+  };
+
+  const dialogActionButtonClass =
+    'h-[2.4rem] w-[2.4rem] cursor-pointer rounded-md border bg-background p-0 transition-colors duration-150 hover:bg-muted/60';
+
+  const getWorkOrderDialogBanner = (row: WorkOrderRow) => {
+    if (row.status === 'completed') {
+      return {
+        className:
+          'mb-[1rem] rounded-md border border-emerald-600/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300',
+        text: 'Orden de trabajo finalizada. ✅'
+      };
+    }
+
+    if (row.status === 'cancelled') {
+      return {
+        className:
+          'mb-[1rem] rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive',
+        text: 'Orden de trabajo cancelada.'
+      };
+    }
+
+    return null;
+  };
+
+  const handleDialogDownload = () => {
+    toast.info('Descargar orden de trabajo estará disponible próximamente');
+  };
+
+  const handleDialogPrint = () => {
+    toast.info('Imprimir orden de trabajo estará disponible próximamente');
   };
 
   useEffect(() => {
@@ -161,6 +241,7 @@ export default function WorkOrdersListing() {
           const status: WorkOrderStatus =
             rawStatus === 'issued' ||
             rawStatus === 'paused' ||
+            rawStatus === 'completed' ||
             rawStatus === 'cancelled'
               ? (rawStatus as WorkOrderStatus)
               : 'unknown';
@@ -374,11 +455,13 @@ export default function WorkOrdersListing() {
       const otLabel =
         row.status === 'paused'
           ? 'amarillo'
-          : row.status === 'cancelled'
-            ? 'gris'
-          : row.status === 'issued'
-            ? 'verde'
-            : 'rojo';
+          : row.status === 'completed'
+            ? 'verde suave'
+            : row.status === 'cancelled'
+              ? 'gris'
+              : row.status === 'issued'
+                ? 'verde'
+                : 'rojo';
 
       const searchableParts = [
         row.workOrderNumber,
@@ -557,12 +640,17 @@ export default function WorkOrdersListing() {
               {visibleRows.map((row) => {
                 const isWorkOrderPaused = row.status === 'paused';
                 const isWorkOrderIssued = row.status === 'issued';
+                const isWorkOrderCompleted = row.status === 'completed';
                 const isWorkOrderCancelled = row.status === 'cancelled';
 
                 return (
                   <tr
                     key={row.id}
-                    className='hover:bg-muted/40 cursor-pointer border-t transition-colors duration-200'
+                    className={`cursor-pointer border-t transition-colors duration-200 ${
+                      isWorkOrderCompleted
+                        ? 'bg-emerald-50/40 hover:bg-emerald-50/40 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/10'
+                        : 'hover:bg-muted/40'
+                    }`}
                     onClick={() => {
                       setSelectedRow(row);
                       setIsViewDialogOpen(true);
@@ -591,26 +679,36 @@ export default function WorkOrdersListing() {
                     <td className='px-4 py-3 text-center'>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span
-                            className={`inline-block h-2 w-2 rounded-full ${
-                              isWorkOrderPaused
-                                ? 'bg-yellow-400'
-                                : isWorkOrderCancelled
-                                  ? 'bg-slate-400'
-                                : isWorkOrderIssued
-                                  ? 'bg-emerald-500'
-                                  : 'bg-red-500'
-                            }`}
-                          />
+                          {isWorkOrderCancelled ? (
+                            <span className='inline-flex h-4 w-4 items-center justify-center'>
+                              <span className='inline-block h-2 w-2 rounded-full bg-slate-400' />
+                            </span>
+                          ) : isWorkOrderCompleted ? (
+                            <span className='inline-flex h-4 w-4 items-center justify-center text-[0.8rem] leading-none'>
+                              ✅
+                            </span>
+                          ) : (
+                            <span
+                              className={`inline-block h-2 w-2 rounded-full ${
+                                isWorkOrderPaused
+                                  ? 'bg-yellow-400'
+                                  : isWorkOrderIssued
+                                    ? 'bg-emerald-500'
+                                    : 'bg-red-500'
+                              }`}
+                            />
+                          )}
                         </TooltipTrigger>
                         <TooltipContent>
                           {isWorkOrderPaused
                             ? 'Orden de trabajo pausada'
-                            : isWorkOrderCancelled
-                              ? 'Orden de trabajo cancelada'
-                            : isWorkOrderIssued
-                              ? 'Orden de trabajo emitida'
-                              : 'Orden de trabajo sin emitir'}
+                            : isWorkOrderCompleted
+                              ? 'Orden de trabajo finalizada ✅'
+                              : isWorkOrderCancelled
+                                ? 'Orden de trabajo cancelada'
+                                : isWorkOrderIssued
+                                  ? 'Orden de trabajo emitida'
+                                  : 'Orden de trabajo sin emitir'}
                         </TooltipContent>
                       </Tooltip>
                     </td>
@@ -624,7 +722,9 @@ export default function WorkOrdersListing() {
                       className={`px-4 py-3 ${
                         row.status === 'paused' || row.status === 'cancelled'
                           ? 'text-destructive'
-                          : ''
+                          : row.status === 'completed'
+                            ? 'text-emerald-700 dark:text-white'
+                            : ''
                       }`}
                     >
                       {statusLabelMap[row.status]}
@@ -649,6 +749,7 @@ export default function WorkOrdersListing() {
                             <Button
                               variant='ghost'
                               className='h-8 w-8 cursor-pointer p-0'
+                              disabled={pendingActionId === row.id}
                             >
                               <span className='sr-only'>Abrir acciones</span>
                               <IconDotsVertical className='h-4 w-4' />
@@ -665,6 +766,20 @@ export default function WorkOrdersListing() {
                             >
                               Ver orden de trabajo
                             </DropdownMenuItem>
+                            {isWorkOrderCompleted ||
+                            isWorkOrderCancelled ? null : (
+                              <DropdownMenuItem
+                                className='cursor-pointer transition-colors duration-150'
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setRowToComplete(row);
+                                  setIsCompleteDialogOpen(true);
+                                }}
+                                disabled={pendingActionId === row.id}
+                              >
+                                Finalizar orden de trabajo
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
@@ -684,17 +799,64 @@ export default function WorkOrdersListing() {
       </div>
 
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className='max-h-[90vh] gap-0 overflow-hidden p-0 sm:max-w-3xl'>
+        <DialogContent
+          className='max-h-[90vh] gap-0 overflow-hidden p-0 sm:max-w-3xl'
+          onOpenAutoFocus={(event) => event.preventDefault()}
+        >
           <DialogHeader className='bg-background shrink-0 border-b px-6 py-4 pr-12'>
-            <DialogTitle>Resumen de orden de trabajo</DialogTitle>
-            <DialogDescription>
-              Vista consolidada de cliente, muestras, análisis y costos.
-            </DialogDescription>
+            <div className='flex items-start justify-between gap-3'>
+              <div>
+                <DialogTitle>Resumen de orden de trabajo</DialogTitle>
+                <DialogDescription>
+                  Vista consolidada de cliente, muestras, análisis y costos.
+                </DialogDescription>
+              </div>
+              <div className='flex items-center gap-1'>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type='button'
+                      variant='ghost'
+                      size='icon'
+                      className={dialogActionButtonClass}
+                      onClick={handleDialogDownload}
+                      aria-label='Descargar orden de trabajo'
+                    >
+                      <IconDownload className='h-4 w-4' />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Descargar orden de trabajo</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type='button'
+                      variant='ghost'
+                      size='icon'
+                      className={dialogActionButtonClass}
+                      onClick={handleDialogPrint}
+                      aria-label='Imprimir orden de trabajo'
+                    >
+                      <IconPrinter className='h-4 w-4' />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Imprimir orden de trabajo</TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
           </DialogHeader>
 
           {selectedRow && (
             <div className='max-h-[calc(90vh-88px)] overflow-y-auto overscroll-none'>
               <div className='space-y-5 px-6 py-5'>
+                {getWorkOrderDialogBanner(selectedRow) ? (
+                  <div
+                    className={`${getWorkOrderDialogBanner(selectedRow)?.className} mx-0 mt-0`}
+                  >
+                    {getWorkOrderDialogBanner(selectedRow)?.text}
+                  </div>
+                ) : null}
                 <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
                   <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
                     <h4 className='text-muted-foreground font-semibold'>
@@ -764,80 +926,38 @@ export default function WorkOrdersListing() {
                   </div>
                 </div>
 
-                <div className='space-y-4 rounded-md border p-4'>
-                  {selectedRow.analysisItems.length > 0 && (
-                    <div className='space-y-2'>
-                      <h4 className='text-muted-foreground font-semibold'>
-                        Detalle de costos por análisis
-                      </h4>
-                      <div className='overflow-x-auto rounded-md border'>
-                        <table className='w-full text-left text-sm'>
-                          <thead className='bg-muted text-muted-foreground'>
-                            <tr>
-                              <th className='p-2'>Parámetro</th>
-                              <th className='p-2 text-right'>Muestras</th>
-                              <th className='p-2 text-right'>Costo unitario</th>
-                              <th className='p-2 text-right'>Subtotal</th>
+                {selectedRow.analysisItems.length > 0 ? (
+                  <div className='space-y-2 rounded-md border p-4'>
+                    <h4 className='text-muted-foreground font-semibold'>
+                      Detalle de análisis
+                    </h4>
+                    <div className='overflow-x-auto rounded-md border'>
+                      <table className='w-full text-left text-sm'>
+                        <thead className='bg-muted text-muted-foreground'>
+                          <tr>
+                            <th className='p-2'>Parámetro</th>
+                            <th className='p-2 text-right'>Muestras</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedRow.analysisItems.map((analysis, index) => (
+                            <tr
+                              key={`${analysis.parameterLabelEs}-${index}`}
+                              className='border-t'
+                            >
+                              <td className='p-2'>
+                                {analysis.parameterLabelEs}
+                              </td>
+                              <td className='p-2 text-right'>
+                                {selectedRow.agreedCount}
+                              </td>
                             </tr>
-                          </thead>
-                          <tbody>
-                            {selectedRow.analysisItems.map(
-                              (analysis, index) => {
-                                const lineTotal =
-                                  analysis.unitPrice * selectedRow.agreedCount;
-                                return (
-                                  <tr
-                                    key={`${analysis.parameterLabelEs}-${index}`}
-                                    className='border-t'
-                                  >
-                                    <td className='p-2'>
-                                      {analysis.parameterLabelEs}
-                                    </td>
-                                    <td className='p-2 text-right'>
-                                      {selectedRow.agreedCount}
-                                    </td>
-                                    <td className='p-2 text-right'>
-                                      ${analysis.unitPrice.toFixed(2)}
-                                    </td>
-                                    <td className='p-2 text-right'>
-                                      ${lineTotal.toFixed(2)}
-                                    </td>
-                                  </tr>
-                                );
-                              }
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-
-                  <h4 className='text-muted-foreground font-semibold'>
-                    Costos Estimados
-                  </h4>
-                  <div className='w-full max-w-xs space-y-1'>
-                    <div className='flex justify-between'>
-                      <span className='text-muted-foreground'>Subtotal:</span>
-                      <span>${selectedRow.subtotal.toFixed(2)}</span>
-                    </div>
-                    <div className='flex justify-between'>
-                      <span className='text-muted-foreground'>
-                        IVA ({selectedRow.taxPercent}%):
-                      </span>
-                      <span>
-                        $
-                        {(
-                          (selectedRow.subtotal * selectedRow.taxPercent) /
-                          100
-                        ).toFixed(2)}
-                      </span>
-                    </div>
-                    <div className='mt-1 flex justify-between border-t pt-1 text-lg font-bold'>
-                      <span>Total:</span>
-                      <span>${selectedRow.total.toFixed(2)}</span>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
-                </div>
+                ) : null}
 
                 {selectedRow.notes?.trim() ? (
                   <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
@@ -852,6 +972,42 @@ export default function WorkOrdersListing() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={isCompleteDialogOpen}
+        onOpenChange={(open) => {
+          if (isCompleting) return;
+          setIsCompleteDialogOpen(open);
+          if (!open) setRowToComplete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Confirmar finalización de orden de trabajo
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Está seguro de que desea finalizar esta orden de trabajo? Esta
+              acción actualizará también la solicitud vinculada como finalizada.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              className='cursor-pointer'
+              disabled={isCompleting}
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className='cursor-pointer'
+              onClick={handleConfirmCompleteWorkOrder}
+              disabled={isCompleting}
+            >
+              {isCompleting ? 'Finalizando…' : 'Finalizar orden de trabajo'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

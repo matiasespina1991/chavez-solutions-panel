@@ -17,6 +17,7 @@ export type ServiceRequestStatus =
   | 'submitted'
   | 'converted_to_work_order'
   | 'work_order_paused'
+  | 'work_order_completed'
   | 'cancelled';
 
 export interface ConfigurationClient {
@@ -107,7 +108,8 @@ const toConfigurationStatus = (
   if (
     status === 'submitted' ||
     status === 'converted_to_work_order' ||
-    status === 'work_order_paused'
+    status === 'work_order_paused' ||
+    status === 'work_order_completed'
   )
     return 'final';
   return 'draft';
@@ -215,6 +217,26 @@ export const resumeWorkOrderFromRequest = async (
     ResumeWorkOrderResponse
   >(functions, 'resumeWorkOrder');
   const result = await callable({ sourceRequestId });
+  return result.data;
+};
+
+interface CompleteWorkOrderResponse {
+  workOrderId: string;
+  workOrderNumber: string;
+  sourceRequestId: string;
+  status: 'completed';
+}
+
+export const completeWorkOrder = async (
+  workOrderId: string,
+  sourceRequestId?: string
+): Promise<CompleteWorkOrderResponse> => {
+  const functions = getFunctions();
+  const callable = httpsCallable<
+    { workOrderId: string; sourceRequestId?: string },
+    CompleteWorkOrderResponse
+  >(functions, 'completeWorkOrder');
+  const result = await callable({ workOrderId, sourceRequestId });
   return result.data;
 };
 

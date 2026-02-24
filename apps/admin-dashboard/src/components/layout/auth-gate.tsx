@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthSession } from '@/contexts/auth-session';
 
@@ -30,7 +31,15 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   if (!authReady || !user) {
     return (
       <div className='text-muted-foreground flex h-[95vh] min-h-[60vh] flex-col items-center justify-center gap-1 text-sm'>
-        <svg
+        <Image
+          src='/assets/branding/logos/chavez_solutions/world-logo.png'
+          alt='Chavez Solutions'
+          width={160}
+          height={64}
+          className='mb-1 ml-1 h-auto max-h-10 w-auto [animation:planet-breathe_2s_ease-in-out_infinite] opacity-90'
+          priority
+        />
+        {/* <svg
           className='text-muted-foreground mb-2 h-6 w-6 animate-spin'
           xmlns='http://www.w3.org/2000/svg'
           fill='none'
@@ -49,8 +58,30 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
             fill='currentColor'
             d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
           ></path>
-        </svg>
+        </svg> */}
         Inicializando...
+        <style jsx global>{`
+          @keyframes planet-breathe {
+            0% {
+              transform: scale(1);
+            }
+            20% {
+              transform: scale(1);
+            }
+            40% {
+              transform: scaleX(1.1) scaleY(0.95);
+            }
+            55% {
+              transform: scaleX(0.93) scaleY(1.08);
+            }
+            70% {
+              transform: scale(1);
+            }
+            100% {
+              transform: scale(1);
+            }
+          }
+        `}</style>
       </div>
     );
   }
