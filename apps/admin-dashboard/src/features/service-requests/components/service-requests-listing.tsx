@@ -118,10 +118,10 @@ const matrixLabelMap: Record<ServiceRequestMatrix, string> = {
 const statusLabelMap: Record<ServiceRequestStatus, string> = {
   draft: '(Borrador)',
   submitted: 'Proforma enviada',
-  converted_to_work_order: 'Convertida a OT',
-  work_order_paused: 'Orden de trabajo pausada',
-  work_order_completed: 'Orden de trabajo finalizada',
-  cancelled: 'Cancelada'
+  converted_to_work_order: 'OT emitida',
+  work_order_paused: 'OT pausada',
+  work_order_completed: 'OT finalizada',
+  cancelled: 'Solicitud cancelada'
 };
 
 const formatTimestamp = (value: unknown) => {
