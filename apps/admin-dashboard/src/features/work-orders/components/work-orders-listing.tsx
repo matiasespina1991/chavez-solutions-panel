@@ -101,10 +101,10 @@ const matrixLabelMap: Record<WorkOrderMatrix, string> = {
 };
 
 const statusLabelMap: Record<WorkOrderStatus, string> = {
-  issued: 'Orden de trabajo emitida',
-  paused: 'Orden de trabajo pausada',
-  completed: 'Orden de trabajo finalizada',
-  cancelled: 'Orden de trabajo cancelada',
+  issued: 'OT emitida',
+  paused: 'OT pausada',
+  completed: 'OT finalizada',
+  cancelled: 'OT cancelada',
   unknown: 'Estado desconocido'
 };
 
