@@ -3,6 +3,7 @@
 import { DataTableSkeleton } from '@/components/ui/table/data-table-skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -171,10 +172,19 @@ export default function ServiceRequestsListing() {
   );
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isWorkOrderToggleDialogOpen, setIsWorkOrderToggleDialogOpen] =
+    useState(false);
+  const [rowToToggleWorkOrder, setRowToToggleWorkOrder] =
+    useState<ServiceRequestRow | null>(null);
+  const [workOrderToggleAction, setWorkOrderToggleAction] = useState<
+    'pause' | 'resume' | null
+  >(null);
   const [rowToDelete, setRowToDelete] = useState<ServiceRequestRow | null>(
     null
   );
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isTogglingWorkOrder, setIsTogglingWorkOrder] = useState(false);
+  const [workOrderToggleNotes, setWorkOrderToggleNotes] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('updatedAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -230,6 +240,14 @@ export default function ServiceRequestsListing() {
       };
     }
 
+    if (row.status === 'work_order_paused') {
+      return {
+        className:
+          'rounded-md border border-yellow-500/40 bg-yellow-400/15 px-3 py-2 text-sm text-yellow-800 dark:text-yellow-300',
+        text: 'Orden de trabajo pausada.'
+      };
+    }
+
     if (row.status === 'cancelled') {
       return {
         className:
@@ -249,6 +267,82 @@ export default function ServiceRequestsListing() {
     return null;
   };
 
+  const openWorkOrderToggleDialog = (row: ServiceRequestRow) => {
+    const workOrderIssued = hasIssuedWorkOrder(row);
+    if (!workOrderIssued) return;
+
+    const nextAction = row.status === 'work_order_paused' ? 'resume' : 'pause';
+    setRowToToggleWorkOrder(row);
+    setWorkOrderToggleAction(nextAction);
+    setWorkOrderToggleNotes(row.notes || '');
+    setIsWorkOrderToggleDialogOpen(true);
+  };
+
+  const handleConfirmWorkOrderToggle = async () => {
+    if (!rowToToggleWorkOrder || !workOrderToggleAction) return;
+
+    try {
+      setIsTogglingWorkOrder(true);
+      setPendingActionId(rowToToggleWorkOrder.id);
+
+      const nextStatus: ServiceRequestStatus =
+        workOrderToggleAction === 'resume'
+          ? 'converted_to_work_order'
+          : 'work_order_paused';
+
+      if (workOrderToggleAction === 'resume') {
+        await resumeWorkOrderFromRequest(
+          rowToToggleWorkOrder.id,
+          workOrderToggleNotes
+        );
+        toast.success(
+          `Orden de trabajo ${rowToToggleWorkOrder.reference} reanudada`
+        );
+      } else {
+        await pauseWorkOrderFromRequest(
+          rowToToggleWorkOrder.id,
+          workOrderToggleNotes
+        );
+        toast.success(
+          `Orden de trabajo ${rowToToggleWorkOrder.reference} pausada`
+        );
+      }
+
+      setRows((prev) =>
+        prev.map((row) =>
+          row.id === rowToToggleWorkOrder.id
+            ? {
+                ...row,
+                status: nextStatus,
+                notes: workOrderToggleNotes
+              }
+            : row
+        )
+      );
+
+      setSelectedRow((prev) =>
+        prev && prev.id === rowToToggleWorkOrder.id
+          ? {
+              ...prev,
+              status: nextStatus,
+              notes: workOrderToggleNotes
+            }
+          : prev
+      );
+
+      setIsWorkOrderToggleDialogOpen(false);
+      setRowToToggleWorkOrder(null);
+      setWorkOrderToggleAction(null);
+      setWorkOrderToggleNotes('');
+    } catch (error) {
+      console.error('[ServiceRequests] toggle action error', error);
+      toast.error('No se pudo completar la acción de la orden de trabajo');
+    } finally {
+      setIsTogglingWorkOrder(false);
+      setPendingActionId(null);
+    }
+  };
+
   const handleWorkOrderAction = async (row: ServiceRequestRow) => {
     if (row.status === 'draft') {
       toast.error('No se puede emitir una orden de trabajo desde un borrador');
@@ -266,13 +360,8 @@ export default function ServiceRequestsListing() {
       const workOrderIssued = hasIssuedWorkOrder(row);
 
       if (workOrderIssued) {
-        if (row.status === 'work_order_paused') {
-          await resumeWorkOrderFromRequest(row.id);
-          toast.success(`Orden de trabajo ${row.reference} reanudada`);
-        } else {
-          await pauseWorkOrderFromRequest(row.id);
-          toast.success(`Orden de trabajo ${row.reference} pausada`);
-        }
+        openWorkOrderToggleDialog(row);
+        return;
       } else {
         await createWorkOrderFromRequest(row.id);
         toast.success(`Orden de Trabajo emitida (${row.reference})`, {
@@ -329,6 +418,11 @@ export default function ServiceRequestsListing() {
     if (!selectedRow) return;
     setRowToDelete(selectedRow);
     setIsDeleteDialogOpen(true);
+  };
+
+  const handleDialogResumeWorkOrder = () => {
+    if (!selectedRow || selectedRow.status !== 'work_order_paused') return;
+    openWorkOrderToggleDialog(selectedRow);
   };
 
   const handleDialogDownload = () => {
@@ -856,9 +950,19 @@ export default function ServiceRequestsListing() {
                     </td>
                     <td className='px-4 py-3'>
                       {row.notes?.trim() ? (
-                        <span className='inline-block max-w-[14rem] truncate align-bottom'>
-                          {row.notes}
-                        </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className='inline-block max-w-[14rem] truncate align-bottom'>
+                              {row.notes}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent
+                            side='bottom'
+                            className='max-w-[28rem] break-words whitespace-pre-wrap'
+                          >
+                            {row.notes}
+                          </TooltipContent>
+                        </Tooltip>
                       ) : (
                         '—'
                       )}
@@ -979,7 +1083,7 @@ export default function ServiceRequestsListing() {
                                               marginRight: '5px'
                                             }}
                                           />
-                                          <span>Pausar orden de trabajo</span>
+                                          <span>Pausar</span>
                                         </span>
                                       )
                                     ) : (
@@ -1123,6 +1227,14 @@ export default function ServiceRequestsListing() {
                         onClick={handleDialogEdit}
                       >
                         Editar
+                      </button>
+                    ) : selectedRow.status === 'work_order_paused' ? (
+                      <button
+                        type='button'
+                        className='cursor-pointer text-blue-600 underline underline-offset-2 hover:text-blue-500'
+                        onClick={handleDialogResumeWorkOrder}
+                      >
+                        Reanudar
                       </button>
                     ) : null}
                   </div>
@@ -1299,6 +1411,67 @@ export default function ServiceRequestsListing() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={isWorkOrderToggleDialogOpen}
+        onOpenChange={(open) => {
+          if (isTogglingWorkOrder) return;
+          setIsWorkOrderToggleDialogOpen(open);
+          if (!open) {
+            setRowToToggleWorkOrder(null);
+            setWorkOrderToggleAction(null);
+            setWorkOrderToggleNotes('');
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {workOrderToggleAction === 'resume'
+                ? 'Confirmar reanudación de orden de trabajo'
+                : 'Confirmar pausa de orden de trabajo'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {workOrderToggleAction === 'resume'
+                ? '¿Está seguro de que desea reanudar esta orden de trabajo?'
+                : '¿Está seguro de que desea pausar esta orden de trabajo?'}
+            </AlertDialogDescription>
+            <div className='space-y-2 pt-1'>
+              <label className='text-sm font-medium'>Notas</label>
+              <Textarea
+                value={workOrderToggleNotes}
+                onChange={(event) =>
+                  setWorkOrderToggleNotes(event.target.value)
+                }
+                placeholder='Ingrese notas para la solicitud y la orden de trabajo'
+                rows={4}
+                disabled={isTogglingWorkOrder}
+              />
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              className='cursor-pointer'
+              disabled={isTogglingWorkOrder}
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className='cursor-pointer bg-black text-white hover:bg-black/90 disabled:bg-black disabled:text-white'
+              onClick={handleConfirmWorkOrderToggle}
+              disabled={isTogglingWorkOrder}
+            >
+              {isTogglingWorkOrder
+                ? workOrderToggleAction === 'resume'
+                  ? 'Reanudando…'
+                  : 'Pausando…'
+                : workOrderToggleAction === 'resume'
+                  ? 'Reanudar orden de trabajo'
+                  : 'Pausar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={isDeleteDialogOpen}

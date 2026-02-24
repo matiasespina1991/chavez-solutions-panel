@@ -5,6 +5,7 @@ const db = admin.firestore();
 
 interface PauseWorkOrderRequest {
   sourceRequestId?: string;
+  notes?: string;
 }
 
 interface ServiceRequestData {
@@ -23,6 +24,7 @@ export const pauseWorkOrder = onCall(async (req) => {
 
   const data = (req.data || {}) as PauseWorkOrderRequest;
   const sourceRequestId = data.sourceRequestId?.trim();
+  const notes = typeof data.notes === 'string' ? data.notes : undefined;
 
   if (!sourceRequestId) {
     throw new HttpsError('invalid-argument', 'sourceRequestId is required.');
@@ -61,6 +63,7 @@ export const pauseWorkOrder = onCall(async (req) => {
 
     tx.update(workOrderRef, {
       status: 'paused',
+      ...(notes !== undefined ? { notes } : {}),
       pausedAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
@@ -68,6 +71,7 @@ export const pauseWorkOrder = onCall(async (req) => {
     tx.update(sourceRequestRef, {
       isWorkOrder: true,
       status: 'work_order_paused',
+      ...(notes !== undefined ? { notes } : {}),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 

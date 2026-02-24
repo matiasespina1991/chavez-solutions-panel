@@ -205,6 +205,14 @@ export default function WorkOrdersListing() {
       };
     }
 
+    if (row.status === 'paused') {
+      return {
+        className:
+          'mb-[1rem] rounded-md border border-yellow-500/40 bg-yellow-400/15 px-3 py-2 text-sm text-yellow-800 dark:text-yellow-300',
+        text: 'Orden de trabajo pausada.'
+      };
+    }
+
     if (row.status === 'cancelled') {
       return {
         className:
@@ -731,9 +739,19 @@ export default function WorkOrdersListing() {
                     </td>
                     <td className='px-4 py-3'>
                       {row.notes?.trim() ? (
-                        <span className='inline-block max-w-[14rem] truncate align-bottom'>
-                          {row.notes}
-                        </span>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className='inline-block max-w-[14rem] truncate align-bottom'>
+                              {row.notes}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent
+                            side='bottom'
+                            className='max-w-[28rem] break-words whitespace-pre-wrap'
+                          >
+                            {row.notes}
+                          </TooltipContent>
+                        </Tooltip>
                       ) : (
                         '—'
                       )}
