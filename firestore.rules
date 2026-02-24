@@ -13,6 +13,19 @@ service cloud.firestore {
       allow read: if true;
     }
 
+    // Service Requests (configurador)
+    match /service_requests/{requestId} {
+      allow read: if true;
+      allow create, update: if isAuthorized();
+      allow delete: if false;
+    }
+
+    // Work Orders (created/managed from backend callable)
+    match /work_orders/{workOrderId} {
+      allow read: if true;
+      allow create, update, delete: if false;
+    }
+
     // Assets collection
     match /assets/{mediaId} {
       // All writes must come from Cloud Functions using Admin SDK

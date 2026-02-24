@@ -23,7 +23,7 @@ export const onVideoUpload = onObjectFinalized(
   {
     region: 'europe-west3',
     memory: '8GiB',
-    timeoutSeconds: 2000,
+    timeoutSeconds: 540,
     cpu: 4,
     maxInstances: 10,
   },
