@@ -8,3 +8,13 @@ El objetivo de esta documentación es servir como mapa estructural y guía de in
 
 - [Configurador (Proformas y Órdenes de Trabajo)](./features/configurator.md)
 - [Lista de Órdenes de Trabajo](./features/work-orders.md)
+
+## Notas de Autenticación y Roles
+
+- El rol visual del usuario (línea secundaria en el bloque de perfil de sidebar y dropdown superior) se obtiene desde `config.default.authorizedUsers[].role`.
+- Mapeo actual:
+	- `admin` → `Administrador`
+	- `order-supervisor` → `Supervisor de Órdenes`
+	- `logistics` → `Logística`
+	- `technician` → `Técnico`
+	- `analyst` → `Analista`
