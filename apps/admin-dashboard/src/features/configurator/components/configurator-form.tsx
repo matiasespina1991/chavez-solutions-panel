@@ -739,6 +739,15 @@ export default function ConfiguratorForm() {
     matrix === 'water' ? waterParameters : soilParameters;
   const summaryNotes = (form.getValues('notes') || '').trim();
   const referenceLabel = reference?.trim() || '—';
+  const validDaysValue = form.watch('validDays');
+  const createdAtValue = form.watch('createdAt');
+  const validUntilLabel = (() => {
+    if (!validDaysValue || validDaysValue <= 0) return '—';
+    const baseDate = toDateOrNull(createdAtValue) || new Date();
+    const validUntil = new Date(baseDate);
+    validUntil.setDate(validUntil.getDate() + validDaysValue);
+    return validUntil.toLocaleDateString('es-EC');
+  })();
 
   return (
     <Form form={form} onSubmit={(e) => e.preventDefault()}>
@@ -1537,6 +1546,18 @@ export default function ConfiguratorForm() {
                       <span className='font-medium'>Referencia:</span>{' '}
                       {form.getValues('reference')}
                     </p>
+                    {(type === 'proforma' || type === 'both') && (
+                      <>
+                        <p>
+                          <span className='font-medium'>Validez:</span>{' '}
+                          {validDaysValue ? `${validDaysValue} días` : '—'}
+                        </p>
+                        <p>
+                          <span className='font-medium'>Válida hasta:</span>{' '}
+                          {validUntilLabel}
+                        </p>
+                      </>
+                    )}
                   </div>
                   <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
                     <h4 className='text-muted-foreground font-semibold'>

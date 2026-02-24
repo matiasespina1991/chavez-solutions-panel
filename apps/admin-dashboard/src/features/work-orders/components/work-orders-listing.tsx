@@ -577,6 +577,11 @@ export default function WorkOrdersListing() {
                               (pausada)
                             </span>
                           ) : null}
+                          {isWorkOrderCancelled ? (
+                            <span className='text-muted-foreground ml-1 text-xs'>
+                              (cancelada)
+                            </span>
+                          ) : null}
                         </p>
                         <p className='text-muted-foreground text-xs'>
                           {row.sourceReference || '—'}
@@ -617,7 +622,9 @@ export default function WorkOrdersListing() {
                     </td>
                     <td
                       className={`px-4 py-3 ${
-                        row.status === 'paused' ? 'text-destructive' : ''
+                        row.status === 'paused' || row.status === 'cancelled'
+                          ? 'text-destructive'
+                          : ''
                       }`}
                     >
                       {statusLabelMap[row.status]}
