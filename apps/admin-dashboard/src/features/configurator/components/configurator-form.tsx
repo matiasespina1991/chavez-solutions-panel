@@ -1720,6 +1720,7 @@ export default function ConfiguratorForm() {
                         </Button>
                         <Button
                           type='button'
+                          className='bg-black text-white hover:bg-black/90 disabled:bg-black disabled:text-white'
                           disabled={
                             isSubmitting || isLoadingRequest || !canSubmitFinal
                           }
@@ -1756,6 +1757,7 @@ export default function ConfiguratorForm() {
                         </Button>
                         <Button
                           type='button'
+                          className='bg-black text-white hover:bg-black/90 disabled:bg-black disabled:text-white'
                           disabled={
                             isSubmitting || isLoadingRequest || !canSubmitFinal
                           }

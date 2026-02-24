@@ -28,6 +28,33 @@ body {
 
 .theme-default,
 .theme-default-scaled {
+  --primary: #63b985;
+  --primary-foreground: #ffffff;
+  --sidebar: #63b985;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #4ea56f;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #86cda3;
+  --sidebar-accent-foreground: #103923;
+  --sidebar-border: #4ea56f;
+  --sidebar-ring: #4ea56f;
+
+  @variant dark {
+    --primary: #63b985;
+    --primary-foreground: #ffffff;
+    --sidebar: #4ea56f;
+    --sidebar-foreground: #f8fafc;
+    --sidebar-primary: #3f8a5d;
+    --sidebar-primary-foreground: #f8fafc;
+    --sidebar-accent: #2e6a47;
+    --sidebar-accent-foreground: #f8fafc;
+    --sidebar-border: #3f8a5d;
+    --sidebar-ring: #63b985;
+  }
+}
+
+.theme-gray,
+.theme-gray-scaled {
   --primary: var(--color-neutral-600);
   --primary-foreground: var(--color-neutral-50);
 
