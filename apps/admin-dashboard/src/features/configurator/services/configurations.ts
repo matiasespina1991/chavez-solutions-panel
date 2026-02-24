@@ -1,11 +1,23 @@
-import { collection, doc, getDoc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  getDoc,
+  setDoc,
+  serverTimestamp,
+  updateDoc
+} from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from '@/lib/firebase';
 
 export type ConfigurationStatus = 'draft' | 'final';
 export type ConfigurationType = 'proforma' | 'work_order' | 'both';
 export type MatrixType = 'water' | 'soil';
-export type ServiceRequestStatus = 'draft' | 'submitted' | 'converted_to_work_order' | 'work_order_paused' | 'cancelled';
+export type ServiceRequestStatus =
+  | 'draft'
+  | 'submitted'
+  | 'converted_to_work_order'
+  | 'work_order_paused'
+  | 'cancelled';
 
 export interface ConfigurationClient {
   businessName: string;
@@ -72,7 +84,8 @@ export interface ConfigurationDocument {
   pricing: ConfigurationPricing;
 }
 
-export interface ServiceRequestDocument extends Omit<ConfigurationDocument, 'status'> {
+export interface ServiceRequestDocument
+  extends Omit<ConfigurationDocument, 'status'> {
   isWorkOrder: boolean;
   status: ServiceRequestStatus;
   linkedWorkOrderId?: string | null;
@@ -80,13 +93,22 @@ export interface ServiceRequestDocument extends Omit<ConfigurationDocument, 'sta
 
 const SERVICE_REQUEST_COLLECTION = 'service_requests';
 
-const toServiceRequestStatus = (status: ConfigurationStatus): ServiceRequestStatus => {
+const toServiceRequestStatus = (
+  status: ConfigurationStatus
+): ServiceRequestStatus => {
   if (status === 'final') return 'submitted';
   return 'draft';
 };
 
-const toConfigurationStatus = (status: ServiceRequestStatus): ConfigurationStatus => {
-  if (status === 'submitted' || status === 'converted_to_work_order' || status === 'work_order_paused') return 'final';
+const toConfigurationStatus = (
+  status: ServiceRequestStatus
+): ConfigurationStatus => {
+  if (
+    status === 'submitted' ||
+    status === 'converted_to_work_order' ||
+    status === 'work_order_paused'
+  )
+    return 'final';
   return 'draft';
 };
 
@@ -94,7 +116,9 @@ const toIsWorkOrder = (type: ConfigurationType): boolean => {
   return type === 'work_order' || type === 'both';
 };
 
-export const createConfiguration = async (data: Omit<ConfigurationDocument, 'id' | 'createdAt' | 'updatedAt'>) => {
+export const createConfiguration = async (
+  data: Omit<ConfigurationDocument, 'id' | 'createdAt' | 'updatedAt'>
+) => {
   const newDocRef = doc(collection(db, SERVICE_REQUEST_COLLECTION));
   const { type, ...restData } = data;
   const docData = {
@@ -103,25 +127,30 @@ export const createConfiguration = async (data: Omit<ConfigurationDocument, 'id'
     status: toServiceRequestStatus(data.status),
     linkedWorkOrderId: null,
     createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
   };
   await setDoc(newDocRef, docData);
   return newDocRef.id;
 };
 
-export const updateConfiguration = async (id: string, data: Partial<ConfigurationDocument>) => {
+export const updateConfiguration = async (
+  id: string,
+  data: Partial<ConfigurationDocument>
+) => {
   const docRef = doc(db, SERVICE_REQUEST_COLLECTION, id);
   const { type, ...restData } = data;
   const docData = {
     ...restData,
     ...(type ? { isWorkOrder: toIsWorkOrder(type) } : {}),
     ...(data.status ? { status: toServiceRequestStatus(data.status) } : {}),
-    updatedAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
   };
   await updateDoc(docRef, docData);
 };
 
-export const getConfigurationById = async (id: string): Promise<ConfigurationDocument | null> => {
+export const getConfigurationById = async (
+  id: string
+): Promise<ConfigurationDocument | null> => {
   const docRef = doc(db, SERVICE_REQUEST_COLLECTION, id);
   const snapshot = await getDoc(docRef);
   if (!snapshot.exists()) return null;
@@ -130,7 +159,7 @@ export const getConfigurationById = async (id: string): Promise<ConfigurationDoc
     ...data,
     id: snapshot.id,
     type: data.isWorkOrder ? 'both' : 'proforma',
-    status: toConfigurationStatus(data.status),
+    status: toConfigurationStatus(data.status)
   } as ConfigurationDocument;
 };
 
@@ -139,9 +168,14 @@ interface CreateWorkOrderResponse {
   workOrderNumber: string;
 }
 
-export const createWorkOrderFromRequest = async (sourceRequestId: string): Promise<CreateWorkOrderResponse> => {
+export const createWorkOrderFromRequest = async (
+  sourceRequestId: string
+): Promise<CreateWorkOrderResponse> => {
   const functions = getFunctions();
-  const callable = httpsCallable<{ sourceRequestId: string; forceEmit?: boolean }, CreateWorkOrderResponse>(functions, 'createWorkOrder');
+  const callable = httpsCallable<
+    { sourceRequestId: string; forceEmit?: boolean },
+    CreateWorkOrderResponse
+  >(functions, 'createWorkOrder');
   const result = await callable({ sourceRequestId, forceEmit: true });
   return result.data;
 };
@@ -152,9 +186,14 @@ interface PauseWorkOrderResponse {
   status: 'paused';
 }
 
-export const pauseWorkOrderFromRequest = async (sourceRequestId: string): Promise<PauseWorkOrderResponse> => {
+export const pauseWorkOrderFromRequest = async (
+  sourceRequestId: string
+): Promise<PauseWorkOrderResponse> => {
   const functions = getFunctions();
-  const callable = httpsCallable<{ sourceRequestId: string }, PauseWorkOrderResponse>(functions, 'pauseWorkOrder');
+  const callable = httpsCallable<
+    { sourceRequestId: string },
+    PauseWorkOrderResponse
+  >(functions, 'pauseWorkOrder');
   const result = await callable({ sourceRequestId });
   return result.data;
 };
@@ -165,9 +204,14 @@ interface ResumeWorkOrderResponse {
   status: 'issued';
 }
 
-export const resumeWorkOrderFromRequest = async (sourceRequestId: string): Promise<ResumeWorkOrderResponse> => {
+export const resumeWorkOrderFromRequest = async (
+  sourceRequestId: string
+): Promise<ResumeWorkOrderResponse> => {
   const functions = getFunctions();
-  const callable = httpsCallable<{ sourceRequestId: string }, ResumeWorkOrderResponse>(functions, 'resumeWorkOrder');
+  const callable = httpsCallable<
+    { sourceRequestId: string },
+    ResumeWorkOrderResponse
+  >(functions, 'resumeWorkOrder');
   const result = await callable({ sourceRequestId });
   return result.data;
 };

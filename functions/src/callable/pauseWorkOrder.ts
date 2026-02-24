@@ -28,7 +28,9 @@ export const pauseWorkOrder = onCall(async (req) => {
     throw new HttpsError('invalid-argument', 'sourceRequestId is required.');
   }
 
-  const sourceRequestRef = db.collection('service_requests').doc(sourceRequestId);
+  const sourceRequestRef = db
+    .collection('service_requests')
+    .doc(sourceRequestId);
 
   const result = await db.runTransaction(async (tx) => {
     const sourceSnap = await tx.get(sourceRequestRef);
@@ -46,7 +48,9 @@ export const pauseWorkOrder = onCall(async (req) => {
       );
     }
 
-    const workOrderRef = db.collection('work_orders').doc(source.linkedWorkOrderId);
+    const workOrderRef = db
+      .collection('work_orders')
+      .doc(source.linkedWorkOrderId);
     const workOrderSnap = await tx.get(workOrderRef);
 
     if (!workOrderSnap.exists) {

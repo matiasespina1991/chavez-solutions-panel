@@ -307,8 +307,8 @@ export default function ConfiguratorForm() {
           sampleCode:
             typeof item.sampleCode === 'string'
               ? item.sampleCode
-              : baseValues.samples.items[index]?.sampleCode ??
-                `M-${String(index + 1).padStart(3, '0')}`,
+              : (baseValues.samples.items[index]?.sampleCode ??
+                `M-${String(index + 1).padStart(3, '0')}`),
           sampleType:
             typeof item.sampleType === 'string' ? item.sampleType : '',
           takenAt: toDateOrNull(item.takenAt),
@@ -612,7 +612,10 @@ export default function ConfiguratorForm() {
 
       const requestId = await createConfiguration(docData);
 
-      if (status === 'final' && (values.type === 'work_order' || values.type === 'both')) {
+      if (
+        status === 'final' &&
+        (values.type === 'work_order' || values.type === 'both')
+      ) {
         await createWorkOrderFromRequest(requestId);
         toast.success(
           `Solicitud ejecutada y Orden de Trabajo emitida (${values.reference})`
@@ -1414,7 +1417,7 @@ export default function ConfiguratorForm() {
               </CardHeader>
               <CardContent className='space-y-5 px-6 py-5'>
                 <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
-                  <div className='space-y-2 rounded-md border bg-muted/20 p-4'>
+                  <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
                     <h4 className='text-muted-foreground font-semibold'>
                       Datos Generales
                     </h4>
@@ -1435,7 +1438,7 @@ export default function ConfiguratorForm() {
                       {form.getValues('reference')}
                     </p>
                   </div>
-                  <div className='space-y-2 rounded-md border bg-muted/20 p-4'>
+                  <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
                     <h4 className='text-muted-foreground font-semibold'>
                       Cliente
                     </h4>
@@ -1454,7 +1457,7 @@ export default function ConfiguratorForm() {
                   </div>
                 </div>
 
-                <div className='space-y-2 rounded-md border bg-muted/20 p-4'>
+                <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
                   <h4 className='text-muted-foreground font-semibold'>
                     Muestras ({agreedCount})
                   </h4>
@@ -1470,7 +1473,7 @@ export default function ConfiguratorForm() {
                   </div>
                 </div>
 
-                <div className='space-y-2 rounded-md border bg-muted/20 p-4'>
+                <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
                   <h4 className='text-muted-foreground font-semibold'>
                     Análisis ({analysisItems.length})
                   </h4>
@@ -1478,7 +1481,7 @@ export default function ConfiguratorForm() {
                     {analysisItems.map((a) => (
                       <span
                         key={a.id}
-                        className='bg-primary/10 text-primary rounded border border-primary/20 px-2 py-1 text-sm'
+                        className='bg-primary/10 text-primary border-primary/20 rounded border px-2 py-1 text-sm'
                       >
                         {a.parameterLabelEs}
                       </span>
@@ -1578,7 +1581,9 @@ export default function ConfiguratorForm() {
                     {isEditMode ? (
                       <Button
                         type='button'
-                        disabled={isSubmitting || isLoadingRequest || !canSubmitFinal}
+                        disabled={
+                          isSubmitting || isLoadingRequest || !canSubmitFinal
+                        }
                         onClick={() =>
                           form.handleSubmit((data) => onUpdateRequest(data))()
                         }
@@ -1592,7 +1597,9 @@ export default function ConfiguratorForm() {
                           variant='secondary'
                           disabled={isSubmitting || isLoadingRequest}
                           onClick={() =>
-                            form.handleSubmit((data) => onSubmit(data, 'draft'))()
+                            form.handleSubmit((data) =>
+                              onSubmit(data, 'draft')
+                            )()
                           }
                         >
                           Guardar como Borrador
@@ -1603,7 +1610,9 @@ export default function ConfiguratorForm() {
                             isSubmitting || isLoadingRequest || !canSubmitFinal
                           }
                           onClick={() =>
-                            form.handleSubmit((data) => onSubmit(data, 'final'))()
+                            form.handleSubmit((data) =>
+                              onSubmit(data, 'final')
+                            )()
                           }
                         >
                           {type === 'proforma'
@@ -1628,14 +1637,16 @@ export default function ConfiguratorForm() {
             <AlertDialogTitle>Confirmar vaciado de datos</AlertDialogTitle>
             <AlertDialogDescription>
               ¿Está seguro de que desea vaciar los datos actualmente cargados en
-              este configurador? Esta acción eliminará la información en curso
-              y no podrá deshacerse.
+              este configurador? Esta acción eliminará la información en curso y
+              no podrá deshacerse.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className='cursor-pointer'>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel className='cursor-pointer'>
+              Cancelar
+            </AlertDialogCancel>
             <AlertDialogAction
-              className='cursor-pointer bg-destructive text-white hover:bg-destructive/90'
+              className='bg-destructive hover:bg-destructive/90 cursor-pointer text-white'
               onClick={handleConfirmClearCurrentData}
             >
               Vaciar datos

@@ -105,7 +105,9 @@ export default function ServiceRequestsListing() {
   const [rows, setRows] = useState<ServiceRequestRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
-  const [selectedRow, setSelectedRow] = useState<ServiceRequestRow | null>(null);
+  const [selectedRow, setSelectedRow] = useState<ServiceRequestRow | null>(
+    null
+  );
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
   const handleWorkOrderAction = async (row: ServiceRequestRow) => {
@@ -151,9 +153,7 @@ export default function ServiceRequestsListing() {
             ('draft' as ServiceRequestStatus);
           const total =
             typeof value.pricing === 'object' && value.pricing !== null
-              ? Number(
-                  (value.pricing as { total?: number | null }).total ?? 0
-                )
+              ? Number((value.pricing as { total?: number | null }).total ?? 0)
               : 0;
           const subtotal =
             typeof value.pricing === 'object' && value.pricing !== null
@@ -164,8 +164,8 @@ export default function ServiceRequestsListing() {
           const taxPercent =
             typeof value.pricing === 'object' && value.pricing !== null
               ? Number(
-                  (value.pricing as { taxPercent?: number | null }).taxPercent ??
-                    15
+                  (value.pricing as { taxPercent?: number | null })
+                    .taxPercent ?? 15
                 )
               : 15;
 
@@ -178,9 +178,7 @@ export default function ServiceRequestsListing() {
 
           const analysesCount =
             typeof value.analyses === 'object' && value.analyses !== null
-              ? Array.isArray(
-                  (value.analyses as { items?: unknown[] }).items
-                )
+              ? Array.isArray((value.analyses as { items?: unknown[] }).items)
                 ? ((value.analyses as { items?: unknown[] }).items?.length ?? 0)
                 : 0
               : 0;
@@ -290,7 +288,7 @@ export default function ServiceRequestsListing() {
 
   if (!hasRows) {
     return (
-      <div className='rounded-md border p-8 text-center text-sm text-muted-foreground'>
+      <div className='text-muted-foreground rounded-md border p-8 text-center text-sm'>
         Aún no hay solicitudes de servicio registradas.
       </div>
     );
@@ -388,7 +386,7 @@ export default function ServiceRequestsListing() {
                             <span className='block'>
                               <DropdownMenuItem
                                 disabled
-                                className='cursor-not-allowed text-muted-foreground opacity-60'
+                                className='text-muted-foreground cursor-not-allowed opacity-60'
                               >
                                 Editar solicitud...
                               </DropdownMenuItem>
@@ -416,8 +414,8 @@ export default function ServiceRequestsListing() {
                           !row.isWorkOrder
                             ? 'text-foreground focus:text-foreground'
                             : row.status === 'work_order_paused'
-                            ? 'text-emerald-600 focus:text-emerald-600'
-                            : 'text-destructive focus:text-destructive'
+                              ? 'text-emerald-600 focus:text-emerald-600'
+                              : 'text-destructive focus:text-destructive'
                         }`}
                         onClick={(event) => {
                           event.stopPropagation();
@@ -425,22 +423,30 @@ export default function ServiceRequestsListing() {
                         }}
                         disabled={pendingActionId === row.id}
                       >
-                        {row.isWorkOrder ? row.status === 'work_order_paused' ? (
-                          <span className='inline-flex items-center justify-start gap-0'>
-                            <IconPlayerPlayFilled
-                              className='h-[0.64rem] w-[0.64rem] text-emerald-600'
-                              style={{ transform: 'scale(0.9)', marginRight: '5px' }}
-                            />
-                            <span>Reanudar orden de trabajo</span>
-                          </span>
-                        ) : (
-                          <span className='inline-flex items-center justify-start gap-0'>
-                            <IconPlayerPauseFilled
-                              className='h-[0.64rem] w-[0.64rem] text-destructive'
-                              style={{ transform: 'scale(0.9)', marginRight: '5px' }}
-                            />
-                            <span>Pausar orden de trabajo</span>
-                          </span>
+                        {row.isWorkOrder ? (
+                          row.status === 'work_order_paused' ? (
+                            <span className='inline-flex items-center justify-start gap-0'>
+                              <IconPlayerPlayFilled
+                                className='h-[0.64rem] w-[0.64rem] text-emerald-600'
+                                style={{
+                                  transform: 'scale(0.9)',
+                                  marginRight: '5px'
+                                }}
+                              />
+                              <span>Reanudar orden de trabajo</span>
+                            </span>
+                          ) : (
+                            <span className='inline-flex items-center justify-start gap-0'>
+                              <IconPlayerPauseFilled
+                                className='text-destructive h-[0.64rem] w-[0.64rem]'
+                                style={{
+                                  transform: 'scale(0.9)',
+                                  marginRight: '5px'
+                                }}
+                              />
+                              <span>Pausar orden de trabajo</span>
+                            </span>
+                          )
                         ) : (
                           'Emitir orden de trabajo'
                         )}
@@ -466,15 +472,13 @@ export default function ServiceRequestsListing() {
           {selectedRow && (
             <div className='space-y-5 px-6 py-5'>
               <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
-                <div className='space-y-2 rounded-md border bg-muted/20 p-4'>
+                <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
                   <h4 className='text-muted-foreground font-semibold'>
                     Datos Generales
                   </h4>
                   <p>
                     <span className='font-medium'>Tipo:</span>{' '}
-                    {selectedRow.isWorkOrder
-                      ? 'Proforma + OT'
-                      : 'Proforma'}
+                    {selectedRow.isWorkOrder ? 'Proforma + OT' : 'Proforma'}
                   </p>
                   <p>
                     <span className='font-medium'>Matriz:</span>{' '}
@@ -485,8 +489,10 @@ export default function ServiceRequestsListing() {
                     {selectedRow.reference}
                   </p>
                 </div>
-                <div className='space-y-2 rounded-md border bg-muted/20 p-4'>
-                  <h4 className='text-muted-foreground font-semibold'>Cliente</h4>
+                <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
+                  <h4 className='text-muted-foreground font-semibold'>
+                    Cliente
+                  </h4>
                   <p>
                     <span className='font-medium'>Razón Social:</span>{' '}
                     {selectedRow.client.businessName || '—'}
@@ -502,7 +508,7 @@ export default function ServiceRequestsListing() {
                 </div>
               </div>
 
-              <div className='space-y-2 rounded-md border bg-muted/20 p-4'>
+              <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
                 <h4 className='text-muted-foreground font-semibold'>
                   Muestras ({selectedRow.agreedCount})
                 </h4>
@@ -518,7 +524,7 @@ export default function ServiceRequestsListing() {
                 </div>
               </div>
 
-              <div className='space-y-2 rounded-md border bg-muted/20 p-4'>
+              <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
                 <h4 className='text-muted-foreground font-semibold'>
                   Análisis ({selectedRow.analysisItems.length})
                 </h4>
@@ -526,7 +532,7 @@ export default function ServiceRequestsListing() {
                   {selectedRow.analysisItems.map((analysis, index) => (
                     <span
                       key={`${analysis.parameterLabelEs}-${index}`}
-                      className='bg-primary/10 text-primary rounded border border-primary/20 px-2 py-1 text-sm'
+                      className='bg-primary/10 text-primary border-primary/20 rounded border px-2 py-1 text-sm'
                     >
                       {analysis.parameterLabelEs}
                     </span>
@@ -555,11 +561,22 @@ export default function ServiceRequestsListing() {
                             const lineTotal =
                               analysis.unitPrice * selectedRow.agreedCount;
                             return (
-                              <tr key={`${analysis.parameterLabelEs}-${index}`} className='border-t'>
-                                <td className='p-2'>{analysis.parameterLabelEs}</td>
-                                <td className='p-2 text-right'>{selectedRow.agreedCount}</td>
-                                <td className='p-2 text-right'>${analysis.unitPrice.toFixed(2)}</td>
-                                <td className='p-2 text-right'>${lineTotal.toFixed(2)}</td>
+                              <tr
+                                key={`${analysis.parameterLabelEs}-${index}`}
+                                className='border-t'
+                              >
+                                <td className='p-2'>
+                                  {analysis.parameterLabelEs}
+                                </td>
+                                <td className='p-2 text-right'>
+                                  {selectedRow.agreedCount}
+                                </td>
+                                <td className='p-2 text-right'>
+                                  ${analysis.unitPrice.toFixed(2)}
+                                </td>
+                                <td className='p-2 text-right'>
+                                  ${lineTotal.toFixed(2)}
+                                </td>
                               </tr>
                             );
                           })}
@@ -569,7 +586,9 @@ export default function ServiceRequestsListing() {
                   </div>
                 )}
 
-                <h4 className='text-muted-foreground font-semibold'>Costos Estimados</h4>
+                <h4 className='text-muted-foreground font-semibold'>
+                  Costos Estimados
+                </h4>
                 <div className='w-full max-w-xs space-y-1'>
                   <div className='flex justify-between'>
                     <span className='text-muted-foreground'>Subtotal:</span>
@@ -580,12 +599,11 @@ export default function ServiceRequestsListing() {
                       IVA ({selectedRow.taxPercent}%):
                     </span>
                     <span>
-                      ${
-                        (
-                          (selectedRow.subtotal * selectedRow.taxPercent) /
-                          100
-                        ).toFixed(2)
-                      }
+                      $
+                      {(
+                        (selectedRow.subtotal * selectedRow.taxPercent) /
+                        100
+                      ).toFixed(2)}
                     </span>
                   </div>
                   <div className='mt-1 flex justify-between border-t pt-1 text-lg font-bold'>
