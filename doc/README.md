@@ -13,8 +13,8 @@ El objetivo de esta documentación es servir como mapa estructural y guía de in
 
 - El rol visual del usuario (línea secundaria en el bloque de perfil de sidebar y dropdown superior) se obtiene desde `config.default.authorizedUsers[].role`.
 - Mapeo actual:
-	- `admin` → `Administrador`
-	- `order-supervisor` → `Supervisor de Órdenes`
-	- `logistics` → `Logística`
-	- `technician` → `Técnico`
-	- `analyst` → `Analista`
+  - `admin` → `Administrador`
+  - `order-supervisor` → `Supervisor de Órdenes`
+  - `logistics` → `Logística`
+  - `technician` → `Técnico`
+  - `analyst` → `Analista`
