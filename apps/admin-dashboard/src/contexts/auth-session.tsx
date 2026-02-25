@@ -101,7 +101,11 @@ function mapFirebaseUser(user: User, role: DemoUser['role']): DemoUser {
   };
 }
 
-export function AuthSessionProvider({ children }: { children: React.ReactNode }) {
+export function AuthSessionProvider({
+  children
+}: {
+  children: React.ReactNode;
+}) {
   const [activeOrgId, setActiveOrgId] = useState(demoOrganizations[0].id);
   const [firebaseUser, setFirebaseUser] = useState<DemoUser | null>(null);
   const [authReady, setAuthReady] = useState(false);
@@ -132,9 +136,7 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
           );
 
           if (!match) {
-            setAuthError(
-              'No estas autorizado para ingresar al dashboard.'
-            );
+            setAuthError('No estas autorizado para ingresar al dashboard.');
             await firebaseSignOut(auth);
             if (!active) return;
             setFirebaseUser(null);

@@ -98,7 +98,6 @@ interface ServiceRequestRow {
 
 type SortKey =
   | 'reference'
-  | 'ot'
   | 'matrix'
   | 'client'
   | 'samples'
@@ -217,11 +216,14 @@ export default function ServiceRequestsListing() {
     return statusLabelMap[row.status];
   };
 
-  const getOtSortRank = (row: ServiceRequestRow) => {
-    if (row.status === 'work_order_paused') return 1;
-    if (row.status === 'work_order_completed') return 2;
-    if (hasIssuedWorkOrder(row)) return 3;
-    return 0;
+  const getStatusDisplayLabel = (row: ServiceRequestRow) => {
+    if (isExpiredProforma(row)) return '⚪ Proforma vencida';
+    if (row.status === 'draft') return '(Borrador)';
+    if (row.status === 'work_order_paused') return '🟡 OT pausada';
+    if (row.status === 'work_order_completed') return '✅ Finalizada';
+    if (row.status === 'converted_to_work_order') return '🟢 OT iniciada';
+    if (row.status === 'submitted') return '🟢 Proforma enviada';
+    return '⚪ Cancelada';
   };
 
   const handleSort = (key: SortKey) => {
@@ -621,9 +623,6 @@ export default function ServiceRequestsListing() {
         case 'reference':
           compare = collator.compare(left.reference, right.reference);
           break;
-        case 'ot':
-          compare = getOtSortRank(left) - getOtSortRank(right);
-          break;
         case 'matrix':
           compare = collator.compare(
             matrixLabelMap[left.matrix],
@@ -731,22 +730,21 @@ export default function ServiceRequestsListing() {
   if (loading) {
     return (
       <DataTableSkeleton
-        columnCount={11}
+        columnCount={10}
         rowCount={8}
         filterCount={0}
         withViewOptions={false}
         withPagination={false}
         cellWidths={[
           '10rem',
-          '4rem',
-          '6rem',
+          '12rem',
           '14rem',
           '6rem',
           '6rem',
-          '14rem',
-          '10rem',
+          '6rem',
           '8rem',
           '12rem',
+          '14rem',
           '3rem'
         ]}
       />
@@ -787,22 +785,31 @@ export default function ServiceRequestsListing() {
                     Referencia{getSortIndicator('reference')}
                   </button>
                 </th>
-                <th className='px-4 py-3'>
+                <th className='w-[190px] px-4 py-3'>
                   <button
                     type='button'
                     className='cursor-pointer select-none'
-                    onClick={() => handleSort('matrix')}
+                    onClick={() => handleSort('status')}
                   >
-                    Matriz{getSortIndicator('matrix')}
+                    Estado{getSortIndicator('status')}
                   </button>
                 </th>
-                <th className='w-[120px] px-4 py-3'>
+                <th className='w-[160px] px-4 py-3'>
                   <button
                     type='button'
                     className='cursor-pointer select-none'
                     onClick={() => handleSort('client')}
                   >
                     Cliente{getSortIndicator('client')}
+                  </button>
+                </th>
+                <th className='w-[80px] px-4 py-3'>
+                  <button
+                    type='button'
+                    className='cursor-pointer select-none'
+                    onClick={() => handleSort('matrix')}
+                  >
+                    Matriz{getSortIndicator('matrix')}
                   </button>
                 </th>
                 <th className='max-w-[90px] px-4 py-3 text-right'>
@@ -823,13 +830,22 @@ export default function ServiceRequestsListing() {
                     Análisis{getSortIndicator('analyses')}
                   </button>
                 </th>
-                <th className='px-4 py-3'>
+                <th className='px-4 py-3 text-right'>
                   <button
                     type='button'
                     className='cursor-pointer select-none'
-                    onClick={() => handleSort('status')}
+                    onClick={() => handleSort('total')}
                   >
-                    Estado{getSortIndicator('status')}
+                    Total{getSortIndicator('total')}
+                  </button>
+                </th>
+                <th className='w-[200px] px-4 py-3'>
+                  <button
+                    type='button'
+                    className='cursor-pointer select-none'
+                    onClick={() => handleSort('updatedAt')}
+                  >
+                    Última Actualización{getSortIndicator('updatedAt')}
                   </button>
                 </th>
                 <th className='px-4 py-3'>
@@ -839,33 +855,6 @@ export default function ServiceRequestsListing() {
                     onClick={() => handleSort('notes')}
                   >
                     Notas{getSortIndicator('notes')}
-                  </button>
-                </th>
-                <th className='px-4 py-3 text-center'>
-                  <button
-                    type='button'
-                    className='cursor-pointer select-none'
-                    onClick={() => handleSort('ot')}
-                  >
-                    OT{getSortIndicator('ot')}
-                  </button>
-                </th>
-                <th className='px-4 py-3 text-right'>
-                  <button
-                    type='button'
-                    className='cursor-pointer select-none'
-                    onClick={() => handleSort('total')}
-                  >
-                    Total (USD){getSortIndicator('total')}
-                  </button>
-                </th>
-                <th className='px-4 py-3'>
-                  <button
-                    type='button'
-                    className='cursor-pointer select-none'
-                    onClick={() => handleSort('updatedAt')}
-                  >
-                    Última Actualización{getSortIndicator('updatedAt')}
                   </button>
                 </th>
                 <th className='w-12 px-2 py-3 text-right'></th>
@@ -902,11 +891,6 @@ export default function ServiceRequestsListing() {
                           (borrador)
                         </span>
                       )}
-                      {row.status === 'work_order_paused' && (
-                        <span className='text-muted-foreground ml-1 text-xs'>
-                          (pausada)
-                        </span>
-                      )}
 
                       {isProformaExpired && (
                         <span className='text-muted-foreground ml-1 text-xs'>
@@ -914,19 +898,23 @@ export default function ServiceRequestsListing() {
                         </span>
                       )}
                     </td>
-                    <td className='px-4 py-3'>{matrixLabelMap[row.matrix]}</td>
-                    <td className='px-4 py-3'>{row.clientBusinessName}</td>
-                    <td className='px-4 py-3 text-right'>{row.agreedCount}</td>
-                    <td className='px-4 py-3 text-right'>
-                      {row.analysesCount}
-                    </td>
                     <td
                       className={`px-4 py-3 ${
                         isProformaExpired ? 'text-destructive' : ''
                       }`}
                     >
-                      {getRowStatusLabel(row)}
+                      {getStatusDisplayLabel(row)}
                     </td>
+                    <td className='px-4 py-3'>{row.clientBusinessName}</td>
+                    <td className='px-4 py-3'>{matrixLabelMap[row.matrix]}</td>
+                    <td className='px-4 py-3 text-right'>{row.agreedCount}</td>
+                    <td className='px-4 py-3 text-right'>
+                      {row.analysesCount}
+                    </td>
+                    <td className='px-4 py-3 text-right'>
+                      ${row.total.toFixed(2).replace('.', ',')}
+                    </td>
+                    <td className='px-4 py-3'>{row.updatedAtLabel}</td>
                     <td className='px-4 py-3'>
                       {row.notes?.trim() ? (
                         <Tooltip>
@@ -946,42 +934,6 @@ export default function ServiceRequestsListing() {
                         '—'
                       )}
                     </td>
-                    <td className='px-4 py-3 text-center'>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          {isWorkOrderCompleted ? (
-                            <span className='inline-flex h-4 w-4 items-center justify-center text-[0.8rem] leading-none'>
-                              ✅
-                            </span>
-                          ) : (
-                            <span
-                              className={`inline-block h-2 w-2 rounded-full ${
-                                isWorkOrderPaused
-                                  ? 'bg-yellow-400'
-                                  : isDraft
-                                    ? 'bg-slate-400'
-                                    : workOrderIssued
-                                      ? 'bg-emerald-500'
-                                      : 'bg-red-500'
-                              }`}
-                            />
-                          )}
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {isWorkOrderPaused
-                            ? 'Orden de trabajo pausada'
-                            : isWorkOrderCompleted
-                              ? 'Orden de trabajo finalizada. ✅'
-                              : workOrderIssued
-                                ? 'Orden de trabajo emitida'
-                                : 'Orden de trabajo sin emitir'}
-                        </TooltipContent>
-                      </Tooltip>
-                    </td>
-                    <td className='px-4 py-3 text-right'>
-                      ${row.total.toFixed(2).replace('.', ',')}
-                    </td>
-                    <td className='px-4 py-3'>{row.updatedAtLabel}</td>
                     <td className='w-12 px-2 py-3 text-right'>
                       <div
                         className='flex justify-end'

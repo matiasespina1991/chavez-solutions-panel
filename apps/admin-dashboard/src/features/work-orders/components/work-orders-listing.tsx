@@ -84,12 +84,12 @@ interface WorkOrderRow {
 
 type SortKey =
   | 'reference'
-  | 'ot'
   | 'matrix'
   | 'client'
   | 'samples'
   | 'analyses'
   | 'status'
+  | 'total'
   | 'notes'
   | 'updatedAt';
 
@@ -160,12 +160,12 @@ export default function WorkOrdersListing() {
   const [rowToComplete, setRowToComplete] = useState<WorkOrderRow | null>(null);
   const [isCompleting, setIsCompleting] = useState(false);
 
-  const getOtSortRank = (row: WorkOrderRow) => {
-    if (row.status === 'paused') return 1;
-    if (row.status === 'issued') return 2;
-    if (row.status === 'completed') return 3;
-    if (row.status === 'cancelled') return 4;
-    return 0;
+  const getStatusDisplayLabel = (row: WorkOrderRow) => {
+    if (row.status === 'paused') return '🟡 OT pausada';
+    if (row.status === 'issued') return '🟢 OT iniciada';
+    if (row.status === 'completed') return '✅ Finalizada';
+    if (row.status === 'cancelled') return '(Cancelada)';
+    return '(Estado desconocido)';
   };
 
   const handleConfirmCompleteWorkOrder = async () => {
@@ -416,9 +416,6 @@ export default function WorkOrdersListing() {
             right.workOrderNumber
           );
           break;
-        case 'ot':
-          compare = getOtSortRank(left) - getOtSortRank(right);
-          break;
         case 'matrix':
           compare = collator.compare(
             matrixLabelMap[left.matrix],
@@ -439,9 +436,12 @@ export default function WorkOrdersListing() {
           break;
         case 'status':
           compare = collator.compare(
-            statusLabelMap[left.status],
-            statusLabelMap[right.status]
+            getStatusDisplayLabel(left),
+            getStatusDisplayLabel(right)
           );
+          break;
+        case 'total':
+          compare = left.total - right.total;
           break;
         case 'notes':
           compare = collator.compare(
@@ -532,14 +532,14 @@ export default function WorkOrdersListing() {
         withPagination={false}
         cellWidths={[
           '12rem',
-          '4rem',
-          '6rem',
+          '12rem',
           '14rem',
           '6rem',
           '6rem',
-          '14rem',
+          '6rem',
           '8rem',
           '12rem',
+          '14rem',
           '3rem'
         ]}
       />
@@ -571,7 +571,7 @@ export default function WorkOrdersListing() {
           <table className='w-full min-w-[1080px] text-left text-sm'>
             <thead className='bg-muted text-muted-foreground sticky top-0 z-10'>
               <tr>
-                <th className='w-[260px] px-4 py-3'>
+                <th className='w-[190px] px-4 py-3'>
                   <button
                     type='button'
                     className='cursor-pointer select-none'
@@ -580,16 +580,16 @@ export default function WorkOrdersListing() {
                     Referencia{getSortIndicator('reference')}
                   </button>
                 </th>
-                <th className='px-4 py-3'>
+                <th className='w-[190px] px-4 py-3'>
                   <button
                     type='button'
                     className='cursor-pointer select-none'
-                    onClick={() => handleSort('matrix')}
+                    onClick={() => handleSort('status')}
                   >
-                    Matriz{getSortIndicator('matrix')}
+                    Estado{getSortIndicator('status')}
                   </button>
                 </th>
-                <th className='px-4 py-3'>
+                <th className='w-[160px] px-4 py-3'>
                   <button
                     type='button'
                     className='cursor-pointer select-none'
@@ -598,7 +598,16 @@ export default function WorkOrdersListing() {
                     Cliente{getSortIndicator('client')}
                   </button>
                 </th>
-                <th className='px-4 py-3 text-right'>
+                <th className='w-[80px] px-4 py-3'>
+                  <button
+                    type='button'
+                    className='cursor-pointer select-none'
+                    onClick={() => handleSort('matrix')}
+                  >
+                    Matriz{getSortIndicator('matrix')}
+                  </button>
+                </th>
+                <th className='max-w-[90px] px-4 py-3 text-right'>
                   <button
                     type='button'
                     className='cursor-pointer select-none'
@@ -616,13 +625,22 @@ export default function WorkOrdersListing() {
                     Análisis{getSortIndicator('analyses')}
                   </button>
                 </th>
-                <th className='min-w-[160px] px-4 py-3'>
+                <th className='px-4 py-3 text-right'>
                   <button
                     type='button'
                     className='cursor-pointer select-none'
-                    onClick={() => handleSort('status')}
+                    onClick={() => handleSort('total')}
                   >
-                    Estado{getSortIndicator('status')}
+                    Total{getSortIndicator('total')}
+                  </button>
+                </th>
+                <th className='w-[200px] px-4 py-3'>
+                  <button
+                    type='button'
+                    className='cursor-pointer select-none'
+                    onClick={() => handleSort('updatedAt')}
+                  >
+                    Última Actualización{getSortIndicator('updatedAt')}
                   </button>
                 </th>
                 <th className='px-4 py-3'>
@@ -632,24 +650,6 @@ export default function WorkOrdersListing() {
                     onClick={() => handleSort('notes')}
                   >
                     Notas{getSortIndicator('notes')}
-                  </button>
-                </th>
-                <th className='px-4 py-3 text-center'>
-                  <button
-                    type='button'
-                    className='cursor-pointer select-none'
-                    onClick={() => handleSort('ot')}
-                  >
-                    OT{getSortIndicator('ot')}
-                  </button>
-                </th>
-                <th className='px-4 py-3'>
-                  <button
-                    type='button'
-                    className='cursor-pointer select-none'
-                    onClick={() => handleSort('updatedAt')}
-                  >
-                    Última Actualización{getSortIndicator('updatedAt')}
                   </button>
                 </th>
                 <th className='w-12 px-2 py-3 text-right'></th>
@@ -677,29 +677,11 @@ export default function WorkOrdersListing() {
                   >
                     <td className='w-[155px] px-4 py-3'>
                       <div className='space-y-0.5'>
-                        <p>
-                          {row.workOrderNumber}
-                          {row.status === 'paused' ? (
-                            <span className='text-muted-foreground ml-1 text-xs'>
-                              (pausada)
-                            </span>
-                          ) : null}
-                          {isWorkOrderCancelled ? (
-                            <span className='text-muted-foreground ml-1 text-xs'>
-                              (cancelada)
-                            </span>
-                          ) : null}
-                        </p>
+                        <p>{row.workOrderNumber}</p>
                         <p className='text-muted-foreground text-xs'>
                           {row.sourceReference || '—'}
                         </p>
                       </div>
-                    </td>
-                    <td className='px-4 py-3'>{matrixLabelMap[row.matrix]}</td>
-                    <td className='px-4 py-3'>{row.clientBusinessName}</td>
-                    <td className='px-4 py-3 text-right'>{row.agreedCount}</td>
-                    <td className='px-4 py-3 text-right'>
-                      {row.analysesCount}
                     </td>
                     <td
                       className={`px-4 py-3 ${
@@ -710,8 +692,18 @@ export default function WorkOrdersListing() {
                             : ''
                       }`}
                     >
-                      {statusLabelMap[row.status]}
+                      {getStatusDisplayLabel(row)}
                     </td>
+                    <td className='px-4 py-3'>{row.clientBusinessName}</td>
+                    <td className='px-4 py-3'>{matrixLabelMap[row.matrix]}</td>
+                    <td className='px-4 py-3 text-right'>{row.agreedCount}</td>
+                    <td className='px-4 py-3 text-right'>
+                      {row.analysesCount}
+                    </td>
+                    <td className='px-4 py-3 text-right'>
+                      ${row.total.toFixed(2).replace('.', ',')}
+                    </td>
+                    <td className='px-4 py-3'>{row.updatedAtLabel}</td>
                     <td className='px-4 py-3'>
                       {row.notes?.trim() ? (
                         <Tooltip>
@@ -731,43 +723,6 @@ export default function WorkOrdersListing() {
                         '—'
                       )}
                     </td>
-                    <td className='px-4 py-3 text-center'>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          {isWorkOrderCancelled ? (
-                            <span className='inline-flex h-4 w-4 items-center justify-center'>
-                              <span className='inline-block h-2 w-2 rounded-full bg-slate-400' />
-                            </span>
-                          ) : isWorkOrderCompleted ? (
-                            <span className='inline-flex h-4 w-4 items-center justify-center text-[0.8rem] leading-none'>
-                              ✅
-                            </span>
-                          ) : (
-                            <span
-                              className={`inline-block h-2 w-2 rounded-full ${
-                                isWorkOrderPaused
-                                  ? 'bg-yellow-400'
-                                  : isWorkOrderIssued
-                                    ? 'bg-emerald-500'
-                                    : 'bg-red-500'
-                              }`}
-                            />
-                          )}
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {isWorkOrderPaused
-                            ? 'Orden de trabajo pausada'
-                            : isWorkOrderCompleted
-                              ? 'Orden de trabajo finalizada ✅'
-                              : isWorkOrderCancelled
-                                ? 'Orden de trabajo cancelada'
-                                : isWorkOrderIssued
-                                  ? 'Orden de trabajo emitida'
-                                  : 'Orden de trabajo sin emitir'}
-                        </TooltipContent>
-                      </Tooltip>
-                    </td>
-                    <td className='px-4 py-3'>{row.updatedAtLabel}</td>
                     <td className='w-12 px-2 py-3 text-right'>
                       <div
                         className='flex justify-end'
