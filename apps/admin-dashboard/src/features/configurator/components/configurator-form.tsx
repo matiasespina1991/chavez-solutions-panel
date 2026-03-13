@@ -42,14 +42,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import {
   createConfiguration,
-  createWorkOrderFromRequest,
   getConfigurationById,
   updateConfiguration,
   ConfigurationDocument
 } from '../services/configurations';
 
 const formSchema = z.object({
-  type: z.enum(['proforma', 'work_order', 'both']),
+  type: z.literal('proforma'),
   matrix: z.enum(['water', 'soil']),
   reference: z.string().min(1, 'Referencia es requerida'),
   createdAt: z.date().optional(),
@@ -106,7 +105,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const createDefaultFormValues = (): FormValues => ({
-  type: 'both',
+  type: 'proforma',
   matrix: 'water',
   reference: `PR-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000)}`,
   createdAt: new Date(),
@@ -154,9 +153,6 @@ export default function ConfiguratorForm() {
     'draft' | 'final' | 'paused' | null
   >(null);
   const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
-  const [isExecuteDialogOpen, setIsExecuteDialogOpen] = useState(false);
-  const [pendingExecutionData, setPendingExecutionData] =
-    useState<FormValues | null>(null);
   const requestedTab = searchParams.get('tab');
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -177,19 +173,16 @@ export default function ConfiguratorForm() {
   const matrix = form.watch('matrix');
   const reference = form.watch('reference');
   const agreedCount = form.watch('samples.agreedCount');
-  const type = form.watch('type');
   const clientWatch = form.watch('client');
   const samplesWatch = form.watch('samples');
 
   const tabStatus: Record<'type' | 'client' | 'samples', 'ok' | 'error'> = {
     type: (() => {
       const matrixValue = matrix;
-      const typeValue = type;
       const validDays = form.watch('validDays');
 
-      if (!reference || !matrixValue || !typeValue) return 'error';
-      if ((typeValue === 'proforma' || typeValue === 'both') && !validDays)
-        return 'error';
+      if (!reference || !matrixValue) return 'error';
+      if (!validDays) return 'error';
       return 'ok';
     })(),
     client: (() => {
@@ -272,6 +265,7 @@ export default function ConfiguratorForm() {
     return {
       ...baseValues,
       ...cached,
+      type: 'proforma',
       createdAt: toDateOrNull(cached.createdAt) ?? baseValues.createdAt,
       client: {
         ...baseValues.client,
@@ -353,7 +347,7 @@ export default function ConfiguratorForm() {
         }
 
         const loadedValues: FormValues = {
-          type: existing.type,
+          type: 'proforma',
           matrix: existing.matrix,
           reference: existing.reference,
           createdAt: toDateOrNull(existing.createdAt) || new Date(),
@@ -461,12 +455,6 @@ export default function ConfiguratorForm() {
 
   // Calculate totals
   useEffect(() => {
-    if (type === 'work_order') {
-      form.setValue('pricing.subtotal', 0);
-      form.setValue('pricing.total', 0);
-      return;
-    }
-
     const subtotal = 0;
 
     const taxPercent = form.getValues('pricing.taxPercent') || 15;
@@ -474,7 +462,7 @@ export default function ConfiguratorForm() {
 
     form.setValue('pricing.subtotal', subtotal);
     form.setValue('pricing.total', total);
-  }, [type, form]);
+  }, [form]);
 
   const onSubmit = async (values: FormValues, status: 'draft' | 'final') => {
     if (status === 'draft' && isPausedEditMode) {
@@ -515,37 +503,27 @@ export default function ConfiguratorForm() {
         }
       };
 
-      const requestId = editRequestId ?? (await createConfiguration(docData));
-
       if (editRequestId) {
         await updateConfiguration(editRequestId, {
           ...docData,
           status
         });
+      } else {
+        await createConfiguration(docData);
       }
 
-      if (
-        status === 'final' &&
-        (values.type === 'work_order' || values.type === 'both')
-      ) {
-        await createWorkOrderFromRequest(requestId);
+      if (status === 'draft') {
         toast.success(
-          `Solicitud ejecutada y Orden de Trabajo emitida (${values.reference})`
+          editRequestId
+            ? 'Borrador actualizado correctamente'
+            : 'Solicitud guardada como borrador'
         );
       } else {
-        if (status === 'draft') {
-          toast.success(
-            editRequestId
-              ? 'Borrador actualizado correctamente'
-              : 'Solicitud guardada como borrador'
-          );
-        } else {
-          toast.success(
-            editRequestId
-              ? 'Solicitud actualizada y ejecutada correctamente'
-              : 'Proforma emitida correctamente'
-          );
-        }
+        toast.success(
+          editRequestId
+            ? 'Solicitud actualizada y ejecutada correctamente'
+            : 'Proforma emitida correctamente'
+        );
       }
       removeCachedDraft();
       router.push('/dashboard/service-requests');
@@ -604,22 +582,7 @@ export default function ConfiguratorForm() {
   };
 
   const handleExecuteClick = () => {
-    form.handleSubmit((data) => {
-      if (data.type === 'work_order' || data.type === 'both') {
-        setPendingExecutionData(data);
-        setIsExecuteDialogOpen(true);
-        return;
-      }
-
-      onSubmit(data, 'final');
-    })();
-  };
-
-  const handleConfirmExecute = () => {
-    if (!pendingExecutionData) return;
-    onSubmit(pendingExecutionData, 'final');
-    setIsExecuteDialogOpen(false);
-    setPendingExecutionData(null);
+    form.handleSubmit((data) => onSubmit(data, 'final'))();
   };
 
   const summaryNotes = (form.getValues('notes') || '').trim();
@@ -657,7 +620,7 @@ export default function ConfiguratorForm() {
               value='type'
               className='flex cursor-pointer items-center justify-center gap-2'
             >
-              <span>1. Tipo</span>
+              <span>1. Datos</span>
               <span
                 className={`h-1.5 w-1.5 rounded-full ${
                   tabStatus.type === 'ok' ? 'bg-emerald-500' : 'bg-red-500'
@@ -691,65 +654,13 @@ export default function ConfiguratorForm() {
             </TabsTrigger>
           </TabsList>
 
-          {/* PASO A: TIPO Y METADATOS */}
+          {/* PASO A: DATOS Y METADATOS */}
           <TabsContent value='type' className='mt-4 space-y-4'>
             <Card className='border-0 shadow-none'>
               <CardHeader>
-                <CardTitle>Tipo de Documento y Metadatos</CardTitle>
+                <CardTitle>Datos de la proforma</CardTitle>
               </CardHeader>
               <CardContent className='space-y-4'>
-                <FormField
-                  control={form.control as any}
-                  name='type'
-                  render={({ field }) => (
-                    <FormItem className='space-y-3'>
-                      <FormLabel>Tipo de documento</FormLabel>
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          className='flex flex-col space-y-1'
-                        >
-                          <FormItem className='flex items-center space-y-0 space-x-3'>
-                            <FormControl>
-                              <RadioGroupItem
-                                value='proforma'
-                                className='cursor-pointer'
-                              />
-                            </FormControl>
-                            <FormLabel className='font-normal'>
-                              Proforma
-                            </FormLabel>
-                          </FormItem>
-                          <FormItem className='flex items-center space-y-0 space-x-3'>
-                            <FormControl>
-                              <RadioGroupItem
-                                value='work_order'
-                                className='cursor-pointer'
-                              />
-                            </FormControl>
-                            <FormLabel className='font-normal'>
-                              Orden de Trabajo (OT)
-                            </FormLabel>
-                          </FormItem>
-                          <FormItem className='flex items-center space-y-0 space-x-3'>
-                            <FormControl>
-                              <RadioGroupItem
-                                value='both'
-                                className='cursor-pointer'
-                              />
-                            </FormControl>
-                            <FormLabel className='font-normal'>
-                              Proforma + OT
-                            </FormLabel>
-                          </FormItem>
-                        </RadioGroup>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
                 <FormField
                   control={form.control as any}
                   name='matrix'
@@ -806,35 +717,33 @@ export default function ConfiguratorForm() {
                     )}
                   />
 
-                  {(type === 'proforma' || type === 'both') && (
-                    <FormField
-                      control={form.control as any}
-                      name='validDays'
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Validez de oferta (días)</FormLabel>
-                          <Select
-                            onValueChange={(val) =>
-                              field.onChange(parseInt(val))
-                            }
-                            defaultValue={field.value?.toString()}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder='Seleccione validez' />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value='15'>15 días</SelectItem>
-                              <SelectItem value='30'>30 días</SelectItem>
-                              <SelectItem value='60'>60 días</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  )}
+                  <FormField
+                    control={form.control as any}
+                    name='validDays'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Validez de oferta (días)</FormLabel>
+                        <Select
+                          onValueChange={(val) =>
+                            field.onChange(parseInt(val))
+                          }
+                          defaultValue={field.value?.toString()}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder='Seleccione validez' />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value='15'>15 días</SelectItem>
+                            <SelectItem value='30'>30 días</SelectItem>
+                            <SelectItem value='60'>60 días</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
                 <FormField
@@ -1023,7 +932,7 @@ export default function ConfiguratorForm() {
                 <CardTitle>Muestras / Fuentes</CardTitle>
               </CardHeader>
               <CardContent className='space-y-4'>
-                <div className='grid grid-cols-3 gap-4'>
+                <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
                   <FormField
                     control={form.control as any}
                     name='samples.agreedCount'
@@ -1064,27 +973,6 @@ export default function ConfiguratorForm() {
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control as any}
-                    name='samples.executedCount'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Ejecutadas</FormLabel>
-                        <FormControl>
-                          <Input type='number' disabled {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className='mt-6 rounded-md border p-4'>
-                  <p className='text-muted-foreground text-sm'>
-                    El detalle operativo de muestras (códigos, tipo y
-                    observaciones) se registra después de la emisión de OT,
-                    durante logística/campo.
-                  </p>
                 </div>
 
                 <div className='mt-6 flex justify-between'>
@@ -1129,12 +1017,7 @@ export default function ConfiguratorForm() {
                       Datos Generales
                     </h4>
                     <p>
-                      <span className='font-medium'>Tipo:</span>{' '}
-                      {type === 'both'
-                        ? 'Proforma + OT'
-                        : type === 'proforma'
-                          ? 'Proforma'
-                          : 'Orden de Trabajo'}
+                      <span className='font-medium'>Tipo:</span> Proforma
                     </p>
                     <p>
                       <span className='font-medium'>Matriz:</span>{' '}
@@ -1144,18 +1027,14 @@ export default function ConfiguratorForm() {
                       <span className='font-medium'>Referencia:</span>{' '}
                       {form.getValues('reference')}
                     </p>
-                    {(type === 'proforma' || type === 'both') && (
-                      <>
-                        <p>
-                          <span className='font-medium'>Validez:</span>{' '}
-                          {validDaysValue ? `${validDaysValue} días` : '—'}
-                        </p>
-                        <p>
-                          <span className='font-medium'>Válida hasta:</span>{' '}
-                          {validUntilLabel}
-                        </p>
-                      </>
-                    )}
+                    <p>
+                      <span className='font-medium'>Validez:</span>{' '}
+                      {validDaysValue ? `${validDaysValue} días` : '—'}
+                    </p>
+                    <p>
+                      <span className='font-medium'>Válida hasta:</span>{' '}
+                      {validUntilLabel}
+                    </p>
                   </div>
                   <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
                     <h4 className='text-muted-foreground font-semibold'>
@@ -1177,23 +1056,9 @@ export default function ConfiguratorForm() {
                 </div>
 
                 <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
-                  <h4 className='text-muted-foreground font-semibold'>
+                  <h4 className='font-semibold text-black'>
                     Muestras ({agreedCount})
                   </h4>
-                  <p className='text-muted-foreground text-sm'>
-                    Cantidad estimada para la proforma. El detalle de muestras
-                    se completa en la etapa operativa.
-                  </p>
-                </div>
-
-                <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
-                  <h4 className='text-muted-foreground font-semibold'>
-                    Análisis de laboratorio
-                  </h4>
-                  <p className='text-muted-foreground text-sm'>
-                    Los análisis se registran después de emitir la orden de
-                    trabajo, en la etapa operativa/laboratorio.
-                  </p>
                 </div>
 
                 {summaryNotes ? (
@@ -1225,11 +1090,7 @@ export default function ConfiguratorForm() {
                           }
                           onClick={handleExecuteClick}
                         >
-                          {type === 'proforma'
-                            ? 'Ejecutar Proforma'
-                            : type === 'both'
-                              ? 'Ejecutar Proforma + OT'
-                              : 'Ejecutar Orden de Trabajo'}
+                          Ejecutar Proforma
                         </Button>
                       </>
                     ) : isEditMode ? (
@@ -1264,11 +1125,7 @@ export default function ConfiguratorForm() {
                           }
                           onClick={handleExecuteClick}
                         >
-                          {type === 'proforma'
-                            ? 'Ejecutar Proforma'
-                            : type === 'both'
-                              ? 'Ejecutar Proforma + OT'
-                              : 'Ejecutar Orden de Trabajo'}
+                          Ejecutar Proforma
                         </Button>
                       </>
                     )}
@@ -1299,43 +1156,6 @@ export default function ConfiguratorForm() {
               onClick={handleConfirmClearCurrentData}
             >
               Vaciar datos
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog
-        open={isExecuteDialogOpen}
-        onOpenChange={(open) => {
-          if (isSubmitting) return;
-          setIsExecuteDialogOpen(open);
-          if (!open) setPendingExecutionData(null);
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              Confirmar emisión de orden de trabajo
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Está por ejecutar una solicitud que emitirá una orden de trabajo.
-              Esta acción iniciará el proceso operativo y actualizará el estado
-              de la solicitud.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              className='cursor-pointer'
-              disabled={isSubmitting}
-            >
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              className='cursor-pointer'
-              onClick={handleConfirmExecute}
-              disabled={isSubmitting}
-            >
-              Confirmar y ejecutar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -2,7 +2,7 @@ import { NavItem } from '@/types';
 
 export const navItems: NavItem[] = [
   {
-    title: 'Configurador de proformas y OT',
+    title: 'Configurador de proformas',
     url: '/dashboard/configurator',
     icon: 'configurator',
     shortcut: ['w', 'w'],

@@ -11,6 +11,12 @@ interface CompleteWorkOrderRequest {
 interface WorkOrderData {
   sourceRequestId?: string;
   workOrderNumber?: string;
+  labAnalysis?: {
+    status?: string;
+  } | null;
+  analyses?: {
+    items?: unknown[];
+  } | null;
 }
 
 export const completeWorkOrder = onCall(async (req) => {
@@ -57,6 +63,30 @@ export const completeWorkOrder = onCall(async (req) => {
     }
 
     const workOrderData = workOrderSnap.data() as WorkOrderData;
+
+    const labAnalysisStatus =
+      typeof workOrderData.labAnalysis === 'object' &&
+      workOrderData.labAnalysis !== null
+        ? String(workOrderData.labAnalysis.status ?? '').toLowerCase()
+        : '';
+
+    const analysesCount =
+      typeof workOrderData.analyses === 'object' &&
+      workOrderData.analyses !== null &&
+      Array.isArray(workOrderData.analyses.items)
+        ? workOrderData.analyses.items.length
+        : 0;
+
+    const hasRecordedLabAnalysis =
+      labAnalysisStatus === 'recorded' || analysesCount > 0;
+
+    if (!hasRecordedLabAnalysis) {
+      throw new HttpsError(
+        'failed-precondition',
+        'Lab analysis must be recorded before completing a work order.'
+      );
+    }
+
     const sourceRequestId =
       sourceRequestIdInput ||
       String(workOrderData.sourceRequestId ?? '').trim();

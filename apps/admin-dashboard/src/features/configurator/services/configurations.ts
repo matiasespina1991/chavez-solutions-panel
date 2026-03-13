@@ -359,8 +359,31 @@ export const completeWorkOrder = async (
     { workOrderId: string; sourceRequestId?: string },
     CompleteWorkOrderResponse
   >(functions, 'completeWorkOrder');
-  const result = await callable({ workOrderId, sourceRequestId });
-  return result.data;
+
+  try {
+    const result = await callable({ workOrderId, sourceRequestId });
+    return result.data;
+  } catch (error) {
+    const errorMessage =
+      error &&
+      typeof error === 'object' &&
+      'message' in error &&
+      typeof error.message === 'string'
+        ? error.message
+        : '';
+
+    if (
+      errorMessage.includes(
+        'Lab analysis must be recorded before completing a work order.'
+      )
+    ) {
+      throw new Error(
+        'Debe registrar análisis de laboratorio antes de finalizar la orden de trabajo.'
+      );
+    }
+
+    throw error;
+  }
 };
 
 interface DeleteServiceRequestResponse {
