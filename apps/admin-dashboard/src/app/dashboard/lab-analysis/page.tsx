@@ -9,8 +9,9 @@ export default function Page() {
   return (
     <PageContainer
       scrollable
+      className='w-full max-w-[1300px]'
       pageTitle='Registro de análisis de laboratorio'
-      pageDescription='Carga mínima post-OT para registrar resultados de laboratorio.'
+      pageDescription='Registra y guarda los resultados de laboratorio de la orden de trabajo seleccionada.'
     >
       <LabAnalysisForm />
     </PageContainer>

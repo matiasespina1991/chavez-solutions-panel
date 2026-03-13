@@ -12,7 +12,7 @@ export default function Page() {
     <PageContainer
       scrollable={false}
       pageTitle='Lista de ordenes de trabajo'
-      pageDescription='Listado de órdenes de trabajo emitidas desde solicitudes de servicio.'
+      pageDescription='Listado de órdenes de trabajo emitidas.'
     >
       <Suspense
         fallback={

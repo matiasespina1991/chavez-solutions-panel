@@ -10,7 +10,14 @@ type BreadcrumbItem = {
 };
 
 const routeMapping: Record<string, BreadcrumbItem[]> = {
-  '/dashboard': [{ title: 'Configurador', link: '/dashboard/configurator' }]
+  '/dashboard': [{ title: 'Configurador', link: '/dashboard/configurator' }],
+  '/dashboard/lab-analysis': [
+    { title: 'Panel', link: '/dashboard' },
+    {
+      title: 'Registro de análisis de laboratorio',
+      link: '/dashboard/lab-analysis'
+    }
+  ]
   // Add more custom mappings as needed
 };
 

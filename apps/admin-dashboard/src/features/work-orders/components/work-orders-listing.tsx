@@ -46,6 +46,7 @@ import {
   IconPrinter,
   IconSearch
 } from '@tabler/icons-react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -76,6 +77,7 @@ interface WorkOrderRow {
   clientBusinessName: string;
   agreedCount: number;
   analysesCount: number;
+  hasLabAnalysis: boolean;
   total: number;
   subtotal: number;
   updatedAtLabel: string;
@@ -148,6 +150,7 @@ const toTimestampMs = (value: unknown) => {
 };
 
 export default function WorkOrdersListing() {
+  const router = useRouter();
   const [rows, setRows] = useState<WorkOrderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -171,6 +174,13 @@ export default function WorkOrdersListing() {
   const handleConfirmCompleteWorkOrder = async () => {
     if (!rowToComplete) return;
 
+    if (!rowToComplete.hasLabAnalysis) {
+      toast.error(
+        'Debe registrar análisis de laboratorio antes de finalizar la orden de trabajo.'
+      );
+      return;
+    }
+
     try {
       setIsCompleting(true);
       setPendingActionId(rowToComplete.id);
@@ -182,7 +192,11 @@ export default function WorkOrdersListing() {
       setRowToComplete(null);
     } catch (error) {
       console.error('[WorkOrders] complete action error', error);
-      toast.error('No se pudo finalizar la orden de trabajo');
+      const errorMessage =
+        error instanceof Error && error.message.trim().length > 0
+          ? error.message
+          : 'No se pudo finalizar la orden de trabajo';
+      toast.error(errorMessage);
     } finally {
       setIsCompleting(false);
       setPendingActionId(null);
@@ -297,6 +311,20 @@ export default function WorkOrdersListing() {
                 : 0
               : 0;
 
+          const labAnalysisStatus =
+            typeof value.labAnalysis === 'object' && value.labAnalysis !== null
+              ? String(
+                  (
+                    value.labAnalysis as {
+                      status?: string;
+                    }
+                  ).status ?? ''
+                ).toLowerCase()
+              : '';
+
+          const hasLabAnalysis =
+            labAnalysisStatus === 'recorded' || analysesCount > 0;
+
           const clientBusinessName =
             typeof value.client === 'object' && value.client !== null
               ? String(
@@ -377,6 +405,7 @@ export default function WorkOrdersListing() {
             clientBusinessName: clientBusinessName || '—',
             agreedCount,
             analysesCount,
+            hasLabAnalysis,
             total: Number.isFinite(total) ? total : 0,
             subtotal: Number.isFinite(subtotal) ? subtotal : 0,
             updatedAtLabel: formatTimestamp(value.updatedAt),
@@ -661,6 +690,10 @@ export default function WorkOrdersListing() {
                 const isWorkOrderIssued = row.status === 'issued';
                 const isWorkOrderCompleted = row.status === 'completed';
                 const isWorkOrderCancelled = row.status === 'cancelled';
+                const canCompleteWorkOrder =
+                  !isWorkOrderCompleted &&
+                  !isWorkOrderCancelled &&
+                  row.hasLabAnalysis;
 
                 return (
                   <tr
@@ -750,8 +783,21 @@ export default function WorkOrdersListing() {
                             >
                               Ver orden de trabajo
                             </DropdownMenuItem>
-                            {isWorkOrderCompleted ||
-                            isWorkOrderCancelled ? null : (
+                            {isWorkOrderCancelled ? null : (
+                              <DropdownMenuItem
+                                className='cursor-pointer transition-colors duration-150'
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  router.push(
+                                    `/dashboard/lab-analysis?workOrderId=${encodeURIComponent(row.id)}`
+                                  );
+                                }}
+                                disabled={pendingActionId === row.id}
+                              >
+                                Registrar análisis laboratorio
+                              </DropdownMenuItem>
+                            )}
+                            {isWorkOrderCompleted || isWorkOrderCancelled ? null : canCompleteWorkOrder ? (
                               <DropdownMenuItem
                                 className='cursor-pointer transition-colors duration-150'
                                 onClick={(event) => {
@@ -763,6 +809,22 @@ export default function WorkOrdersListing() {
                               >
                                 Finalizar orden de trabajo
                               </DropdownMenuItem>
+                            ) : (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className='block'>
+                                    <DropdownMenuItem
+                                      disabled
+                                      className='text-muted-foreground focus:text-muted-foreground cursor-not-allowed justify-start opacity-60'
+                                    >
+                                      Finalizar orden de trabajo
+                                    </DropdownMenuItem>
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  Debe registrar análisis de laboratorio antes de finalizar la OT
+                                </TooltipContent>
+                              </Tooltip>
                             )}
                           </DropdownMenuContent>
                         </DropdownMenu>

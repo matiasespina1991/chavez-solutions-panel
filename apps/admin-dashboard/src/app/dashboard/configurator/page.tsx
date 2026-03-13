@@ -8,8 +8,8 @@ export default function ConfiguratorPage() {
     <PageContainer
       scrollable={true}
       className='w-full max-w-[57rem] justify-self-start'
-      pageTitle='Configurador de proformas y OT'
-      pageDescription='Crea y configura Proformas y Órdenes de Trabajo'
+      pageTitle='Configurador de proformas'
+      pageDescription='Crea y configura proformas'
     >
       <div className='mt-2'>
         <ConfiguratorForm />
