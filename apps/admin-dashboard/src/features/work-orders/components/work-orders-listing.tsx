@@ -161,8 +161,8 @@ export default function WorkOrdersListing() {
   const [isCompleting, setIsCompleting] = useState(false);
 
   const getStatusDisplayLabel = (row: WorkOrderRow) => {
-    if (row.status === 'paused') return '🟡 OT pausada';
-    if (row.status === 'issued') return '🟢 OT iniciada';
+    if (row.status === 'paused') return 'OT pausada';
+    if (row.status === 'issued') return 'OT iniciada';
     if (row.status === 'completed') return '✅ Finalizada';
     if (row.status === 'cancelled') return '(Cancelada)';
     return '(Estado desconocido)';

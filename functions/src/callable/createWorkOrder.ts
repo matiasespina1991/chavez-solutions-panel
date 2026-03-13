@@ -11,11 +11,33 @@ const buildTempWorkOrderNumber = (): string => {
 
 interface CreateWorkOrderRequest {
   sourceRequestId?: string;
-  forceEmit?: boolean;
 }
+
+type ServiceRequestApprovalStatus = 'pending' | 'approved' | 'rejected';
+
+interface ServiceRequestApprovalData {
+  status?: ServiceRequestApprovalStatus;
+}
+
+type ServiceRequestStatus =
+  | 'draft'
+  | 'submitted'
+  | 'converted_to_work_order'
+  | 'work_order_paused'
+  | 'work_order_completed'
+  | 'cancelled';
+
+const NON_EMITTABLE_STATUSES: ServiceRequestStatus[] = [
+  'draft',
+  'converted_to_work_order',
+  'work_order_paused',
+  'work_order_completed',
+  'cancelled',
+];
 
 interface ServiceRequestData {
   isWorkOrder?: boolean;
+  status?: ServiceRequestStatus;
   matrix?: 'water' | 'soil';
   reference?: string;
   notes?: string;
@@ -24,6 +46,7 @@ interface ServiceRequestData {
   analyses?: unknown;
   pricing?: unknown;
   linkedWorkOrderId?: string | null;
+  approval?: ServiceRequestApprovalData | null;
 }
 
 export const createWorkOrder = onCall(async (req) => {
@@ -33,7 +56,6 @@ export const createWorkOrder = onCall(async (req) => {
 
   const data = (req.data || {}) as CreateWorkOrderRequest;
   const sourceRequestId = data.sourceRequestId?.trim();
-  const forceEmit = Boolean(data.forceEmit);
 
   if (!sourceRequestId) {
     throw new HttpsError('invalid-argument', 'sourceRequestId is required.');
@@ -52,13 +74,6 @@ export const createWorkOrder = onCall(async (req) => {
 
     const source = sourceSnap.data() as ServiceRequestData;
 
-    if (!source.isWorkOrder && !forceEmit) {
-      throw new HttpsError(
-        'failed-precondition',
-        'This service request is not eligible to generate a work order.'
-      );
-    }
-
     if (source.linkedWorkOrderId) {
       const existingWoSnap = await tx.get(
         db.collection('work_orders').doc(source.linkedWorkOrderId)
@@ -74,6 +89,23 @@ export const createWorkOrder = onCall(async (req) => {
       };
     }
 
+    if (
+      source.status !== undefined &&
+      NON_EMITTABLE_STATUSES.includes(source.status)
+    ) {
+      throw new HttpsError(
+        'failed-precondition',
+        'This service request is not eligible to generate a work order.'
+      );
+    }
+
+    if (source.approval?.status !== 'approved') {
+      throw new HttpsError(
+        'failed-precondition',
+        'Service request must be approved before generating a work order.'
+      );
+    }
+
     const workOrderRef = db.collection('work_orders').doc();
     const workOrderNumber = buildTempWorkOrderNumber();
 
@@ -85,8 +117,8 @@ export const createWorkOrder = onCall(async (req) => {
       matrix: source.matrix ?? null,
       notes: source.notes ?? '',
       client: source.client ?? null,
-      samples: source.samples ?? null,
-      analyses: source.analyses ?? null,
+      samples: null,
+      analyses: null,
       pricing: source.pricing ?? null,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
