@@ -44,6 +44,13 @@ Incluye búsqueda full-text, ordenamiento por columna y modal de detalle.
   - análisis,
   - notas.
 
+### Registrar análisis laboratorio
+
+- Desde el menú de acciones de cada OT, abre:
+  - `/dashboard/lab-analysis?workOrderId=<id>`
+- Permite cargar resultados de análisis post-OT (MVP).
+- Guarda en `work_orders.analyses.items` y marca metadatos en `work_orders.labAnalysis`.
+
 ### Finalizar orden de trabajo
 
 - Disponible si la OT no está `completed` ni `cancelled`.

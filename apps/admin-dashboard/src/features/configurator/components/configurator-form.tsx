@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useForm, useFieldArray, useWatch } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
@@ -37,13 +37,9 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-import { waterParameters } from '../catalogs/water.parameters';
-import { soilParameters } from '../catalogs/soil.parameters';
-import { packages } from '../catalogs/packages';
 import {
   createConfiguration,
   createWorkOrderFromRequest,
@@ -75,8 +71,8 @@ const formSchema = z.object({
     executedCount: z.number().default(1),
     items: z.array(
       z.object({
-        sampleCode: z.string().min(1, 'Código requerido'),
-        sampleType: z.string().min(1, 'Tipo requerido'),
+        sampleCode: z.string().optional().default(''),
+        sampleType: z.string().optional().default(''),
         takenAt: z.date().nullable().optional(),
         notes: z.string().default('')
       })
@@ -84,21 +80,19 @@ const formSchema = z.object({
   }),
   analyses: z.object({
     applyMode: z.enum(['all_samples', 'by_sample']),
-    items: z
-      .array(
-        z.object({
-          parameterId: z.string(),
-          parameterLabelEs: z.string(),
-          unit: z.string(),
-          method: z.string(),
-          rangeOffered: z.string(),
-          isAccredited: z.boolean(),
-          turnaround: z.enum(['standard', 'urgent']),
-          unitPrice: z.number().nullable(),
-          appliesToSampleCodes: z.array(z.string()).nullable()
-        })
-      )
-      .min(1, 'Seleccione al menos un parámetro')
+    items: z.array(
+      z.object({
+        parameterId: z.string(),
+        parameterLabelEs: z.string(),
+        unit: z.string(),
+        method: z.string(),
+        rangeOffered: z.string(),
+        isAccredited: z.boolean(),
+        turnaround: z.enum(['standard', 'urgent']),
+        unitPrice: z.number().nullable(),
+        appliesToSampleCodes: z.array(z.string()).nullable()
+      })
+    )
   }),
   pricing: z.object({
     currency: z.literal('USD'),
@@ -132,14 +126,7 @@ const createDefaultFormValues = (): FormValues => ({
     agreedCount: 1,
     additionalCount: 0,
     executedCount: 1,
-    items: [
-      {
-        sampleCode: 'M-001',
-        sampleType: '',
-        takenAt: null,
-        notes: ''
-      }
-    ]
+    items: []
   },
   analyses: {
     applyMode: 'all_samples',
@@ -178,31 +165,10 @@ export default function ConfiguratorForm() {
     defaultValues: createDefaultFormValues()
   });
 
-  const {
-    fields: sampleItems,
-    append: appendSample,
-    remove: removeSample,
-    replace: replaceSamples
-  } = useFieldArray({
-    control: form.control,
-    name: 'samples.items'
-  });
-
-  const {
-    fields: analysisItems,
-    append: appendAnalysis,
-    remove: removeAnalysis
-  } = useFieldArray({
-    control: form.control,
-    name: 'analyses.items'
-  });
-
   useEffect(() => {
     if (
       requestedTab &&
-      ['type', 'client', 'samples', 'analyses', 'summary'].includes(
-        requestedTab
-      )
+      ['type', 'client', 'samples', 'summary'].includes(requestedTab)
     ) {
       setActiveTab(requestedTab);
     }
@@ -212,19 +178,10 @@ export default function ConfiguratorForm() {
   const reference = form.watch('reference');
   const agreedCount = form.watch('samples.agreedCount');
   const type = form.watch('type');
-  const analysesItemsWatch = useWatch({
-    control: form.control,
-    name: 'analyses.items',
-    defaultValue: []
-  });
   const clientWatch = form.watch('client');
   const samplesWatch = form.watch('samples');
-  const analysesWatch = form.watch('analyses');
 
-  const tabStatus: Record<
-    'type' | 'client' | 'samples' | 'analyses',
-    'ok' | 'error'
-  > = {
+  const tabStatus: Record<'type' | 'client' | 'samples', 'ok' | 'error'> = {
     type: (() => {
       const matrixValue = matrix;
       const typeValue = type;
@@ -255,15 +212,6 @@ export default function ConfiguratorForm() {
       const samples = samplesWatch;
       if (!samples) return 'error';
       if (!samples.agreedCount || samples.agreedCount < 1) return 'error';
-      if (!samples.items || samples.items.length === 0) return 'error';
-      if (samples.items.some((item) => !item.sampleCode || !item.sampleType))
-        return 'error';
-      return 'ok';
-    })(),
-    analyses: (() => {
-      const analyses = analysesWatch;
-      if (!analyses) return 'error';
-      if (!analyses.items || analyses.items.length === 0) return 'error';
       return 'ok';
     })()
   };
@@ -271,8 +219,7 @@ export default function ConfiguratorForm() {
   const canSubmitFinal =
     tabStatus.type === 'ok' &&
     tabStatus.client === 'ok' &&
-    tabStatus.samples === 'ok' &&
-    tabStatus.analyses === 'ok';
+    tabStatus.samples === 'ok';
 
   const toDateOrNull = (value: unknown): Date | null => {
     if (!value) return null;
@@ -426,12 +373,7 @@ export default function ConfiguratorForm() {
             agreedCount: existing.samples.agreedCount,
             additionalCount: existing.samples.additionalCount,
             executedCount: existing.samples.executedCount,
-            items: existing.samples.items.map((item) => ({
-              sampleCode: item.sampleCode,
-              sampleType: item.sampleType,
-              takenAt: toDateOrNull(item.takenAt),
-              notes: item.notes || ''
-            }))
+            items: []
           },
           analyses: {
             applyMode: existing.analyses.applyMode,
@@ -510,94 +452,29 @@ export default function ConfiguratorForm() {
     };
   }, [cacheKey, form, isLoadingRequest]);
 
-  // Update sample items when agreedCount changes
+  // Keep executed count aligned with agreed count
   useEffect(() => {
-    const currentCount = sampleItems.length;
     const targetCount = agreedCount || 1;
-
-    if (targetCount > currentCount) {
-      for (let i = currentCount; i < targetCount; i++) {
-        appendSample({
-          sampleCode: `M-${String(i + 1).padStart(3, '0')}`,
-          sampleType: '',
-          takenAt: null,
-          notes: ''
-        });
-      }
-    } else if (targetCount < currentCount) {
-      for (let i = currentCount - 1; i >= targetCount; i--) {
-        removeSample(i);
-      }
-    }
     form.setValue('samples.executedCount', targetCount);
-  }, [agreedCount, appendSample, removeSample, sampleItems.length, form]);
+    form.setValue('samples.items', []);
+  }, [agreedCount, form]);
 
   // Calculate totals
   useEffect(() => {
-    if (type === 'work_order') return;
+    if (type === 'work_order') {
+      form.setValue('pricing.subtotal', 0);
+      form.setValue('pricing.total', 0);
+      return;
+    }
 
-    const subtotal = analysesItemsWatch.reduce((acc, item) => {
-      const price = item.unitPrice || 0;
-      return acc + price * agreedCount;
-    }, 0);
+    const subtotal = 0;
 
     const taxPercent = form.getValues('pricing.taxPercent') || 15;
     const total = subtotal + (subtotal * taxPercent) / 100;
 
     form.setValue('pricing.subtotal', subtotal);
     form.setValue('pricing.total', total);
-  }, [analysesItemsWatch, agreedCount, type, form]);
-
-  const handleAddPackage = (packageId: string) => {
-    const pkg = packages.find((p) => p.id === packageId);
-    if (!pkg) return;
-
-    const availableParams =
-      matrix === 'water' ? waterParameters : soilParameters;
-
-    pkg.parameterIds.forEach((paramId) => {
-      // Check if already added
-      if (analysesItemsWatch.some((item) => item.parameterId === paramId))
-        return;
-
-      const param = availableParams.find((p) => p.id === paramId);
-      if (param) {
-        appendAnalysis({
-          parameterId: param.id,
-          parameterLabelEs: param.labelEs,
-          unit: param.defaultUnit,
-          method: param.defaultMethod,
-          rangeOffered: param.defaultRange || '',
-          isAccredited: param.accreditedDefault || false,
-          turnaround: 'standard',
-          unitPrice: 0,
-          appliesToSampleCodes: null
-        });
-      }
-    });
-  };
-
-  const handleAddParameter = (paramId: string) => {
-    if (analysesItemsWatch.some((item) => item.parameterId === paramId)) return;
-
-    const availableParams =
-      matrix === 'water' ? waterParameters : soilParameters;
-    const param = availableParams.find((p) => p.id === paramId);
-
-    if (param) {
-      appendAnalysis({
-        parameterId: param.id,
-        parameterLabelEs: param.labelEs,
-        unit: param.defaultUnit,
-        method: param.defaultMethod,
-        rangeOffered: param.defaultRange || '',
-        isAccredited: param.accreditedDefault || false,
-        turnaround: 'standard',
-        unitPrice: 0,
-        appliesToSampleCodes: null
-      });
-    }
-  };
+  }, [type, form]);
 
   const onSubmit = async (values: FormValues, status: 'draft' | 'final') => {
     if (status === 'draft' && isPausedEditMode) {
@@ -625,14 +502,17 @@ export default function ConfiguratorForm() {
         },
         samples: {
           ...values.samples,
-          items: values.samples.items.map((item) => ({
-            ...item,
-            takenAt: item.takenAt || null,
-            notes: item.notes || ''
-          }))
+          items: []
         },
-        analyses: values.analyses,
-        pricing: values.pricing
+        analyses: {
+          applyMode: 'all_samples',
+          items: []
+        },
+        pricing: {
+          ...values.pricing,
+          subtotal: 0,
+          total: 0
+        }
       };
 
       const requestId = editRequestId ?? (await createConfiguration(docData));
@@ -671,7 +551,11 @@ export default function ConfiguratorForm() {
       router.push('/dashboard/service-requests');
     } catch (error) {
       console.error('Error saving configuration:', error);
-      toast.error('No se pudo guardar la solicitud');
+      const errorMessage =
+        error instanceof Error && error.message.trim().length > 0
+          ? error.message
+          : 'No se pudo guardar la solicitud';
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -694,14 +578,17 @@ export default function ConfiguratorForm() {
         },
         samples: {
           ...values.samples,
-          items: values.samples.items.map((item) => ({
-            ...item,
-            takenAt: item.takenAt || null,
-            notes: item.notes || ''
-          }))
+          items: []
         },
-        analyses: values.analyses,
-        pricing: values.pricing
+        analyses: {
+          applyMode: 'all_samples',
+          items: []
+        },
+        pricing: {
+          ...values.pricing,
+          subtotal: 0,
+          total: 0
+        }
       };
 
       await updateConfiguration(editRequestId, updateData);
@@ -735,9 +622,6 @@ export default function ConfiguratorForm() {
     setPendingExecutionData(null);
   };
 
-  const availablePackages = packages.filter((p) => p.matrix === matrix);
-  const availableParameters =
-    matrix === 'water' ? waterParameters : soilParameters;
   const summaryNotes = (form.getValues('notes') || '').trim();
   const referenceLabel = reference?.trim() || '—';
   const validDaysValue = form.watch('validDays');
@@ -768,7 +652,7 @@ export default function ConfiguratorForm() {
         ) : null}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className='w-full'>
-          <TabsList className='grid w-full grid-cols-5'>
+          <TabsList className='grid w-full grid-cols-4'>
             <TabsTrigger
               value='type'
               className='flex cursor-pointer items-center justify-center gap-2'
@@ -802,19 +686,8 @@ export default function ConfiguratorForm() {
                 }`}
               />
             </TabsTrigger>
-            <TabsTrigger
-              value='analyses'
-              className='flex cursor-pointer items-center justify-center gap-2'
-            >
-              <span>4. Análisis</span>
-              <span
-                className={`h-1.5 w-1.5 rounded-full ${
-                  tabStatus.analyses === 'ok' ? 'bg-emerald-500' : 'bg-red-500'
-                }`}
-              />
-            </TabsTrigger>
             <TabsTrigger value='summary' className='cursor-pointer'>
-              5. Resumen
+              4. Resumen
             </TabsTrigger>
           </TabsList>
 
@@ -888,16 +761,8 @@ export default function ConfiguratorForm() {
                           className='flex flex-row space-x-4'
                           onValueChange={(val) => {
                             field.onChange(val);
-                            // Reset samples and analyses when matrix changes
-                            replaceSamples([
-                              {
-                                sampleCode: 'M-001',
-                                sampleType: '',
-                                takenAt: null,
-                                notes: ''
-                              }
-                            ]);
-                            form.setValue('analyses.items', []);
+                            // Operational sample details are captured post-OT.
+                            form.setValue('samples.items', []);
                           }}
                           defaultValue={field.value}
                         >
@@ -1214,86 +1079,12 @@ export default function ConfiguratorForm() {
                   />
                 </div>
 
-                <div className='mt-6 space-y-4'>
-                  <h3 className='text-lg font-medium'>Detalle de Muestras</h3>
-                  {sampleItems.map((item, index) => (
-                    <div
-                      key={item.id}
-                      className='grid grid-cols-4 items-end gap-4 rounded-md border p-4'
-                    >
-                      <FormField
-                        control={form.control as any}
-                        name={`samples.items.${index}.sampleCode`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Código</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control as any}
-                        name={`samples.items.${index}.sampleType`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Tipo de Muestra</FormLabel>
-                            <Select
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder='Seleccione tipo' />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {matrix === 'water' ? (
-                                  <>
-                                    <SelectItem value='pozo'>Pozo</SelectItem>
-                                    <SelectItem value='red'>Red</SelectItem>
-                                    <SelectItem value='superficial'>
-                                      Superficial
-                                    </SelectItem>
-                                    <SelectItem value='residual'>
-                                      Residual
-                                    </SelectItem>
-                                    <SelectItem value='otra'>Otra</SelectItem>
-                                  </>
-                                ) : (
-                                  <>
-                                    <SelectItem value='puntual'>
-                                      Puntual
-                                    </SelectItem>
-                                    <SelectItem value='compuesta'>
-                                      Compuesta
-                                    </SelectItem>
-                                    <SelectItem value='otra'>Otra</SelectItem>
-                                  </>
-                                )}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control as any}
-                        name={`samples.items.${index}.notes`}
-                        render={({ field }) => (
-                          <FormItem className='col-span-2'>
-                            <FormLabel>Observaciones</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  ))}
+                <div className='mt-6 rounded-md border p-4'>
+                  <p className='text-muted-foreground text-sm'>
+                    El detalle operativo de muestras (códigos, tipo y
+                    observaciones) se registra después de la emisión de OT,
+                    durante logística/campo.
+                  </p>
                 </div>
 
                 <div className='mt-6 flex justify-between'>
@@ -1301,208 +1092,6 @@ export default function ConfiguratorForm() {
                     type='button'
                     variant='outline'
                     onClick={() => setActiveTab('client')}
-                  >
-                    Anterior
-                  </Button>
-                  <div className='flex items-center gap-2'>
-                    {showDraftActions ? clearCurrentDataButton : null}
-                    {showDraftActions ? (
-                      <Button
-                        type='button'
-                        variant='secondary'
-                        disabled={isDraftSaveDisabled}
-                        onClick={() => onSubmit(form.getValues(), 'draft')}
-                      >
-                        Guardar como Borrador
-                      </Button>
-                    ) : null}
-                    <Button
-                      type='button'
-                      onClick={() => setActiveTab('analyses')}
-                    >
-                      Siguiente
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* PASO D: ANÁLISIS */}
-          <TabsContent value='analyses' className='mt-4 space-y-4'>
-            <Card className='border-0 shadow-none'>
-              <CardHeader>
-                <CardTitle>Análisis Solicitados</CardTitle>
-              </CardHeader>
-              <CardContent className='space-y-6'>
-                <div className='space-y-4'>
-                  <h3 className='text-lg font-medium'>1. Paquetes</h3>
-                  <div className='flex flex-wrap gap-2'>
-                    {availablePackages.map((pkg) => (
-                      <Button
-                        key={pkg.id}
-                        type='button'
-                        variant='secondary'
-                        onClick={() => handleAddPackage(pkg.id)}
-                      >
-                        + {pkg.labelEs}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className='space-y-4'>
-                  <h3 className='text-lg font-medium'>
-                    2. Parámetros Individuales
-                  </h3>
-                  <Select onValueChange={handleAddParameter}>
-                    <SelectTrigger className='w-[300px]'>
-                      <SelectValue placeholder='Agregar parámetro...' />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableParameters.map((param) => (
-                        <SelectItem key={param.id} value={param.id}>
-                          {param.labelEs}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className='space-y-4'>
-                  <h3 className='text-lg font-medium'>
-                    Parámetros Seleccionados
-                  </h3>
-                  {analysisItems.length === 0 ? (
-                    <p className='text-muted-foreground text-sm'>
-                      No hay parámetros seleccionados.
-                    </p>
-                  ) : (
-                    <div className='overflow-x-auto rounded-md border'>
-                      <table className='w-full text-left text-sm'>
-                        <thead className='bg-muted text-muted-foreground'>
-                          <tr>
-                            <th className='p-3'>Parámetro</th>
-                            <th className='p-3'>Unidades</th>
-                            <th className='p-3'>Método</th>
-                            <th className='p-3'>Acreditado</th>
-                            <th className='p-3'>Tiempo</th>
-                            {(type === 'proforma' || type === 'both') && (
-                              <th className='p-3'>Costo Unit.</th>
-                            )}
-                            <th className='p-3'></th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {analysisItems.map((item, index) => (
-                            <tr key={item.id} className='border-t'>
-                              <td className='p-3 font-medium'>
-                                {item.parameterLabelEs}
-                              </td>
-                              <td className='p-3'>
-                                <FormField
-                                  control={form.control as any}
-                                  name={`analyses.items.${index}.unit`}
-                                  render={({ field }) => (
-                                    <Input {...field} className='h-8 w-24' />
-                                  )}
-                                />
-                              </td>
-                              <td className='p-3'>
-                                <FormField
-                                  control={form.control as any}
-                                  name={`analyses.items.${index}.method`}
-                                  render={({ field }) => (
-                                    <Input {...field} className='h-8 w-32' />
-                                  )}
-                                />
-                              </td>
-                              <td className='p-3 text-center'>
-                                <FormField
-                                  control={form.control as any}
-                                  name={`analyses.items.${index}.isAccredited`}
-                                  render={({ field }) => (
-                                    <Checkbox
-                                      checked={field.value}
-                                      onCheckedChange={field.onChange}
-                                    />
-                                  )}
-                                />
-                              </td>
-                              <td className='p-3'>
-                                <FormField
-                                  control={form.control as any}
-                                  name={`analyses.items.${index}.turnaround`}
-                                  render={({ field }) => (
-                                    <Select
-                                      onValueChange={field.onChange}
-                                      defaultValue={field.value}
-                                    >
-                                      <SelectTrigger className='h-8 w-28'>
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value='standard'>
-                                          Estándar
-                                        </SelectItem>
-                                        <SelectItem value='urgent'>
-                                          Urgente
-                                        </SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  )}
-                                />
-                              </td>
-                              {(type === 'proforma' || type === 'both') && (
-                                <td className='p-3'>
-                                  <FormField
-                                    control={form.control as any}
-                                    name={`analyses.items.${index}.unitPrice`}
-                                    render={({ field }) => (
-                                      <Input
-                                        type='number'
-                                        step='0.01'
-                                        className='h-8 w-24'
-                                        value={field.value || ''}
-                                        onChange={(e) =>
-                                          field.onChange(
-                                            parseFloat(e.target.value) || 0
-                                          )
-                                        }
-                                      />
-                                    )}
-                                  />
-                                </td>
-                              )}
-                              <td className='p-3'>
-                                <Button
-                                  type='button'
-                                  variant='ghost'
-                                  size='sm'
-                                  onClick={() => removeAnalysis(index)}
-                                  className='text-destructive'
-                                >
-                                  X
-                                </Button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                  {form.formState.errors.analyses?.items && (
-                    <p className='text-destructive text-sm font-medium'>
-                      {form.formState.errors.analyses.items.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className='mt-6 flex justify-between'>
-                  <Button
-                    type='button'
-                    variant='outline'
-                    onClick={() => setActiveTab('samples')}
                   >
                     Anterior
                   </Button>
@@ -1591,112 +1180,21 @@ export default function ConfiguratorForm() {
                   <h4 className='text-muted-foreground font-semibold'>
                     Muestras ({agreedCount})
                   </h4>
-                  <div className='flex flex-wrap gap-2'>
-                    {sampleItems.map((s) => (
-                      <span
-                        key={s.id}
-                        className='bg-muted rounded border px-2 py-1 text-sm'
-                      >
-                        {s.sampleCode} ({s.sampleType || 'Sin tipo'})
-                      </span>
-                    ))}
-                  </div>
+                  <p className='text-muted-foreground text-sm'>
+                    Cantidad estimada para la proforma. El detalle de muestras
+                    se completa en la etapa operativa.
+                  </p>
                 </div>
 
                 <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
                   <h4 className='text-muted-foreground font-semibold'>
-                    Análisis ({analysisItems.length})
+                    Análisis de laboratorio
                   </h4>
-                  <div className='flex flex-wrap gap-2'>
-                    {analysisItems.map((a) => (
-                      <span
-                        key={a.id}
-                        className='bg-muted rounded border px-2 py-1 text-sm'
-                      >
-                        {a.parameterLabelEs}
-                      </span>
-                    ))}
-                  </div>
+                  <p className='text-muted-foreground text-sm'>
+                    Los análisis se registran después de emitir la orden de
+                    trabajo, en la etapa operativa/laboratorio.
+                  </p>
                 </div>
-
-                {(type === 'proforma' || type === 'both') && (
-                  <div className='space-y-4 rounded-md border p-4'>
-                    {analysesItemsWatch && analysesItemsWatch.length > 0 && (
-                      <div className='space-y-2'>
-                        <h4 className='text-muted-foreground font-semibold'>
-                          Detalle de costos por análisis
-                        </h4>
-                        <div className='overflow-x-auto rounded-md border'>
-                          <table className='w-full text-left text-sm'>
-                            <thead className='bg-muted text-muted-foreground'>
-                              <tr>
-                                <th className='p-2'>Parámetro</th>
-                                <th className='p-2 text-right'>Muestras</th>
-                                <th className='p-2 text-right'>
-                                  Costo unitario
-                                </th>
-                                <th className='p-2 text-right'>Subtotal</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {analysesItemsWatch.map((item, index) => {
-                                const unitPrice = item?.unitPrice || 0;
-                                const samplesCount = agreedCount || 0;
-                                const lineTotal = unitPrice * samplesCount;
-                                return (
-                                  <tr key={index} className='border-t'>
-                                    <td className='p-2'>
-                                      {item?.parameterLabelEs}
-                                    </td>
-                                    <td className='p-2 text-right'>
-                                      {samplesCount}
-                                    </td>
-                                    <td className='p-2 text-right'>
-                                      ${unitPrice.toFixed(2)}
-                                    </td>
-                                    <td className='p-2 text-right'>
-                                      ${lineTotal.toFixed(2)}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-                    <h4 className='text-muted-foreground font-semibold'>
-                      Costos Estimados
-                    </h4>
-                    <div className='w-full max-w-xs space-y-1'>
-                      <div className='flex justify-between'>
-                        <span className='text-muted-foreground'>Subtotal:</span>{' '}
-                        <span>
-                          ${form.getValues('pricing.subtotal')?.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className='flex justify-between'>
-                        <span className='text-muted-foreground'>
-                          IVA ({form.getValues('pricing.taxPercent')}%):
-                        </span>{' '}
-                        <span>
-                          $
-                          {(
-                            ((form.getValues('pricing.subtotal') || 0) *
-                              (form.getValues('pricing.taxPercent') || 15)) /
-                            100
-                          ).toFixed(2)}
-                        </span>
-                      </div>
-                      <div className='mt-1 flex justify-between border-t pt-1 text-lg font-bold'>
-                        <span>Total:</span>{' '}
-                        <span>
-                          ${form.getValues('pricing.total')?.toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
 
                 {summaryNotes ? (
                   <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
@@ -1711,7 +1209,7 @@ export default function ConfiguratorForm() {
                   <Button
                     type='button'
                     variant='outline'
-                    onClick={() => setActiveTab('analyses')}
+                    onClick={() => setActiveTab('samples')}
                   >
                     Anterior
                   </Button>

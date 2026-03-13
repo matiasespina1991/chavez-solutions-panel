@@ -27,6 +27,7 @@ Alinear producto, operaciones y desarrollo sobre:
 - [03. Lista de solicitudes](./flow/03-lista-solicitudes.md)
 - [04. Lista de órdenes de trabajo](./flow/04-lista-ordenes-trabajo.md)
 - [05. Estados y transiciones](./flow/05-estados-y-transiciones.md)
+- [06. Plan de adaptación al flujo LABCHAVEZ](./flow/06-plan-adaptacion-flujo-labchavez.md)
 
 ## Alcance
 

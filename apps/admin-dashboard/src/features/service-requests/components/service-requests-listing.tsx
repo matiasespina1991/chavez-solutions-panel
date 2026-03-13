@@ -34,6 +34,8 @@ import {
 } from '@/components/ui/tooltip';
 import {
   deleteServiceRequest,
+  approveServiceRequest,
+  rejectServiceRequest,
   createWorkOrderFromRequest,
   pauseWorkOrderFromRequest,
   resumeWorkOrderFromRequest
@@ -70,6 +72,8 @@ type ServiceRequestStatus =
   | 'work_order_completed'
   | 'cancelled';
 
+type ServiceRequestApprovalStatus = 'pending' | 'approved' | 'rejected';
+
 interface ServiceRequestRow {
   id: string;
   reference: string;
@@ -77,6 +81,8 @@ interface ServiceRequestRow {
   isWorkOrder: boolean;
   matrix: ServiceRequestMatrix;
   status: ServiceRequestStatus;
+  approvalStatus: ServiceRequestApprovalStatus | null;
+  approvalFeedback: string;
   validDays: number | null;
   createdAtMs: number;
   client: {
@@ -195,6 +201,12 @@ export default function ServiceRequestsListing() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isTogglingWorkOrder, setIsTogglingWorkOrder] = useState(false);
   const [workOrderToggleNotes, setWorkOrderToggleNotes] = useState('');
+  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
+  const [rowToReject, setRowToReject] = useState<ServiceRequestRow | null>(
+    null
+  );
+  const [rejectFeedback, setRejectFeedback] = useState('');
+  const [isRejecting, setIsRejecting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('updatedAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -203,6 +215,62 @@ export default function ServiceRequestsListing() {
     row.status === 'converted_to_work_order' ||
     row.status === 'work_order_paused' ||
     row.status === 'work_order_completed';
+
+  const getFriendlyErrorMessage = (error: unknown, fallback: string) => {
+    const errorMessage =
+      error instanceof Error && error.message.trim().length > 0
+        ? error.message
+        : '';
+
+    if (
+      errorMessage.includes(
+        'Service request must be approved before generating a work order.'
+      )
+    ) {
+      return 'La proforma debe estar aprobada antes de emitir una orden de trabajo.';
+    }
+
+    if (errorMessage.includes('Draft service requests cannot be approved.')) {
+      return 'No se puede aprobar una solicitud en borrador.';
+    }
+
+    if (
+      errorMessage.includes(
+        'This service request cannot be approved in its current status.'
+      )
+    ) {
+      return 'No se puede aprobar esta solicitud en su estado actual.';
+    }
+
+    if (
+      errorMessage.includes('feedback is required to reject a service request.')
+    ) {
+      return 'Debe ingresar un motivo de rechazo.';
+    }
+
+    if (
+      errorMessage.includes(
+        'This service request cannot be rejected in its current status.'
+      )
+    ) {
+      return 'No se puede rechazar esta solicitud en su estado actual.';
+    }
+
+    if (
+      errorMessage.includes('Only submitted service requests can be rejected.')
+    ) {
+      return 'Solo se pueden rechazar proformas enviadas.';
+    }
+
+    return errorMessage || fallback;
+  };
+
+  const getApprovalStatusLabel = (row: ServiceRequestRow) => {
+    if (row.approvalStatus === 'approved') return 'Aprobada';
+    if (row.approvalStatus === 'rejected') return 'Rechazada';
+    if (row.status === 'submitted') return 'Pendiente';
+    return '—';
+  };
 
   const isExpiredProforma = (row: ServiceRequestRow) => {
     if (row.status !== 'submitted') return false;
@@ -213,17 +281,32 @@ export default function ServiceRequestsListing() {
 
   const getRowStatusLabel = (row: ServiceRequestRow) => {
     if (isExpiredProforma(row)) return 'Proforma vencida';
+    if (row.status === 'submitted') {
+      return row.approvalStatus === 'approved'
+        ? 'Proforma aprobada'
+        : 'Proforma pendiente de aprobación';
+    }
+    if (row.status === 'draft' && row.approvalStatus === 'rejected') {
+      return 'Proforma rechazada';
+    }
     return statusLabelMap[row.status];
   };
 
   const getStatusDisplayLabel = (row: ServiceRequestRow) => {
-    if (isExpiredProforma(row)) return '⚪ Proforma vencida';
+    if (isExpiredProforma(row)) return 'Proforma vencida';
+    if (row.status === 'submitted') {
+      return row.approvalStatus === 'approved'
+        ? 'Proforma aprobada'
+        : '🟡 Proforma pendiente';
+    }
+    if (row.status === 'draft' && row.approvalStatus === 'rejected') {
+      return '❌ Proforma rechazada';
+    }
     if (row.status === 'draft') return '(Borrador)';
-    if (row.status === 'work_order_paused') return '🟡 OT pausada';
+    if (row.status === 'work_order_paused') return 'OT pausada';
     if (row.status === 'work_order_completed') return '✅ Finalizada';
-    if (row.status === 'converted_to_work_order') return '🟢 OT iniciada';
-    if (row.status === 'submitted') return '🟢 Proforma enviada';
-    return '⚪ Cancelada';
+    if (row.status === 'converted_to_work_order') return 'OT iniciada';
+    return 'Cancelada';
   };
 
   const handleSort = (key: SortKey) => {
@@ -261,11 +344,35 @@ export default function ServiceRequestsListing() {
       };
     }
 
+    if (row.status === 'submitted' && row.approvalStatus !== 'approved') {
+      return {
+        className:
+          'rounded-md border border-amber-500/40 bg-amber-400/15 px-3 py-2 text-sm text-amber-800 dark:text-amber-300',
+        text: 'Proforma pendiente de aprobación.'
+      };
+    }
+
+    if (row.status === 'submitted' && row.approvalStatus === 'approved') {
+      return {
+        className:
+          'rounded-md border border-emerald-600/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300',
+        text: 'Proforma aprobada. Lista para emitir OT.'
+      };
+    }
+
     if (row.status === 'cancelled') {
       return {
         className:
           'rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive',
         text: 'Solicitud cancelada.'
+      };
+    }
+
+    if (row.status === 'draft' && row.approvalStatus === 'rejected') {
+      return {
+        className:
+          'rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive',
+        text: 'Proforma rechazada. Revise el motivo y edite la solicitud.'
       };
     }
 
@@ -383,8 +490,116 @@ export default function ServiceRequestsListing() {
       }
     } catch (error) {
       console.error('[ServiceRequests] action error', error);
-      toast.error('No se pudo completar la acción de la orden de trabajo');
+      const errorMessage =
+        error instanceof Error && error.message.trim().length > 0
+          ? error.message
+          : 'No se pudo completar la acción de la orden de trabajo';
+      toast.error(errorMessage);
     } finally {
+      setPendingActionId(null);
+    }
+  };
+
+  const handleApproveRequest = async (row: ServiceRequestRow) => {
+    try {
+      setPendingActionId(row.id);
+      const result = await approveServiceRequest(row.id);
+
+      toast.success(
+        result.alreadyApproved
+          ? `La proforma ${row.reference} ya estaba aprobada`
+          : `Proforma ${row.reference} aprobada`
+      );
+
+      setRows((prev) =>
+        prev.map((entry) =>
+          entry.id === row.id
+            ? {
+                ...entry,
+                status: 'submitted',
+                approvalStatus: 'approved'
+              }
+            : entry
+        )
+      );
+
+      setSelectedRow((prev) =>
+        prev && prev.id === row.id
+          ? {
+              ...prev,
+              status: 'submitted',
+              approvalStatus: 'approved'
+            }
+          : prev
+      );
+    } catch (error) {
+      console.error('[ServiceRequests] approve error', error);
+      toast.error(
+        getFriendlyErrorMessage(error, 'No se pudo aprobar la proforma')
+      );
+    } finally {
+      setPendingActionId(null);
+    }
+  };
+
+  const openRejectDialog = (row: ServiceRequestRow) => {
+    setRowToReject(row);
+    setRejectFeedback(row.approvalFeedback || '');
+    setIsRejectDialogOpen(true);
+  };
+
+  const handleConfirmRejectRequest = async () => {
+    if (!rowToReject) return;
+
+    const feedback = rejectFeedback.trim();
+
+    if (!feedback) {
+      toast.error('Debe ingresar un motivo de rechazo.');
+      return;
+    }
+
+    try {
+      setIsRejecting(true);
+      setPendingActionId(rowToReject.id);
+
+      await rejectServiceRequest(rowToReject.id, feedback);
+
+      toast.success(`Proforma ${rowToReject.reference} rechazada`);
+
+      setRows((prev) =>
+        prev.map((entry) =>
+          entry.id === rowToReject.id
+            ? {
+                ...entry,
+                status: 'draft',
+                approvalStatus: 'rejected',
+                approvalFeedback: feedback
+              }
+            : entry
+        )
+      );
+
+      setSelectedRow((prev) =>
+        prev && prev.id === rowToReject.id
+          ? {
+              ...prev,
+              status: 'draft',
+              approvalStatus: 'rejected',
+              approvalFeedback: feedback
+            }
+          : prev
+      );
+
+      setIsRejectDialogOpen(false);
+      setRowToReject(null);
+      setRejectFeedback('');
+    } catch (error) {
+      console.error('[ServiceRequests] reject error', error);
+      toast.error(
+        getFriendlyErrorMessage(error, 'No se pudo rechazar la proforma')
+      );
+    } finally {
+      setIsRejecting(false);
       setPendingActionId(null);
     }
   };
@@ -463,6 +678,23 @@ export default function ServiceRequestsListing() {
           const status =
             (value.status as ServiceRequestStatus) ??
             ('draft' as ServiceRequestStatus);
+
+          const rawApprovalStatus =
+            typeof value.approval === 'object' && value.approval !== null
+              ? (value.approval as { status?: unknown }).status
+              : null;
+
+          const approvalStatus: ServiceRequestApprovalStatus | null =
+            rawApprovalStatus === 'pending' ||
+            rawApprovalStatus === 'approved' ||
+            rawApprovalStatus === 'rejected'
+              ? rawApprovalStatus
+              : null;
+
+          const approvalFeedback =
+            typeof value.approval === 'object' && value.approval !== null
+              ? String((value.approval as { feedback?: string }).feedback ?? '')
+              : '';
           const total =
             typeof value.pricing === 'object' && value.pricing !== null
               ? Number((value.pricing as { total?: number | null }).total ?? 0)
@@ -577,6 +809,8 @@ export default function ServiceRequestsListing() {
             isWorkOrder,
             matrix,
             status,
+            approvalStatus,
+            approvalFeedback,
             validDays:
               Number.isFinite(validDays) && validDays > 0 ? validDays : null,
             createdAtMs,
@@ -693,6 +927,9 @@ export default function ServiceRequestsListing() {
         row.matrix,
         matrixLabelMap[row.matrix],
         row.status,
+        row.approvalStatus ?? '',
+        getApprovalStatusLabel(row),
+        row.approvalFeedback,
         getRowStatusLabel(row),
         String(row.validDays ?? ''),
         formatDate(getValidUntilMs(row.createdAtMs, row.validDays)),
@@ -730,12 +967,13 @@ export default function ServiceRequestsListing() {
   if (loading) {
     return (
       <DataTableSkeleton
-        columnCount={10}
+        columnCount={11}
         rowCount={8}
         filterCount={0}
         withViewOptions={false}
         withPagination={false}
         cellWidths={[
+          '10rem',
           '10rem',
           '12rem',
           '14rem',
@@ -773,7 +1011,7 @@ export default function ServiceRequestsListing() {
 
       <div className='rounded-md border'>
         <div className='max-h-[calc(100vh-240px)] overflow-auto'>
-          <table className='w-full min-w-[1120px] text-left text-sm'>
+          <table className='w-full min-w-[1240px] text-left text-sm'>
             <thead className='bg-muted text-muted-foreground sticky top-0 z-10'>
               <tr>
                 <th className='w-[190px] px-4 py-3'>
@@ -794,6 +1032,7 @@ export default function ServiceRequestsListing() {
                     Estado{getSortIndicator('status')}
                   </button>
                 </th>
+                <th className='w-[120px] px-4 py-3'>Aprobación</th>
                 <th className='w-[160px] px-4 py-3'>
                   <button
                     type='button'
@@ -868,6 +1107,16 @@ export default function ServiceRequestsListing() {
                   row.status === 'work_order_completed';
                 const isDraft = row.status === 'draft';
                 const isProformaExpired = isExpiredProforma(row);
+                const canApproveProforma =
+                  row.status === 'submitted' &&
+                  !workOrderIssued &&
+                  row.approvalStatus !== 'approved';
+                const canRejectProforma =
+                  row.status === 'submitted' && !workOrderIssued;
+                const shouldBlockEmissionByApproval =
+                  row.status === 'submitted' &&
+                  !workOrderIssued &&
+                  row.approvalStatus !== 'approved';
 
                 return (
                   <tr
@@ -886,11 +1135,13 @@ export default function ServiceRequestsListing() {
                       <span className={isDraft ? 'text-destructive' : ''}>
                         {row.reference}
                       </span>
-                      {row.status === 'draft' && (
+                      {row.status === 'draft' ? (
                         <span className='text-muted-foreground ml-1 text-xs'>
-                          (borrador)
+                          {row.approvalStatus === 'rejected'
+                            ? '(rechazada)'
+                            : '(borrador)'}
                         </span>
-                      )}
+                      ) : null}
 
                       {isProformaExpired && (
                         <span className='text-muted-foreground ml-1 text-xs'>
@@ -900,11 +1151,14 @@ export default function ServiceRequestsListing() {
                     </td>
                     <td
                       className={`px-4 py-3 ${
-                        isProformaExpired ? 'text-destructive' : ''
+                        isProformaExpired || isWorkOrderPaused
+                          ? 'text-destructive'
+                          : ''
                       }`}
                     >
                       {getStatusDisplayLabel(row)}
                     </td>
+                    <td className='px-4 py-3'>{getApprovalStatusLabel(row)}</td>
                     <td className='px-4 py-3'>{row.clientBusinessName}</td>
                     <td className='px-4 py-3'>{matrixLabelMap[row.matrix]}</td>
                     <td className='px-4 py-3 text-right'>{row.agreedCount}</td>
@@ -993,6 +1247,30 @@ export default function ServiceRequestsListing() {
                                     Editar solicitud...
                                   </DropdownMenuItem>
                                 )}
+                                {canApproveProforma ? (
+                                  <DropdownMenuItem
+                                    className='cursor-pointer justify-start text-emerald-600 transition-colors duration-150 focus:text-emerald-600'
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      handleApproveRequest(row);
+                                    }}
+                                    disabled={pendingActionId === row.id}
+                                  >
+                                    Aprobar proforma
+                                  </DropdownMenuItem>
+                                ) : null}
+                                {canRejectProforma ? (
+                                  <DropdownMenuItem
+                                    className='text-destructive focus:text-destructive cursor-pointer justify-start transition-colors duration-150'
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      openRejectDialog(row);
+                                    }}
+                                    disabled={pendingActionId === row.id}
+                                  >
+                                    Rechazar proforma
+                                  </DropdownMenuItem>
+                                ) : null}
                                 {isDraft ? (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
@@ -1008,6 +1286,23 @@ export default function ServiceRequestsListing() {
                                     <TooltipContent>
                                       Finalice el borrador para poder emitir una
                                       Orden de trabajo
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ) : shouldBlockEmissionByApproval ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className='block'>
+                                        <DropdownMenuItem
+                                          disabled
+                                          className='text-muted-foreground focus:text-muted-foreground cursor-not-allowed justify-start opacity-60'
+                                        >
+                                          Emitir orden de trabajo
+                                        </DropdownMenuItem>
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      Debe aprobar la proforma antes de emitir
+                                      la orden de trabajo
                                     </TooltipContent>
                                   </Tooltip>
                                 ) : (
@@ -1234,6 +1529,17 @@ export default function ServiceRequestsListing() {
                         )
                       )}
                     </p>
+                    <p>
+                      <span className='font-medium'>Aprobación:</span>{' '}
+                      {getApprovalStatusLabel(selectedRow)}
+                    </p>
+                    {selectedRow.approvalStatus === 'rejected' &&
+                    selectedRow.approvalFeedback.trim() ? (
+                      <p>
+                        <span className='font-medium'>Motivo rechazo:</span>{' '}
+                        {selectedRow.approvalFeedback}
+                      </p>
+                    ) : null}
                   </div>
                   <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
                     <h4 className='text-muted-foreground font-semibold'>
@@ -1464,6 +1770,53 @@ export default function ServiceRequestsListing() {
               disabled={isDeleting}
             >
               {isDeleting ? 'Eliminando…' : 'Eliminar Solicitud'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={isRejectDialogOpen}
+        onOpenChange={(open) => {
+          if (isRejecting) return;
+          setIsRejectDialogOpen(open);
+          if (!open) {
+            setRowToReject(null);
+            setRejectFeedback('');
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Rechazar proforma</AlertDialogTitle>
+            <AlertDialogDescription>
+              Indique el motivo de rechazo para devolver la solicitud a
+              borrador.
+            </AlertDialogDescription>
+            <div className='space-y-2 pt-1'>
+              <label className='text-sm font-medium'>Motivo de rechazo</label>
+              <Textarea
+                value={rejectFeedback}
+                onChange={(event) => setRejectFeedback(event.target.value)}
+                placeholder='Escriba el motivo de rechazo'
+                rows={4}
+                disabled={isRejecting}
+              />
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              className='cursor-pointer'
+              disabled={isRejecting}
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className='bg-destructive hover:bg-destructive/90 disabled:bg-destructive cursor-pointer text-white disabled:text-white'
+              onClick={handleConfirmRejectRequest}
+              disabled={isRejecting}
+            >
+              {isRejecting ? 'Rechazando…' : 'Rechazar proforma'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

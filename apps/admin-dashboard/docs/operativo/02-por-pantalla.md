@@ -6,10 +6,15 @@ Usar esta pantalla cuando querés **crear** una solicitud nueva o **editar** una
 
 ### Acciones principales
 
-- Cargar datos de cliente, muestras, análisis y notas.
+- Cargar datos comerciales de cliente, alcance estimado de muestreo y notas.
 - Guardar como borrador (para continuar luego).
 - Ejecutar proforma.
 - Ejecutar proforma + OT.
+
+### Importante
+
+- El detalle operativo de muestras y los análisis de laboratorio no se cargan en configurador.
+- Esos datos se registran después de la emisión de OT, en la etapa operativa.
 
 ### Cuándo usar cada acción
 

@@ -21,6 +21,24 @@ export type ServiceRequestStatus =
   | 'work_order_completed'
   | 'cancelled';
 
+export type ServiceRequestApprovalStatus = 'pending' | 'approved' | 'rejected';
+
+export interface ServiceRequestApproval {
+  status: ServiceRequestApprovalStatus;
+  feedback?: string;
+  approvedAt?: any;
+  approvedBy?: {
+    uid: string | null;
+    email: string | null;
+  };
+  rejectedAt?: any;
+  rejectedBy?: {
+    uid: string | null;
+    email: string | null;
+  };
+  updatedAt?: any;
+}
+
 export interface ConfigurationClient {
   businessName: string;
   taxId: string;
@@ -80,6 +98,7 @@ export interface ConfigurationDocument {
   updatedAt?: any;
   status: ConfigurationStatus;
   serviceRequestStatus?: ServiceRequestStatus;
+  approvalStatus?: ServiceRequestApprovalStatus;
   notes: string;
   client: ConfigurationClient;
   samples: ConfigurationSamples;
@@ -91,6 +110,7 @@ export interface ServiceRequestDocument
   extends Omit<ConfigurationDocument, 'status'> {
   isWorkOrder: boolean;
   status: ServiceRequestStatus;
+  approval?: ServiceRequestApproval | null;
   linkedWorkOrderId?: string | null;
 }
 
@@ -130,6 +150,14 @@ export const createConfiguration = async (
     ...restData,
     isWorkOrder: toIsWorkOrder(type),
     status: toServiceRequestStatus(data.status),
+    ...(data.status === 'final'
+      ? {
+          approval: {
+            status: 'pending',
+            updatedAt: serverTimestamp()
+          }
+        }
+      : {}),
     linkedWorkOrderId: null,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
@@ -155,6 +183,14 @@ export const updateConfiguration = async (
     ...restData,
     ...(type ? { isWorkOrder: toIsWorkOrder(type) } : {}),
     ...(data.status ? { status: toServiceRequestStatus(data.status) } : {}),
+    ...(data.status === 'final'
+      ? {
+          approval: {
+            status: 'pending',
+            updatedAt: serverTimestamp()
+          }
+        }
+      : {}),
     updatedAt: serverTimestamp()
   } as any;
 
@@ -187,7 +223,8 @@ export const getConfigurationById = async (
     id: snapshot.id,
     type: data.isWorkOrder ? 'both' : 'proforma',
     status: toConfigurationStatus(data.status),
-    serviceRequestStatus: data.status
+    serviceRequestStatus: data.status,
+    approvalStatus: data.approval?.status
   } as ConfigurationDocument;
 };
 
@@ -201,10 +238,70 @@ export const createWorkOrderFromRequest = async (
 ): Promise<CreateWorkOrderResponse> => {
   const functions = getFunctions();
   const callable = httpsCallable<
-    { sourceRequestId: string; forceEmit?: boolean },
+    { sourceRequestId: string },
     CreateWorkOrderResponse
   >(functions, 'createWorkOrder');
-  const result = await callable({ sourceRequestId, forceEmit: true });
+
+  try {
+    const result = await callable({ sourceRequestId });
+    return result.data;
+  } catch (error) {
+    const errorMessage =
+      error &&
+      typeof error === 'object' &&
+      'message' in error &&
+      typeof error.message === 'string'
+        ? error.message
+        : '';
+
+    if (
+      errorMessage.includes(
+        'Service request must be approved before generating a work order.'
+      )
+    ) {
+      throw new Error(
+        'La proforma debe estar aprobada antes de emitir una orden de trabajo.'
+      );
+    }
+
+    throw error;
+  }
+};
+
+interface ApproveServiceRequestResponse {
+  sourceRequestId: string;
+  approvalStatus: 'approved';
+  alreadyApproved: boolean;
+}
+
+export const approveServiceRequest = async (
+  sourceRequestId: string,
+  feedback?: string
+): Promise<ApproveServiceRequestResponse> => {
+  const functions = getFunctions();
+  const callable = httpsCallable<
+    { sourceRequestId: string; feedback?: string },
+    ApproveServiceRequestResponse
+  >(functions, 'approveServiceRequest');
+  const result = await callable({ sourceRequestId, feedback });
+  return result.data;
+};
+
+interface RejectServiceRequestResponse {
+  sourceRequestId: string;
+  approvalStatus: 'rejected';
+}
+
+export const rejectServiceRequest = async (
+  sourceRequestId: string,
+  feedback: string
+): Promise<RejectServiceRequestResponse> => {
+  const functions = getFunctions();
+  const callable = httpsCallable<
+    { sourceRequestId: string; feedback: string },
+    RejectServiceRequestResponse
+  >(functions, 'rejectServiceRequest');
+  const result = await callable({ sourceRequestId, feedback });
   return result.data;
 };
 

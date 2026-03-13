@@ -6,13 +6,12 @@
 - Componente: `src/features/configurator/components/configurator-form.tsx`
 - Servicio: `src/features/configurator/services/configurations.ts`
 
-El configurador crea o actualiza solicitudes de servicio (proforma y/o OT) en 5 pasos:
+El configurador crea o actualiza solicitudes de servicio (proforma y/o OT) en 4 pasos:
 
 1. Tipo y metadatos
 2. Cliente
-3. Muestras
-4. Análisis
-5. Resumen
+3. Muestras estimadas
+4. Resumen
 
 ## Modos de uso
 
@@ -63,4 +62,10 @@ El configurador crea o actualiza solicitudes de servicio (proforma y/o OT) en 5 
 
 ## Validación operacional
 
-El botón de ejecutar exige completitud de los 4 bloques de datos (`type`, `client`, `samples`, `analyses`) antes de habilitar acción final.
+El botón de ejecutar exige completitud de los 3 bloques de datos (`type`, `client`, `samples`) antes de habilitar acción final.
+
+## Nota de etapa operativa
+
+En esta pantalla no se capturan análisis de laboratorio ni detalle operativo de muestras (códigos/tipo/observaciones).
+
+Esos datos se registran después de la emisión de la OT, en etapas de logística/campo/laboratorio.
