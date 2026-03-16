@@ -44,7 +44,8 @@ import {
   IconListDetails,
   IconWand,
   IconChecklist,
-  IconList
+  IconList,
+  IconUpload
 } from '@tabler/icons-react';
 
 export type Icon = React.ComponentType<IconProps>;
@@ -95,5 +96,6 @@ export const Icons = {
   works: IconLayoutGrid,
   list: IconList,
   checklist: IconChecklist,
-  configurator: IconWand
+  configurator: IconWand,
+  upload: IconUpload
 };
