@@ -20,7 +20,9 @@ export function useFilteredNavItems(items: NavItem[]) {
       '/dashboard/service-requests',
       '/dashboard/work-orders',
       '/dashboard/settings',
-      '/dashboard/configurator'
+      '/dashboard/configurator',
+      '/dashboard/admin',
+      '/dashboard/admin/import-services'
     ]);
 
     const filterItems = (entries: NavItem[]): NavItem[] =>

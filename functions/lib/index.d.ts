@@ -11,3 +11,4 @@ export { resumeWorkOrder } from './callable/resumeWorkOrder.js';
 export { completeWorkOrder } from './callable/completeWorkOrder.js';
 export { saveWorkOrderLabAnalysis } from './callable/saveWorkOrderLabAnalysis.js';
 export { deleteServiceRequest } from './callable/deleteServiceRequest.js';
+export { importServicesFromCsv } from './callable/importServicesFromCsv.js';

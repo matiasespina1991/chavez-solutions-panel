@@ -26,6 +26,14 @@ export const navItems: NavItem[] = [
     items: []
   },
   {
+    title: 'Admin',
+    url: '/dashboard/admin',
+    icon: 'account',
+    shortcut: ['a', 'a'],
+    isActive: false,
+    items: []
+  },
+  {
     title: 'Configuración',
     url: '/dashboard/settings',
     icon: 'settings',
