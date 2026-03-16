@@ -3,6 +3,9 @@ import admin from 'firebase-admin';
 
 const db = admin.firestore();
 const SERVICES_COLLECTION = 'services';
+const HISTORY_COLLECTION = 'services_history';
+const HISTORY_META_COLLECTION = 'services_history_meta';
+const HISTORY_META_DOC = 'current';
 const BATCH_LIMIT = 400;
 
 interface ImportServicesFromCsvRequest {
@@ -144,6 +147,46 @@ const deleteExistingDocuments = async (
   }
 };
 
+const createHistorySnapshot = async (
+  docs: FirebaseFirestore.QueryDocumentSnapshot[],
+  fileName: string | null
+): Promise<string> => {
+  const snapshotId = `${Date.now()}`;
+  const historyDocRef = db.collection(HISTORY_COLLECTION).doc(snapshotId);
+  const historyServicesRef = historyDocRef.collection('services');
+
+  let batch = db.batch();
+  let operationCount = 0;
+
+  for (const doc of docs) {
+    batch.set(historyServicesRef.doc(doc.id), doc.data());
+    operationCount += 1;
+
+    if (operationCount === BATCH_LIMIT) {
+      await batch.commit();
+      batch = db.batch();
+      operationCount = 0;
+    }
+  }
+
+  if (operationCount > 0) {
+    await batch.commit();
+  }
+
+  await historyDocRef.set({
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    fileName,
+    serviceCount: docs.length,
+  });
+
+  await db
+    .collection(HISTORY_META_COLLECTION)
+    .doc(HISTORY_META_DOC)
+    .set({ currentHistoryId: snapshotId }, { merge: true });
+
+  return snapshotId;
+};
+
 const writeRecords = async (
   collectionRef: FirebaseFirestore.CollectionReference,
   records: CsvRecord[]
@@ -191,17 +234,27 @@ export const importServicesFromCsv = onCall(async (req) => {
   validateUniqueIds(records);
 
   const servicesRef = db.collection(SERVICES_COLLECTION);
-  const existingDocRefs = await servicesRef.listDocuments();
+  const existingSnapshot = await servicesRef.get();
 
+  // Save existing state as history before replacement
+  const existingDocs = existingSnapshot.docs;
+  const fileName =
+    typeof data.fileName === 'string' && data.fileName.trim()
+      ? data.fileName.trim()
+      : null;
+
+  await createHistorySnapshot(existingDocs, fileName);
+
+  // Delete current services
+  const existingDocRefs = existingDocs.map((doc) => doc.ref);
   await deleteExistingDocuments(existingDocRefs);
+
+  // Write new services from CSV
   await writeRecords(servicesRef, records);
 
   return {
     importedCount: records.length,
     deletedCount: existingDocRefs.length,
-    fileName:
-      typeof data.fileName === 'string' && data.fileName.trim()
-        ? data.fileName.trim()
-        : null,
+    fileName,
   };
 });

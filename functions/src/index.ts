@@ -22,3 +22,6 @@ export { completeWorkOrder } from './callable/completeWorkOrder.js';
 export { saveWorkOrderLabAnalysis } from './callable/saveWorkOrderLabAnalysis.js';
 export { deleteServiceRequest } from './callable/deleteServiceRequest.js';
 export { importServicesFromCsv } from './callable/importServicesFromCsv.js';
+export { listServiceHistory } from './callable/listServiceHistory.js';
+export { restoreServiceHistory } from './callable/restoreServiceHistory.js';
+export { deleteServiceHistory } from './callable/deleteServiceHistory.js';
