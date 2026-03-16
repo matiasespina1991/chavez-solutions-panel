@@ -7,7 +7,7 @@ export default function ConfiguratorPage() {
   return (
     <PageContainer
       scrollable={true}
-      className='w-full max-w-[57rem] justify-self-start'
+      className='w-full max-w-[64rem] justify-self-start'
       pageTitle='Configurador de proformas'
       pageDescription='Crea y configura proformas'
     >
