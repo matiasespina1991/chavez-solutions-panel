@@ -2,6 +2,7 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
   setDoc,
   serverTimestamp,
   updateDoc,
@@ -73,6 +74,7 @@ export interface ConfigurationAnalysisItem {
   isAccredited: boolean;
   turnaround: 'standard' | 'urgent';
   unitPrice: number | null;
+  discountAmount?: number | null;
   appliesToSampleCodes: string[] | null;
 }
 
@@ -87,6 +89,23 @@ export interface ConfigurationPricing {
   taxPercent: number | null;
   total: number | null;
   validDays: number | null;
+}
+
+export interface ImportedServiceDocument {
+  id: string;
+  ID_CONFIG_PARAMETRO?: string;
+  ID_TABLA_NORMA?: string;
+  ID_PARAMETRO?: string;
+  UNIDAD_NORMA?: string;
+  UNIDAD_INTERNO?: string;
+  LIM_INF_NORMA?: string;
+  LIM_SUP_NORMA?: string;
+  LIM_INF_INTERNO?: string;
+  LIM_SUP_INTERNO?: string;
+  ID_TECNICA?: string;
+  ID_MET_REFERENCIA?: string;
+  ID_MET_INTERNO?: string;
+  PRECIO?: number | null;
 }
 
 export interface ConfigurationDocument {
@@ -116,6 +135,7 @@ export interface ServiceRequestDocument
 
 const SERVICE_REQUEST_COLLECTION = 'service_requests';
 const WORK_ORDER_COLLECTION = 'work_orders';
+const SERVICES_COLLECTION = 'services';
 
 const toServiceRequestStatus = (
   status: ConfigurationStatus
@@ -226,6 +246,70 @@ export const getConfigurationById = async (
     serviceRequestStatus: data.status,
     approvalStatus: data.approval?.status
   } as ConfigurationDocument;
+};
+
+export const listImportedServices = async (): Promise<
+  ImportedServiceDocument[]
+> => {
+  const snapshot = await getDocs(collection(db, SERVICES_COLLECTION));
+  return snapshot.docs.map((serviceDoc) => {
+    const data = serviceDoc.data() as Record<string, unknown>;
+    const rawPrice =
+      typeof data.PRECIO === 'number'
+        ? data.PRECIO
+        : typeof data.PRECIO === 'string' && data.PRECIO.trim()
+          ? Number(data.PRECIO)
+          : null;
+    return {
+      id: serviceDoc.id,
+      ID_CONFIG_PARAMETRO:
+        typeof data.ID_CONFIG_PARAMETRO === 'string'
+          ? data.ID_CONFIG_PARAMETRO
+          : undefined,
+      ID_TABLA_NORMA:
+        typeof data.ID_TABLA_NORMA === 'string'
+          ? data.ID_TABLA_NORMA
+          : undefined,
+      ID_PARAMETRO:
+        typeof data.ID_PARAMETRO === 'string' ? data.ID_PARAMETRO : undefined,
+      UNIDAD_NORMA:
+        typeof data.UNIDAD_NORMA === 'string' ? data.UNIDAD_NORMA : undefined,
+      UNIDAD_INTERNO:
+        typeof data.UNIDAD_INTERNO === 'string'
+          ? data.UNIDAD_INTERNO
+          : undefined,
+      LIM_INF_NORMA:
+        typeof data.LIM_INF_NORMA === 'string'
+          ? data.LIM_INF_NORMA
+          : undefined,
+      LIM_SUP_NORMA:
+        typeof data.LIM_SUP_NORMA === 'string'
+          ? data.LIM_SUP_NORMA
+          : undefined,
+      LIM_INF_INTERNO:
+        typeof data.LIM_INF_INTERNO === 'string'
+          ? data.LIM_INF_INTERNO
+          : undefined,
+      LIM_SUP_INTERNO:
+        typeof data.LIM_SUP_INTERNO === 'string'
+          ? data.LIM_SUP_INTERNO
+          : undefined,
+      ID_TECNICA:
+        typeof data.ID_TECNICA === 'string' ? data.ID_TECNICA : undefined,
+      ID_MET_REFERENCIA:
+        typeof data.ID_MET_REFERENCIA === 'string'
+          ? data.ID_MET_REFERENCIA
+          : undefined,
+      ID_MET_INTERNO:
+        typeof data.ID_MET_INTERNO === 'string'
+          ? data.ID_MET_INTERNO
+          : undefined,
+      PRECIO:
+        typeof rawPrice === 'number' && Number.isFinite(rawPrice)
+          ? rawPrice
+          : null
+    };
+  });
 };
 
 interface CreateWorkOrderResponse {
