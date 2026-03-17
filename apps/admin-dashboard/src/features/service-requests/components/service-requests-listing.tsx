@@ -90,6 +90,19 @@ interface ServiceRequestRow {
     taxId: string;
     contactName: string;
   };
+  serviceItems: Array<{
+    serviceId: string;
+    parameterId: string;
+    parameterLabel: string;
+    tableLabel: string | null;
+    unit: string | null;
+    method: string | null;
+    rangeMin: string;
+    rangeMax: string;
+    quantity: number;
+    unitPrice: number;
+    discountAmount: number;
+  }>;
   sampleItems: Array<{ sampleCode: string; sampleType: string }>;
   analysisItems: Array<{ parameterLabelEs: string; unitPrice: number }>;
   taxPercent: number;
@@ -130,24 +143,34 @@ const statusLabelMap: Record<ServiceRequestStatus, string> = {
 };
 
 const formatTimestamp = (value: unknown) => {
-  const formatOptions: Intl.DateTimeFormatOptions = {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
+  const dateFormatter = new Intl.DateTimeFormat('es-EC', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+
+  const timeFormatter = new Intl.DateTimeFormat('es-EC', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false
+  });
+
+  const formatDate = (date: Date) => {
+    const datePart = dateFormatter.format(date).replace(/ de /g, ', ');
+    const normalized =
+      datePart.charAt(0).toUpperCase() + datePart.slice(1).toLowerCase();
+    const timePart = timeFormatter.format(date);
+    return `${normalized}, ${timePart} hs`;
   };
 
   if (!value) return '—';
   if (value instanceof Timestamp) {
-    return `${value.toDate().toLocaleString('es-EC', formatOptions)} hs`;
+    return formatDate(value.toDate());
   }
   if (typeof value === 'object' && value !== null && 'toDate' in value) {
     try {
-      return `${(value as { toDate: () => Date })
-        .toDate()
-        .toLocaleString('es-EC', formatOptions)} hs`;
+      return formatDate((value as { toDate: () => Date }).toDate());
     } catch {
       return '—';
     }
@@ -802,6 +825,73 @@ export default function ServiceRequestsListing() {
                 : []
               : [];
 
+          const serviceItems =
+            Array.isArray(value.services)
+              ? (value.services as unknown[]).map((item, index) => {
+                  const rowItem = item as {
+                    serviceId?: string;
+                    parameterId?: string;
+                    parameterLabel?: string;
+                    tableLabel?: string | null;
+                    unit?: string | null;
+                    method?: string | null;
+                    rangeMin?: string;
+                    rangeMax?: string;
+                    quantity?: number;
+                    unitPrice?: number | null;
+                    discountAmount?: number | null;
+                  };
+                  const unitPrice = Number(rowItem.unitPrice ?? 0);
+                  const discountAmount = Number(rowItem.discountAmount ?? 0);
+                  return {
+                    serviceId: String(
+                      rowItem.serviceId ??
+                        rowItem.parameterId ??
+                        `service-${index}`
+                    ),
+                    parameterId: String(
+                      rowItem.parameterId ?? rowItem.serviceId ?? `p-${index}`
+                    ),
+                    parameterLabel: String(
+                      rowItem.parameterLabel ?? rowItem.parameterId ?? 'Servicio'
+                    ),
+                    tableLabel:
+                      typeof rowItem.tableLabel === 'string'
+                        ? rowItem.tableLabel
+                        : null,
+                    unit:
+                      typeof rowItem.unit === 'string' ? rowItem.unit : null,
+                    method:
+                      typeof rowItem.method === 'string' ? rowItem.method : null,
+                    rangeMin: String(rowItem.rangeMin ?? ''),
+                    rangeMax: String(rowItem.rangeMax ?? ''),
+                    quantity: Math.max(1, Number(rowItem.quantity ?? 1)),
+                    unitPrice: Number.isFinite(unitPrice) ? unitPrice : 0,
+                    discountAmount:
+                      Number.isFinite(discountAmount) && discountAmount >= 0
+                        ? discountAmount
+                        : 0
+                  };
+                })
+              : [];
+
+          const normalizedServiceItems =
+            serviceItems.length > 0
+              ? serviceItems
+              : analysisItems.map((analysis, index) => ({
+                  serviceId: `legacy-${index}`,
+                  parameterId: `legacy-${index}`,
+                  parameterLabel: analysis.parameterLabelEs,
+                  tableLabel: null,
+                  unit: null,
+                  method: null,
+                  rangeMin: '',
+                  rangeMax: '',
+                  quantity: agreedCount > 0 ? agreedCount : 1,
+                  unitPrice: Number(analysis.unitPrice ?? 0),
+                  discountAmount: 0
+                }));
+
           return {
             id: docSnap.id,
             reference: String(value.reference ?? '—'),
@@ -815,12 +905,13 @@ export default function ServiceRequestsListing() {
               Number.isFinite(validDays) && validDays > 0 ? validDays : null,
             createdAtMs,
             client,
+            serviceItems: normalizedServiceItems,
             sampleItems,
             analysisItems,
             taxPercent: Number.isFinite(taxPercent) ? taxPercent : 15,
             clientBusinessName: clientBusinessName || '—',
             agreedCount,
-            analysesCount,
+            analysesCount: normalizedServiceItems.length || analysesCount,
             total: Number.isFinite(total) ? total : 0,
             subtotal: Number.isFinite(subtotal) ? subtotal : 0,
             updatedAtLabel: formatTimestamp(value.updatedAt),
@@ -870,7 +961,7 @@ export default function ServiceRequestsListing() {
           );
           break;
         case 'samples':
-          compare = left.agreedCount - right.agreedCount;
+          compare = left.analysesCount - right.analysesCount;
           break;
         case 'analyses':
           compare = left.analysesCount - right.analysesCount;
@@ -951,6 +1042,15 @@ export default function ServiceRequestsListing() {
         ...row.analysisItems.flatMap((analysis) => [
           analysis.parameterLabelEs,
           String(analysis.unitPrice)
+        ]),
+        ...row.serviceItems.flatMap((service) => [
+          service.parameterLabel,
+          service.tableLabel || '',
+          service.unit || '',
+          service.method || '',
+          String(service.quantity),
+          String(service.unitPrice),
+          String(service.discountAmount)
         ])
       ];
 
@@ -1057,16 +1157,7 @@ export default function ServiceRequestsListing() {
                     className='cursor-pointer select-none'
                     onClick={() => handleSort('samples')}
                   >
-                    Muestras{getSortIndicator('samples')}
-                  </button>
-                </th>
-                <th className='px-4 py-3 text-right'>
-                  <button
-                    type='button'
-                    className='cursor-pointer select-none'
-                    onClick={() => handleSort('analyses')}
-                  >
-                    Análisis{getSortIndicator('analyses')}
+                    Servicios{getSortIndicator('samples')}
                   </button>
                 </th>
                 <th className='px-4 py-3 text-right'>
@@ -1161,10 +1252,7 @@ export default function ServiceRequestsListing() {
                     <td className='px-4 py-3'>{getApprovalStatusLabel(row)}</td>
                     <td className='px-4 py-3'>{row.clientBusinessName}</td>
                     <td className='px-4 py-3'>{matrixLabelMap[row.matrix]}</td>
-                    <td className='px-4 py-3 text-right'>{row.agreedCount}</td>
-                    <td className='px-4 py-3 text-right'>
-                      {row.analysesCount}
-                    </td>
+                    <td className='px-4 py-3 text-right'>{row.analysesCount}</td>
                     <td className='px-4 py-3 text-right'>
                       ${row.total.toFixed(2).replace('.', ',')}
                     </td>
@@ -1562,41 +1650,29 @@ export default function ServiceRequestsListing() {
 
                 <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
                   <h4 className='text-muted-foreground font-semibold'>
-                    Muestras ({selectedRow.agreedCount})
+                    Servicios ({selectedRow.serviceItems.length})
                   </h4>
-                  <div className='flex flex-wrap gap-2'>
-                    {selectedRow.sampleItems.map((sample, index) => (
-                      <span
-                        key={`${sample.sampleCode}-${index}`}
-                        className='bg-muted rounded border px-2 py-1 text-sm'
-                      >
-                        {sample.sampleCode} ({sample.sampleType || 'Sin tipo'})
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
-                  <h4 className='text-muted-foreground font-semibold'>
-                    Análisis ({selectedRow.analysisItems.length})
-                  </h4>
-                  <div className='flex flex-wrap gap-2'>
-                    {selectedRow.analysisItems.map((analysis, index) => (
-                      <span
-                        key={`${analysis.parameterLabelEs}-${index}`}
-                        className='bg-muted rounded border px-2 py-1 text-sm'
-                      >
-                        {analysis.parameterLabelEs}
-                      </span>
-                    ))}
+                  <div className='space-y-1'>
+                    {selectedRow.serviceItems.length > 0 ? (
+                      selectedRow.serviceItems.map((service, index) => (
+                        <p
+                          key={`${service.serviceId}-${index}`}
+                          className='text-sm'
+                        >
+                          {service.parameterLabel}
+                        </p>
+                      ))
+                    ) : (
+                      <p className='text-sm'>No hay servicios seleccionados.</p>
+                    )}
                   </div>
                 </div>
 
                 <div className='space-y-4 rounded-md border p-4'>
-                  {selectedRow.analysisItems.length > 0 && (
+                  {selectedRow.serviceItems.length > 0 && (
                     <div className='space-y-2'>
                       <h4 className='text-muted-foreground font-semibold'>
-                        Detalle de costos por análisis
+                        Detalle de costos por servicios
                       </h4>
                       <div className='overflow-x-auto rounded-md border'>
                         <table className='w-full text-left text-sm'>
@@ -1605,35 +1681,38 @@ export default function ServiceRequestsListing() {
                               <th className='p-2'>Parámetro</th>
                               <th className='p-2 text-right'>Muestras</th>
                               <th className='p-2 text-right'>Costo unitario</th>
+                              <th className='p-2 text-right'>Descuento</th>
                               <th className='p-2 text-right'>Subtotal</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {selectedRow.analysisItems.map(
-                              (analysis, index) => {
-                                const lineTotal =
-                                  analysis.unitPrice * selectedRow.agreedCount;
-                                return (
-                                  <tr
-                                    key={`${analysis.parameterLabelEs}-${index}`}
-                                    className='border-t'
-                                  >
-                                    <td className='p-2'>
-                                      {analysis.parameterLabelEs}
-                                    </td>
-                                    <td className='p-2 text-right'>
-                                      {selectedRow.agreedCount}
-                                    </td>
-                                    <td className='p-2 text-right'>
-                                      ${analysis.unitPrice.toFixed(2)}
-                                    </td>
-                                    <td className='p-2 text-right'>
-                                      ${lineTotal.toFixed(2)}
-                                    </td>
-                                  </tr>
-                                );
-                              }
-                            )}
+                            {selectedRow.serviceItems.map((service, index) => {
+                              const lineTotal = Math.max(
+                                0,
+                                service.unitPrice * service.quantity -
+                                  service.discountAmount
+                              );
+                              return (
+                                <tr
+                                  key={`${service.serviceId}-${index}`}
+                                  className='border-t'
+                                >
+                                  <td className='p-2'>{service.parameterLabel}</td>
+                                  <td className='p-2 text-right'>
+                                    {service.quantity}
+                                  </td>
+                                  <td className='p-2 text-right'>
+                                    ${service.unitPrice.toFixed(2)}
+                                  </td>
+                                  <td className='p-2 text-right'>
+                                    ${service.discountAmount.toFixed(2)}
+                                  </td>
+                                  <td className='p-2 text-right'>
+                                    ${lineTotal.toFixed(2)}
+                                  </td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
                       </div>

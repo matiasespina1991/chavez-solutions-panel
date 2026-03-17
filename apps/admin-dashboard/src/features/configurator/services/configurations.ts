@@ -91,6 +91,20 @@ export interface ConfigurationPricing {
   validDays: number | null;
 }
 
+export interface ConfigurationServiceItem {
+  serviceId: string;
+  parameterId: string;
+  parameterLabel: string;
+  tableLabel: string | null;
+  unit: string | null;
+  method: string | null;
+  rangeMin: string;
+  rangeMax: string;
+  quantity: number;
+  unitPrice: number | null;
+  discountAmount: number | null;
+}
+
 export interface ImportedServiceDocument {
   id: string;
   ID_CONFIG_PARAMETRO?: string;
@@ -121,6 +135,7 @@ export interface ConfigurationDocument {
   notes: string;
   client: ConfigurationClient;
   samples: ConfigurationSamples;
+  services: ConfigurationServiceItem[];
   analyses: ConfigurationAnalyses;
   pricing: ConfigurationPricing;
 }
