@@ -45,6 +45,7 @@ import {
   getConfigurationById,
   updateConfiguration,
   ConfigurationDocument,
+  ConfigurationServiceItem,
   ImportedServiceDocument,
   listImportedServices
 } from '../services/configurations';
@@ -79,6 +80,21 @@ const formSchema = z.object({
       })
     )
   }),
+  services: z.array(
+    z.object({
+      serviceId: z.string(),
+      parameterId: z.string(),
+      parameterLabel: z.string(),
+      tableLabel: z.string().nullable(),
+      unit: z.string().nullable(),
+      method: z.string().nullable(),
+      rangeMin: z.string(),
+      rangeMax: z.string(),
+      quantity: z.number().min(1),
+      unitPrice: z.number().nullable(),
+      discountAmount: z.number().nullable()
+    })
+  ),
   analyses: z.object({
     applyMode: z.enum(['all_samples', 'by_sample']),
     items: z.array(
@@ -138,6 +154,7 @@ const createDefaultFormValues = (): FormValues => ({
     executedCount: 1,
     items: []
   },
+  services: [],
   analyses: {
     applyMode: 'all_samples',
     items: []
@@ -361,6 +378,53 @@ export default function ConfiguratorForm() {
       appliesToSampleCodes: null
     }));
 
+  const mapSelectedServicesToDocument = (
+    services: SelectedService[]
+  ): ConfigurationServiceItem[] =>
+    services.map((service) => ({
+      serviceId: service.id,
+      parameterId: getServiceId(service),
+      parameterLabel: service.ID_PARAMETRO || getServiceId(service) || '-',
+      tableLabel: service.ID_TABLA_NORMA || null,
+      unit: service.UNIDAD_NORMA || service.UNIDAD_INTERNO || null,
+      method:
+        service.ID_TECNICA ||
+        service.ID_MET_REFERENCIA ||
+        service.ID_MET_INTERNO ||
+        null,
+      rangeMin: service.rangeMin,
+      rangeMax: service.rangeMax,
+      quantity: service.quantity,
+      unitPrice: service.unitPrice,
+      discountAmount: service.discountAmount
+    }));
+
+  const mapStoredServicesToSelected = (
+    services: ConfigurationServiceItem[]
+  ): SelectedService[] =>
+    services.map((service) =>
+      toSelectedService(
+        {
+          id: service.serviceId || service.parameterId,
+          ID_CONFIG_PARAMETRO: service.parameterId,
+          ID_PARAMETRO: service.parameterLabel,
+          ID_TABLA_NORMA: service.tableLabel || undefined,
+          UNIDAD_NORMA: service.unit || undefined,
+          ID_TECNICA: service.method || undefined,
+          LIM_INF_NORMA: undefined,
+          LIM_SUP_NORMA: undefined,
+          PRECIO: service.unitPrice
+        },
+        {
+          quantity: service.quantity,
+          rangeMin: service.rangeMin,
+          rangeMax: service.rangeMax,
+          unitPrice: service.unitPrice,
+          discountAmount: service.discountAmount
+        }
+      )
+    );
+
   const toDateOrNull = (value: unknown): Date | null => {
     if (!value) return null;
     if (value instanceof Date) return value;
@@ -529,33 +593,35 @@ export default function ConfiguratorForm() {
       const merged = mergeWithCachedValues(createDefaultFormValues(), parsed);
       form.reset(merged);
       setSelectedServices(
-        merged.analyses.items.map((item, index) =>
-          (() => {
-            const parsedRange = parseRangeOffered(item.rangeOffered);
-            return toSelectedService(
-              {
-                id: `${item.parameterId}-${index}`,
-                ID_CONFIG_PARAMETRO: item.parameterId,
-                ID_PARAMETRO: item.parameterLabelEs,
-                UNIDAD_NORMA: item.unit,
-                ID_TECNICA: item.method,
-                LIM_INF_NORMA: undefined,
-                LIM_SUP_NORMA: undefined,
-                PRECIO: item.unitPrice ?? null
-              },
-              {
-                quantity: 1,
-                rangeMin: parsedRange.rangeMin,
-                rangeMax: parsedRange.rangeMax,
-                unitPrice: item.unitPrice ?? null,
-                discountAmount:
-                  typeof item.discountAmount === 'number'
-                    ? item.discountAmount
-                    : null
-              }
-            );
-          })()
-        )
+        merged.services?.length
+          ? mapStoredServicesToSelected(merged.services)
+          : merged.analyses.items.map((item, index) =>
+              (() => {
+                const parsedRange = parseRangeOffered(item.rangeOffered);
+                return toSelectedService(
+                  {
+                    id: `${item.parameterId}-${index}`,
+                    ID_CONFIG_PARAMETRO: item.parameterId,
+                    ID_PARAMETRO: item.parameterLabelEs,
+                    UNIDAD_NORMA: item.unit,
+                    ID_TECNICA: item.method,
+                    LIM_INF_NORMA: undefined,
+                    LIM_SUP_NORMA: undefined,
+                    PRECIO: item.unitPrice ?? null
+                  },
+                  {
+                    quantity: 1,
+                    rangeMin: parsedRange.rangeMin,
+                    rangeMax: parsedRange.rangeMax,
+                    unitPrice: item.unitPrice ?? null,
+                    discountAmount:
+                      typeof item.discountAmount === 'number'
+                        ? item.discountAmount
+                        : null
+                  }
+                );
+              })()
+            )
       );
     } catch (error) {
       console.error('Error restoring configurator cache:', error);
@@ -599,6 +665,7 @@ export default function ConfiguratorForm() {
             executedCount: existing.samples.executedCount,
             items: []
           },
+          services: Array.isArray(existing.services) ? existing.services : [],
           analyses: {
             applyMode: existing.analyses.applyMode,
             items: existing.analyses.items
@@ -626,33 +693,35 @@ export default function ConfiguratorForm() {
               const merged = mergeWithCachedValues(loadedValues, parsed);
               form.reset(merged);
               setSelectedServices(
-                merged.analyses.items.map((item, index) =>
-                  (() => {
-                    const parsedRange = parseRangeOffered(item.rangeOffered);
-                    return toSelectedService(
-                      {
-                        id: `${item.parameterId}-${index}`,
-                        ID_CONFIG_PARAMETRO: item.parameterId,
-                        ID_PARAMETRO: item.parameterLabelEs,
-                        UNIDAD_NORMA: item.unit,
-                        ID_TECNICA: item.method,
-                        LIM_INF_NORMA: undefined,
-                        LIM_SUP_NORMA: undefined,
-                        PRECIO: item.unitPrice ?? null
-                      },
-                      {
-                        quantity: 1,
-                        rangeMin: parsedRange.rangeMin,
-                        rangeMax: parsedRange.rangeMax,
-                        unitPrice: item.unitPrice ?? null,
-                        discountAmount:
-                          typeof item.discountAmount === 'number'
-                            ? item.discountAmount
-                            : null
-                      }
-                    );
-                  })()
-                )
+                merged.services?.length
+                  ? mapStoredServicesToSelected(merged.services)
+                  : merged.analyses.items.map((item, index) =>
+                      (() => {
+                        const parsedRange = parseRangeOffered(item.rangeOffered);
+                        return toSelectedService(
+                          {
+                            id: `${item.parameterId}-${index}`,
+                            ID_CONFIG_PARAMETRO: item.parameterId,
+                            ID_PARAMETRO: item.parameterLabelEs,
+                            UNIDAD_NORMA: item.unit,
+                            ID_TECNICA: item.method,
+                            LIM_INF_NORMA: undefined,
+                            LIM_SUP_NORMA: undefined,
+                            PRECIO: item.unitPrice ?? null
+                          },
+                          {
+                            quantity: 1,
+                            rangeMin: parsedRange.rangeMin,
+                            rangeMax: parsedRange.rangeMax,
+                            unitPrice: item.unitPrice ?? null,
+                            discountAmount:
+                              typeof item.discountAmount === 'number'
+                                ? item.discountAmount
+                                : null
+                          }
+                        );
+                      })()
+                    )
               );
               return;
             }
@@ -663,33 +732,35 @@ export default function ConfiguratorForm() {
 
         form.reset(loadedValues);
         setSelectedServices(
-          loadedValues.analyses.items.map((item, index) =>
-            (() => {
-              const parsedRange = parseRangeOffered(item.rangeOffered);
-              return toSelectedService(
-                {
-                  id: `${item.parameterId}-${index}`,
-                  ID_CONFIG_PARAMETRO: item.parameterId,
-                  ID_PARAMETRO: item.parameterLabelEs,
-                  UNIDAD_NORMA: item.unit,
-                  ID_TECNICA: item.method,
-                  LIM_INF_NORMA: undefined,
-                  LIM_SUP_NORMA: undefined,
-                  PRECIO: item.unitPrice ?? null
-                },
-                {
-                  quantity: 1,
-                  rangeMin: parsedRange.rangeMin,
-                  rangeMax: parsedRange.rangeMax,
-                  unitPrice: item.unitPrice ?? null,
-                  discountAmount:
-                    typeof item.discountAmount === 'number'
-                      ? item.discountAmount
-                      : null
-                }
-              );
-            })()
-          )
+          loadedValues.services?.length
+            ? mapStoredServicesToSelected(loadedValues.services)
+            : loadedValues.analyses.items.map((item, index) =>
+                (() => {
+                  const parsedRange = parseRangeOffered(item.rangeOffered);
+                  return toSelectedService(
+                    {
+                      id: `${item.parameterId}-${index}`,
+                      ID_CONFIG_PARAMETRO: item.parameterId,
+                      ID_PARAMETRO: item.parameterLabelEs,
+                      UNIDAD_NORMA: item.unit,
+                      ID_TECNICA: item.method,
+                      LIM_INF_NORMA: undefined,
+                      LIM_SUP_NORMA: undefined,
+                      PRECIO: item.unitPrice ?? null
+                    },
+                    {
+                      quantity: 1,
+                      rangeMin: parsedRange.rangeMin,
+                      rangeMax: parsedRange.rangeMax,
+                      unitPrice: item.unitPrice ?? null,
+                      discountAmount:
+                        typeof item.discountAmount === 'number'
+                          ? item.discountAmount
+                          : null
+                    }
+                  );
+                })()
+              )
         );
       } catch (error) {
         console.error('Error loading request for edit:', error);
@@ -737,6 +808,8 @@ export default function ConfiguratorForm() {
 
   useEffect(() => {
     const mappedAnalyses = mapServicesToAnalyses(selectedServices);
+    const mappedServices = mapSelectedServicesToDocument(selectedServices);
+    form.setValue('services', mappedServices);
     form.setValue('analyses.applyMode', 'all_samples');
     form.setValue('analyses.items', mappedAnalyses);
 
@@ -787,6 +860,7 @@ export default function ConfiguratorForm() {
           ...values.samples,
           items: []
         },
+        services: mapSelectedServicesToDocument(selectedServices),
         analyses: {
           applyMode: values.analyses.applyMode,
           items: values.analyses.items
@@ -853,6 +927,7 @@ export default function ConfiguratorForm() {
           ...values.samples,
           items: []
         },
+        services: mapSelectedServicesToDocument(selectedServices),
         analyses: {
           applyMode: values.analyses.applyMode,
           items: values.analyses.items

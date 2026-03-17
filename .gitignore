@@ -47,3 +47,5 @@ next-env.d.ts
 /functions/node_modules
 /functions/.eslintrc.json  
 /functions/.firebase/ 
+
+functions/.env

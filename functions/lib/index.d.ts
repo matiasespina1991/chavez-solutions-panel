@@ -1,5 +1,7 @@
 export { onImageUpload } from './triggers/onImageUpload.js';
 export { onVideoUpload } from './triggers/onVideoUpload.js';
+export { onServiceRequestSubmitted } from './triggers/onServiceRequestSubmitted.js';
+export { onMailOutboxCreated } from './triggers/onMailOutboxCreated.js';
 export { generateDownloadUrl } from './callable/generateDownloadUrl.js';
 export { regenerateDownloadUrl } from './callable/regenerateDownloadUrl.js';
 export { validateDelete } from './callable/validateDelete.js';
@@ -15,3 +17,4 @@ export { importServicesFromCsv } from './callable/importServicesFromCsv.js';
 export { listServiceHistory } from './callable/listServiceHistory.js';
 export { restoreServiceHistory } from './callable/restoreServiceHistory.js';
 export { deleteServiceHistory } from './callable/deleteServiceHistory.js';
+export { generateProformaPdf } from './callable/generateProformaPdf.js';

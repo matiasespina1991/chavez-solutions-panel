@@ -46,6 +46,7 @@ import {
   IconPrinter,
   IconSearch
 } from '@tabler/icons-react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -70,6 +71,19 @@ interface WorkOrderRow {
     taxId: string;
     contactName: string;
   };
+  serviceItems: Array<{
+    serviceId: string;
+    parameterId: string;
+    parameterLabel: string;
+    tableLabel: string | null;
+    unit: string | null;
+    method: string | null;
+    rangeMin: string;
+    rangeMax: string;
+    quantity: number;
+    unitPrice: number;
+    discountAmount: number;
+  }>;
   sampleItems: Array<{ sampleCode: string; sampleType: string }>;
   analysisItems: Array<{ parameterLabelEs: string; unitPrice: number }>;
   taxPercent: number;
@@ -109,24 +123,34 @@ const statusLabelMap: Record<WorkOrderStatus, string> = {
 };
 
 const formatTimestamp = (value: unknown) => {
-  const formatOptions: Intl.DateTimeFormatOptions = {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
+  const dateFormatter = new Intl.DateTimeFormat('es-EC', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+
+  const timeFormatter = new Intl.DateTimeFormat('es-EC', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false
+  });
+
+  const formatDate = (date: Date) => {
+    const datePart = dateFormatter.format(date).replace(/ de /g, ', ');
+    const normalized =
+      datePart.charAt(0).toUpperCase() + datePart.slice(1).toLowerCase();
+    const timePart = timeFormatter.format(date);
+    return `${normalized}, ${timePart} hs`;
   };
 
   if (!value) return '—';
   if (value instanceof Timestamp) {
-    return `${value.toDate().toLocaleString('es-EC', formatOptions)} hs`;
+    return formatDate(value.toDate());
   }
   if (typeof value === 'object' && value !== null && 'toDate' in value) {
     try {
-      return `${(value as { toDate: () => Date })
-        .toDate()
-        .toLocaleString('es-EC', formatOptions)} hs`;
+      return formatDate((value as { toDate: () => Date }).toDate());
     } catch {
       return '—';
     }
@@ -148,6 +172,13 @@ const toTimestampMs = (value: unknown) => {
 };
 
 export default function WorkOrdersListing() {
+  const router = useRouter();
+  const [sourceRequestServicesById, setSourceRequestServicesById] = useState<
+    Record<
+      string,
+      WorkOrderRow['serviceItems']
+    >
+  >({});
   const [rows, setRows] = useState<WorkOrderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -242,6 +273,63 @@ export default function WorkOrdersListing() {
   const handleDialogPrint = () => {
     toast.info('Imprimir orden de trabajo estará disponible próximamente');
   };
+
+  useEffect(() => {
+    const requestsQuery = query(collection(db, 'service_requests'));
+    const unsubscribe = onSnapshot(requestsQuery, (snapshot) => {
+      const nextMap: Record<string, WorkOrderRow['serviceItems']> = {};
+      snapshot.docs.forEach((docSnap) => {
+        const value = docSnap.data() as Record<string, unknown>;
+        const serviceItems = Array.isArray(value.services)
+          ? (value.services as unknown[]).map((item, index) => {
+              const rowItem = item as {
+                serviceId?: string;
+                parameterId?: string;
+                parameterLabel?: string;
+                tableLabel?: string | null;
+                unit?: string | null;
+                method?: string | null;
+                rangeMin?: string;
+                rangeMax?: string;
+                quantity?: number;
+                unitPrice?: number | null;
+                discountAmount?: number | null;
+              };
+              return {
+                serviceId: String(
+                  rowItem.serviceId ?? rowItem.parameterId ?? `service-${index}`
+                ),
+                parameterId: String(
+                  rowItem.parameterId ?? rowItem.serviceId ?? `p-${index}`
+                ),
+                parameterLabel: String(
+                  rowItem.parameterLabel ?? rowItem.parameterId ?? 'Servicio'
+                ),
+                tableLabel:
+                  typeof rowItem.tableLabel === 'string'
+                    ? rowItem.tableLabel
+                    : null,
+                unit: typeof rowItem.unit === 'string' ? rowItem.unit : null,
+                method:
+                  typeof rowItem.method === 'string' ? rowItem.method : null,
+                rangeMin: String(rowItem.rangeMin ?? ''),
+                rangeMax: String(rowItem.rangeMax ?? ''),
+                quantity: Math.max(1, Number(rowItem.quantity ?? 1)),
+                unitPrice: Number(rowItem.unitPrice ?? 0),
+                discountAmount: Math.max(
+                  0,
+                  Number(rowItem.discountAmount ?? 0)
+                )
+              };
+            })
+          : [];
+        nextMap[docSnap.id] = serviceItems;
+      });
+      setSourceRequestServicesById(nextMap);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     const workOrdersQuery = query(
@@ -362,21 +450,90 @@ export default function WorkOrdersListing() {
                 : []
               : [];
 
+          const directServiceItems = Array.isArray(value.services)
+            ? (value.services as unknown[]).map((item, index) => {
+                const rowItem = item as {
+                  serviceId?: string;
+                  parameterId?: string;
+                  parameterLabel?: string;
+                  tableLabel?: string | null;
+                  unit?: string | null;
+                  method?: string | null;
+                  rangeMin?: string;
+                  rangeMax?: string;
+                  quantity?: number;
+                  unitPrice?: number | null;
+                  discountAmount?: number | null;
+                };
+                return {
+                  serviceId: String(
+                    rowItem.serviceId ?? rowItem.parameterId ?? `service-${index}`
+                  ),
+                  parameterId: String(
+                    rowItem.parameterId ?? rowItem.serviceId ?? `p-${index}`
+                  ),
+                  parameterLabel: String(
+                    rowItem.parameterLabel ?? rowItem.parameterId ?? 'Servicio'
+                  ),
+                  tableLabel:
+                    typeof rowItem.tableLabel === 'string'
+                      ? rowItem.tableLabel
+                      : null,
+                  unit: typeof rowItem.unit === 'string' ? rowItem.unit : null,
+                  method:
+                    typeof rowItem.method === 'string' ? rowItem.method : null,
+                  rangeMin: String(rowItem.rangeMin ?? ''),
+                  rangeMax: String(rowItem.rangeMax ?? ''),
+                  quantity: Math.max(1, Number(rowItem.quantity ?? 1)),
+                  unitPrice: Number(rowItem.unitPrice ?? 0),
+                  discountAmount: Math.max(
+                    0,
+                    Number(rowItem.discountAmount ?? 0)
+                  )
+                };
+              })
+            : [];
+
+          const sourceRequestId = String(value.sourceRequestId ?? '');
+          const fallbackServiceItems = sourceRequestId
+            ? sourceRequestServicesById[sourceRequestId] || []
+            : [];
+
+          const normalizedServiceItems =
+            directServiceItems.length > 0
+              ? directServiceItems
+              : fallbackServiceItems.length > 0
+                ? fallbackServiceItems
+                : analysisItems.map((analysis, index) => ({
+                    serviceId: `legacy-${index}`,
+                    parameterId: `legacy-${index}`,
+                    parameterLabel: analysis.parameterLabelEs,
+                    tableLabel: null,
+                    unit: null,
+                    method: null,
+                    rangeMin: '',
+                    rangeMax: '',
+                    quantity: agreedCount > 0 ? agreedCount : 1,
+                    unitPrice: Number(analysis.unitPrice ?? 0),
+                    discountAmount: 0
+                  }));
+
           return {
             id: docSnap.id,
             workOrderNumber: String(value.workOrderNumber ?? docSnap.id),
             sourceReference: String(value.sourceReference ?? '—'),
-            sourceRequestId: String(value.sourceRequestId ?? ''),
+            sourceRequestId,
             notes: String(value.notes ?? ''),
             matrix,
             status,
             client,
+            serviceItems: normalizedServiceItems,
             sampleItems,
             analysisItems,
             taxPercent: Number.isFinite(taxPercent) ? taxPercent : 15,
             clientBusinessName: clientBusinessName || '—',
             agreedCount,
-            analysesCount,
+            analysesCount: normalizedServiceItems.length || analysesCount,
             total: Number.isFinite(total) ? total : 0,
             subtotal: Number.isFinite(subtotal) ? subtotal : 0,
             updatedAtLabel: formatTimestamp(value.updatedAt),
@@ -395,7 +552,7 @@ export default function WorkOrdersListing() {
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [sourceRequestServicesById]);
 
   const sortedRows = useMemo(() => {
     const collator = new Intl.Collator('es', {
@@ -429,7 +586,7 @@ export default function WorkOrdersListing() {
           );
           break;
         case 'samples':
-          compare = left.agreedCount - right.agreedCount;
+          compare = left.analysesCount - right.analysesCount;
           break;
         case 'analyses':
           compare = left.analysesCount - right.analysesCount;
@@ -613,16 +770,7 @@ export default function WorkOrdersListing() {
                     className='cursor-pointer select-none'
                     onClick={() => handleSort('samples')}
                   >
-                    Muestras{getSortIndicator('samples')}
-                  </button>
-                </th>
-                <th className='px-4 py-3 text-right'>
-                  <button
-                    type='button'
-                    className='cursor-pointer select-none'
-                    onClick={() => handleSort('analyses')}
-                  >
-                    Análisis{getSortIndicator('analyses')}
+                    Servicios{getSortIndicator('samples')}
                   </button>
                 </th>
                 <th className='px-4 py-3 text-right'>
@@ -696,10 +844,7 @@ export default function WorkOrdersListing() {
                     </td>
                     <td className='px-4 py-3'>{row.clientBusinessName}</td>
                     <td className='px-4 py-3'>{matrixLabelMap[row.matrix]}</td>
-                    <td className='px-4 py-3 text-right'>{row.agreedCount}</td>
-                    <td className='px-4 py-3 text-right'>
-                      {row.analysesCount}
-                    </td>
+                    <td className='px-4 py-3 text-right'>{row.analysesCount}</td>
                     <td className='px-4 py-3 text-right'>
                       ${row.total.toFixed(2).replace('.', ',')}
                     </td>
@@ -750,6 +895,19 @@ export default function WorkOrdersListing() {
                             >
                               Ver orden de trabajo
                             </DropdownMenuItem>
+                            {isWorkOrderCancelled ? null : (
+                              <DropdownMenuItem
+                                className='cursor-pointer transition-colors duration-150'
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  router.push(
+                                    `/dashboard/lab-analysis?workOrderId=${encodeURIComponent(row.id)}`
+                                  );
+                                }}
+                              >
+                                Registro de análisis de laboratorio
+                              </DropdownMenuItem>
+                            )}
                             {isWorkOrderCompleted ||
                             isWorkOrderCancelled ? null : (
                               <DropdownMenuItem
@@ -792,7 +950,7 @@ export default function WorkOrdersListing() {
               <div>
                 <DialogTitle>Resumen de orden de trabajo</DialogTitle>
                 <DialogDescription>
-                  Vista consolidada de cliente, muestras, análisis y costos.
+                  Vista consolidada de cliente, servicios y costos.
                 </DialogDescription>
               </div>
               <div className='flex items-center gap-1'>
@@ -890,61 +1048,45 @@ export default function WorkOrdersListing() {
 
                 <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
                   <h4 className='text-muted-foreground font-semibold'>
-                    Muestras ({selectedRow.agreedCount})
+                    Servicios ({selectedRow.serviceItems.length})
                   </h4>
-                  <div className='flex flex-wrap gap-2'>
-                    {selectedRow.sampleItems.map((sample, index) => (
-                      <span
-                        key={`${sample.sampleCode}-${index}`}
-                        className='bg-muted rounded border px-2 py-1 text-sm'
-                      >
-                        {sample.sampleCode} ({sample.sampleType || 'Sin tipo'})
-                      </span>
-                    ))}
+                  <div className='space-y-1'>
+                    {selectedRow.serviceItems.length > 0 ? (
+                      selectedRow.serviceItems.map((service, index) => (
+                        <p
+                          key={`${service.serviceId}-${index}`}
+                          className='text-sm'
+                        >
+                          {service.parameterLabel}
+                        </p>
+                      ))
+                    ) : (
+                      <p className='text-sm'>No hay servicios seleccionados.</p>
+                    )}
                   </div>
                 </div>
 
-                <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
-                  <h4 className='text-muted-foreground font-semibold'>
-                    Análisis ({selectedRow.analysisItems.length})
-                  </h4>
-                  <div className='flex flex-wrap gap-2'>
-                    {selectedRow.analysisItems.map((analysis, index) => (
-                      <span
-                        key={`${analysis.parameterLabelEs}-${index}`}
-                        className='bg-muted rounded border px-2 py-1 text-sm'
-                      >
-                        {analysis.parameterLabelEs}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {selectedRow.analysisItems.length > 0 ? (
+                {selectedRow.serviceItems.length > 0 ? (
                   <div className='space-y-2 rounded-md border p-4'>
                     <h4 className='text-muted-foreground font-semibold'>
-                      Detalle de análisis
+                      Detalle de servicios
                     </h4>
                     <div className='overflow-x-auto rounded-md border'>
                       <table className='w-full text-left text-sm'>
                         <thead className='bg-muted text-muted-foreground'>
                           <tr>
                             <th className='p-2'>Parámetro</th>
-                            <th className='p-2 text-right'>Muestras</th>
+                            <th className='p-2 text-right'>Cantidad</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {selectedRow.analysisItems.map((analysis, index) => (
+                          {selectedRow.serviceItems.map((service, index) => (
                             <tr
-                              key={`${analysis.parameterLabelEs}-${index}`}
+                              key={`${service.serviceId}-${index}`}
                               className='border-t'
                             >
-                              <td className='p-2'>
-                                {analysis.parameterLabelEs}
-                              </td>
-                              <td className='p-2 text-right'>
-                                {selectedRow.agreedCount}
-                              </td>
+                              <td className='p-2'>{service.parameterLabel}</td>
+                              <td className='p-2 text-right'>{service.quantity}</td>
                             </tr>
                           ))}
                         </tbody>
