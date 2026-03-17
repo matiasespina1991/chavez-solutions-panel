@@ -1107,12 +1107,12 @@ export default function ServiceRequestsListing() {
         <IconSearch className='text-muted-foreground pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2' />
       </div>
 
-      <div className='rounded-md border'>
-        <div className='max-h-[calc(100vh-240px)] overflow-auto'>
-          <table className='w-full min-w-[980px] table-fixed text-left text-sm md:min-w-[1160px]'>
+      <div className='max-w-full overflow-x-hidden rounded-md border'>
+        <div className='max-h-[calc(100vh-240px)] overflow-y-auto overflow-x-hidden'>
+          <table className='w-full table-fixed text-left text-sm'>
             <thead className='bg-muted text-muted-foreground sticky top-0 z-10'>
               <tr>
-                <th className='w-[190px] px-4 py-3'>
+                <th className='w-[8rem] px-3 py-3 md:w-[11rem] md:px-4'>
                   <button
                     type='button'
                     className='cursor-pointer select-none'
@@ -1121,7 +1121,7 @@ export default function ServiceRequestsListing() {
                     Referencia{getSortIndicator('reference')}
                   </button>
                 </th>
-                <th className='w-[190px] px-4 py-3'>
+                <th className='w-[8rem] px-3 py-3 md:w-[11rem] md:px-4'>
                   <button
                     type='button'
                     className='cursor-pointer select-none'
@@ -1130,7 +1130,7 @@ export default function ServiceRequestsListing() {
                     Estado{getSortIndicator('status')}
                   </button>
                 </th>
-                <th className='w-[160px] px-4 py-3'>
+                <th className='w-[8rem] px-3 py-3 md:w-[10rem] md:px-4'>
                   <button
                     type='button'
                     className='cursor-pointer select-none'
@@ -1139,7 +1139,7 @@ export default function ServiceRequestsListing() {
                     Cliente{getSortIndicator('client')}
                   </button>
                 </th>
-                <th className='w-[80px] px-4 py-3'>
+                <th className='w-[4.5rem] px-3 py-3 md:w-[5rem] md:px-4'>
                   <button
                     type='button'
                     className='cursor-pointer select-none'
@@ -1148,7 +1148,7 @@ export default function ServiceRequestsListing() {
                     Matriz{getSortIndicator('matrix')}
                   </button>
                 </th>
-                <th className='w-[72px] px-4 py-3 text-right'>
+                <th className='w-[4.5rem] px-3 py-3 text-right md:px-4'>
                   <button
                     type='button'
                     className='cursor-pointer select-none'
@@ -1157,7 +1157,7 @@ export default function ServiceRequestsListing() {
                     Servicios{getSortIndicator('samples')}
                   </button>
                 </th>
-                <th className='w-[96px] px-4 py-3 text-right'>
+                <th className='w-[5.5rem] px-3 py-3 text-right md:w-[6rem] md:px-4'>
                   <button
                     type='button'
                     className='cursor-pointer select-none'
@@ -1166,7 +1166,7 @@ export default function ServiceRequestsListing() {
                     Total{getSortIndicator('total')}
                   </button>
                 </th>
-                <th className='w-[12rem] px-4 py-3 md:w-[19rem]'>
+                <th className='w-[10rem] px-3 py-3 md:w-[19rem] md:px-4'>
                   <button
                     type='button'
                     className='cursor-pointer select-none'
@@ -1175,7 +1175,7 @@ export default function ServiceRequestsListing() {
                     Última Actualización{getSortIndicator('updatedAt')}
                   </button>
                 </th>
-                <th className='w-[10rem] px-4 py-3 md:w-[14rem] lg:w-[20rem]'>
+                <th className='min-w-0 px-3 py-3 md:px-4'>
                   <button
                     type='button'
                     className='cursor-pointer select-none'
@@ -1184,7 +1184,7 @@ export default function ServiceRequestsListing() {
                     Notas{getSortIndicator('notes')}
                   </button>
                 </th>
-                <th className='w-12 px-2 py-3 text-right'></th>
+                <th className='w-10 px-1 py-3 text-right md:w-12 md:px-2'></th>
               </tr>
             </thead>
             <tbody>
@@ -1219,7 +1219,7 @@ export default function ServiceRequestsListing() {
                       setIsViewDialogOpen(true);
                     }}
                   >
-                    <td className='w-[155px] px-4 py-3'>
+                    <td className='w-[8rem] px-3 py-3 md:w-[11rem] md:px-4'>
                       <span className={isDraft ? 'text-destructive' : ''}>
                         {row.reference}
                       </span>
@@ -1238,7 +1238,7 @@ export default function ServiceRequestsListing() {
                       )}
                     </td>
                     <td
-                      className={`px-4 py-3 ${
+                      className={`w-[8rem] px-3 py-3 md:w-[11rem] md:px-4 ${
                         isProformaExpired || isWorkOrderPaused
                           ? 'text-destructive'
                           : ''
@@ -1246,22 +1246,30 @@ export default function ServiceRequestsListing() {
                     >
                       {getStatusDisplayLabel(row)}
                     </td>
-                    <td className='px-4 py-3'>{row.clientBusinessName}</td>
-                    <td className='px-4 py-3'>{matrixLabelMap[row.matrix]}</td>
-                    <td className='w-[72px] px-4 py-3 text-right'>
+                    <td className='w-[8rem] px-3 py-3 md:w-[10rem] md:px-4'>
+                      <span className='block w-full max-w-full truncate'>
+                        {row.clientBusinessName}
+                      </span>
+                    </td>
+                    <td className='w-[4.5rem] px-3 py-3 md:w-[5rem] md:px-4'>
+                      {matrixLabelMap[row.matrix]}
+                    </td>
+                    <td className='w-[4.5rem] px-3 py-3 text-right md:px-4'>
                       {row.analysesCount}
                     </td>
-                    <td className='w-[96px] px-4 py-3 text-right'>
+                    <td className='w-[5.5rem] px-3 py-3 text-right md:w-[6rem] md:px-4'>
                       ${row.total.toFixed(2).replace('.', ',')}
                     </td>
-                    <td className='w-[12rem] px-4 py-3 md:w-[19rem]'>
-                      {row.updatedAtLabel}
+                    <td className='w-[10rem] px-3 py-3 md:w-[19rem] md:px-4'>
+                      <span className='block w-full max-w-full truncate'>
+                        {row.updatedAtLabel}
+                      </span>
                     </td>
-                    <td className='w-[10rem] px-4 py-3 md:w-[14rem] lg:w-[20rem]'>
+                    <td className='min-w-0 px-3 py-3 md:px-4'>
                       {row.notes?.trim() ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className='inline-block max-w-[9rem] truncate align-bottom md:max-w-[13rem] lg:max-w-[19rem]'>
+                            <span className='block w-full max-w-full truncate align-bottom'>
                               {row.notes}
                             </span>
                           </TooltipTrigger>
@@ -1276,7 +1284,7 @@ export default function ServiceRequestsListing() {
                         '—'
                       )}
                     </td>
-                    <td className='w-12 px-2 py-3 text-right'>
+                    <td className='w-10 px-1 py-3 text-right md:w-12 md:px-2'>
                       <div
                         className='flex justify-end'
                         onClick={(event) => event.stopPropagation()}
