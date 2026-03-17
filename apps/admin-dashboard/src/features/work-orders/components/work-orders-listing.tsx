@@ -137,9 +137,8 @@ const formatTimestamp = (value: unknown) => {
   });
 
   const formatDate = (date: Date) => {
-    const datePart = dateFormatter.format(date).replace(/ de /g, ', ');
-    const normalized =
-      datePart.charAt(0).toUpperCase() + datePart.slice(1).toLowerCase();
+    const datePart = dateFormatter.format(date).replace(',', '');
+    const normalized = datePart.charAt(0).toUpperCase() + datePart.slice(1);
     const timePart = timeFormatter.format(date);
     return `${normalized}, ${timePart} hs`;
   };
@@ -725,7 +724,7 @@ export default function WorkOrdersListing() {
 
       <div className='rounded-md border'>
         <div className='max-h-[calc(100vh-240px)] overflow-auto'>
-          <table className='w-full min-w-[1080px] text-left text-sm'>
+          <table className='w-full min-w-[940px] table-fixed text-left text-sm md:min-w-[1080px]'>
             <thead className='bg-muted text-muted-foreground sticky top-0 z-10'>
               <tr>
                 <th className='w-[190px] px-4 py-3'>
@@ -773,7 +772,7 @@ export default function WorkOrdersListing() {
                     Servicios{getSortIndicator('samples')}
                   </button>
                 </th>
-                <th className='px-4 py-3 text-right'>
+                <th className='w-[96px] px-4 py-3 text-right'>
                   <button
                     type='button'
                     className='cursor-pointer select-none'
@@ -782,7 +781,7 @@ export default function WorkOrdersListing() {
                     Total{getSortIndicator('total')}
                   </button>
                 </th>
-                <th className='w-[200px] px-4 py-3'>
+                <th className='w-[12rem] px-4 py-3 md:w-[19rem]'>
                   <button
                     type='button'
                     className='cursor-pointer select-none'
@@ -791,7 +790,7 @@ export default function WorkOrdersListing() {
                     Última Actualización{getSortIndicator('updatedAt')}
                   </button>
                 </th>
-                <th className='px-4 py-3'>
+                <th className='w-[10rem] px-4 py-3 md:w-[14rem] lg:w-[20rem]'>
                   <button
                     type='button'
                     className='cursor-pointer select-none'
@@ -845,15 +844,17 @@ export default function WorkOrdersListing() {
                     <td className='px-4 py-3'>{row.clientBusinessName}</td>
                     <td className='px-4 py-3'>{matrixLabelMap[row.matrix]}</td>
                     <td className='px-4 py-3 text-right'>{row.analysesCount}</td>
-                    <td className='px-4 py-3 text-right'>
+                    <td className='w-[96px] px-4 py-3 text-right'>
                       ${row.total.toFixed(2).replace('.', ',')}
                     </td>
-                    <td className='px-4 py-3'>{row.updatedAtLabel}</td>
-                    <td className='px-4 py-3'>
+                    <td className='w-[12rem] px-4 py-3 md:w-[19rem]'>
+                      {row.updatedAtLabel}
+                    </td>
+                    <td className='w-[10rem] px-4 py-3 md:w-[14rem] lg:w-[20rem]'>
                       {row.notes?.trim() ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className='inline-block max-w-[14rem] truncate align-bottom'>
+                            <span className='inline-block max-w-[9rem] truncate align-bottom md:max-w-[13rem] lg:max-w-[19rem]'>
                               {row.notes}
                             </span>
                           </TooltipTrigger>
