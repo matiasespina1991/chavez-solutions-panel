@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Check, Plus, Trash2 } from 'lucide-react';
+import { Check, CircleArrowDown, Mail, Plus, Send, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -42,7 +42,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import {
   createConfiguration,
+  generateProformaPreviewPdf,
   getConfigurationById,
+  sendProformaPreviewEmail,
   updateConfiguration,
   ConfigurationDocument,
   ConfigurationServiceItem,
@@ -193,6 +195,10 @@ export default function ConfiguratorForm() {
   const cacheKey = `configurator:cache:${editRequestId ?? 'new'}`;
   const [activeTab, setActiveTab] = useState('client');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGeneratingPreviewPdf, setIsGeneratingPreviewPdf] = useState(false);
+  const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = useState(false);
+  const [recipientEmail, setRecipientEmail] = useState('');
+  const [isSendingPreviewEmail, setIsSendingPreviewEmail] = useState(false);
   const [isLoadingRequest, setIsLoadingRequest] = useState(false);
   const [loadedRequestStatus, setLoadedRequestStatus] = useState<
     'draft' | 'final' | 'paused' | null
@@ -1103,12 +1109,133 @@ export default function ConfiguratorForm() {
       year: 'numeric'
     });
   })();
+  const issuedAtLabel = (() => {
+    const baseDate = toDateOrNull(createdAtValue) || new Date();
+    return baseDate.toLocaleDateString('es-EC', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  })();
 
   const summarySubtotal = form.watch('pricing.subtotal') ?? 0;
   const summaryTaxPercent = form.watch('pricing.taxPercent') ?? 15;
   const summaryTaxAmount = (summarySubtotal * summaryTaxPercent) / 100;
   const summaryTotal =
     form.watch('pricing.total') ?? summarySubtotal + summaryTaxAmount;
+
+  const buildProformaPreviewPayload = () => {
+    return {
+      reference: referenceLabel,
+      matrixLabels:
+        Array.isArray(matrix) && matrix.length
+          ? matrix.map((entry) => MATRIX_LABEL_MAP[entry] ?? entry)
+          : [],
+      validDays:
+        typeof validDaysValue === 'number' && Number.isFinite(validDaysValue)
+          ? validDaysValue
+          : null,
+      issuedAtLabel,
+      validUntilLabel,
+      client: {
+        businessName: form.getValues('client.businessName') || '',
+        taxId: form.getValues('client.taxId') || '',
+        contactName: form.getValues('client.contactName') || '',
+        address: form.getValues('client.address') || '',
+        city: form.getValues('client.city') || '',
+        email: form.getValues('client.email') || '',
+        phone: form.getValues('client.phone') || '',
+        mobile: ''
+      },
+      services: selectedServices.map((service) => {
+        const quantity = service.quantity ?? 0;
+        const unitPrice = service.unitPrice ?? null;
+        const discountAmount = service.discountAmount ?? null;
+        const lineSubtotal =
+          typeof unitPrice === 'number'
+            ? Math.max(0, quantity * unitPrice - (discountAmount ?? 0))
+            : null;
+        return {
+          label:
+            service.ID_PARAMETRO ||
+            service.ID_CONFIG_PARAMETRO ||
+            service.id ||
+            'Servicio',
+          unit:
+            service.UNIDAD_NORMA || service.UNIDAD_INTERNO || 'Sin unidad',
+          method:
+            service.ID_TECNICA ||
+            service.ID_MET_REFERENCIA ||
+            service.ID_MET_INTERNO ||
+            'Sin método',
+          rangeOffered:
+            `${service.LIM_INF_NORMA || service.LIM_INF_INTERNO || '—'} a ${
+              service.LIM_SUP_NORMA || service.LIM_SUP_INTERNO || '—'
+            }`,
+          quantity,
+          unitPrice,
+          discountAmount,
+          subtotal: lineSubtotal
+        };
+      }),
+      pricing: {
+        subtotal: summarySubtotal,
+        taxPercent: summaryTaxPercent,
+        total: summaryTotal
+      }
+    };
+  };
+
+  const handleDownloadPreviewPdf = async () => {
+    try {
+      setIsGeneratingPreviewPdf(true);
+      const result = await generateProformaPreviewPdf(
+        buildProformaPreviewPayload()
+      );
+      const link = document.createElement('a');
+      link.href = result.downloadURL;
+      link.download = result.fileName;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.click();
+      toast.success('PDF de vista previa generado.');
+    } catch (error) {
+      console.error('Error generating preview PDF:', error);
+      toast.error('No se pudo generar la vista previa en PDF.');
+    } finally {
+      setIsGeneratingPreviewPdf(false);
+    }
+  };
+
+  const handleOpenSendEmailDialog = () => {
+    setRecipientEmail((form.getValues('client.email') || '').trim());
+    setIsSendEmailDialogOpen(true);
+  };
+
+  const handleSendPreviewEmail = async () => {
+    const email = recipientEmail.trim();
+    const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    if (!isValidEmail) {
+      toast.error('Ingresá un email válido.');
+      return;
+    }
+
+    try {
+      setIsSendingPreviewEmail(true);
+      await sendProformaPreviewEmail({
+        to: email,
+        subject: `Proforma ${referenceLabel}`,
+        payload: buildProformaPreviewPayload()
+      });
+      toast.success(`Proforma enviada a ${email}.`);
+      setIsSendEmailDialogOpen(false);
+    } catch (error) {
+      console.error('Error sending preview email:', error);
+      toast.error('No se pudo enviar la proforma por email.');
+    } finally {
+      setIsSendingPreviewEmail(false);
+    }
+  };
 
   return (
     <Form form={form} onSubmit={(e) => e.preventDefault()}>
@@ -1882,6 +2009,28 @@ export default function ConfiguratorForm() {
                         ) : null}
                         <Button
                           type='button'
+                          variant='outline'
+                          size='icon'
+                          disabled={isGeneratingPreviewPdf || isLoadingRequest}
+                          onClick={handleDownloadPreviewPdf}
+                          aria-label='Descargar PDF'
+                          title='Descargar PDF'
+                        >
+                          <CircleArrowDown className='h-4 w-5' />
+                        </Button>
+                        <Button
+                          type='button'
+                          variant='outline'
+                          size='icon'
+                          disabled={isSendingPreviewEmail || isLoadingRequest}
+                          onClick={handleOpenSendEmailDialog}
+                          aria-label='Enviar proforma por email'
+                          title='Enviar proforma por email'
+                        >
+                          <Mail className='h-4 w-5' />
+                        </Button>
+                        <Button
+                          type='button'
                           className='bg-black text-white hover:bg-black/90 disabled:bg-black disabled:text-white'
                           disabled={
                             isSubmitting || isLoadingRequest || !canSubmitFinal
@@ -2019,6 +2168,71 @@ export default function ConfiguratorForm() {
               }
             >
               Agregar seleccionados
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={isSendEmailDialogOpen}
+        onOpenChange={setIsSendEmailDialogOpen}
+      >
+        <AlertDialogContent className='max-w-[34rem]'>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Enviar proforma por email</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se enviará la proforma en PDF con el resumen actual.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className='space-y-3'>
+            <div className='space-y-1 rounded-md border p-3 text-sm'>
+              <p>
+                <span className='font-medium'>Referencia:</span> {referenceLabel}
+              </p>
+              <p>
+                <span className='font-medium'>Cliente:</span>{' '}
+                {form.getValues('client.businessName') || '—'}
+              </p>
+              <p>
+                <span className='font-medium'>Total estimado:</span> $
+                {summaryTotal.toFixed(2)}
+              </p>
+            </div>
+
+            <div className='space-y-1'>
+              <label
+                htmlFor='send-proforma-email'
+                className='text-sm font-medium'
+              >
+                Email de destino
+              </label>
+              <Input
+                id='send-proforma-email'
+                type='email'
+                value={recipientEmail}
+                onChange={(event) => setRecipientEmail(event.target.value)}
+                placeholder='cliente@empresa.com'
+              />
+            </div>
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              className='cursor-pointer'
+              disabled={isSendingPreviewEmail}
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className='cursor-pointer bg-black text-white hover:bg-black/90'
+              onClick={handleSendPreviewEmail}
+              disabled={isSendingPreviewEmail}
+            >
+              <span className='inline-flex items-center gap-2'>
+                <Send className='h-4 w-4' />
+                {isSendingPreviewEmail ? 'Enviando...' : 'Enviar'}
+              </span>
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

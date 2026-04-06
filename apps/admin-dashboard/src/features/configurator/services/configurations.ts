@@ -527,3 +527,82 @@ export const deleteServiceRequest = async (
   const result = await callable({ sourceRequestId });
   return result.data;
 };
+
+export interface ProformaPreviewPdfPayload {
+  reference: string;
+  matrixLabels: string[];
+  validDays: number | null;
+  issuedAtLabel: string;
+  validUntilLabel: string;
+  client: {
+    businessName: string;
+    taxId: string;
+    contactName: string;
+    address: string;
+    city: string;
+    email: string;
+    phone: string;
+    mobile?: string;
+  };
+  services: Array<{
+    label: string;
+    unit: string;
+    method: string;
+    rangeOffered: string;
+    quantity: number;
+    unitPrice: number | null;
+    discountAmount: number | null;
+    subtotal: number | null;
+  }>;
+  pricing: {
+    subtotal: number;
+    taxPercent: number;
+    total: number;
+  };
+}
+
+interface GenerateProformaPreviewPdfResponse {
+  storagePath: string;
+  downloadURL: string;
+  fileName: string;
+}
+
+export const generateProformaPreviewPdf = async (
+  payload: ProformaPreviewPdfPayload
+): Promise<GenerateProformaPreviewPdfResponse> => {
+  const functions = getFunctions();
+  const callable = httpsCallable<
+    { payload: ProformaPreviewPdfPayload },
+    GenerateProformaPreviewPdfResponse
+  >(functions, 'generateProformaPreviewPdf');
+  const result = await callable({ payload });
+  return result.data;
+};
+
+interface SendProformaPreviewEmailResponse {
+  sent: boolean;
+  to: string;
+  storagePath: string;
+  downloadURL: string;
+  fileName: string;
+}
+
+export const sendProformaPreviewEmail = async (params: {
+  to: string;
+  payload: ProformaPreviewPdfPayload;
+  subject?: string;
+  text?: string;
+}): Promise<SendProformaPreviewEmailResponse> => {
+  const functions = getFunctions();
+  const callable = httpsCallable<
+    {
+      to: string;
+      payload: ProformaPreviewPdfPayload;
+      subject?: string;
+      text?: string;
+    },
+    SendProformaPreviewEmailResponse
+  >(functions, 'sendProformaPreviewEmail');
+  const result = await callable(params);
+  return result.data;
+};
