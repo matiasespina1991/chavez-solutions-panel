@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -191,7 +191,7 @@ export default function ConfiguratorForm() {
   const editRequestId = searchParams.get('requestId');
   const isEditMode = Boolean(editRequestId);
   const cacheKey = `configurator:cache:${editRequestId ?? 'new'}`;
-  const [activeTab, setActiveTab] = useState('type');
+  const [activeTab, setActiveTab] = useState('client');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingRequest, setIsLoadingRequest] = useState(false);
   const [loadedRequestStatus, setLoadedRequestStatus] = useState<
@@ -204,6 +204,8 @@ export default function ConfiguratorForm() {
   >([]);
   const [isLoadingAvailableServices, setIsLoadingAvailableServices] =
     useState(false);
+  const [dialogMatEnsayoFilter, setDialogMatEnsayoFilter] =
+    useState<string>('all');
   const [dialogSelectedServiceIds, setDialogSelectedServiceIds] = useState<
     string[]
   >([]);
@@ -237,10 +239,9 @@ export default function ConfiguratorForm() {
 
   const tabStatus: Record<'type' | 'client' | 'samples', 'ok' | 'error'> = {
     type: (() => {
-      const matrixValue = Array.isArray(matrix) ? matrix : [];
       const validDays = form.watch('validDays');
 
-      if (!reference || !matrixValue.length) return 'error';
+      if (!reference) return 'error';
       if (!validDays) return 'error';
       return 'ok';
     })(),
@@ -263,6 +264,8 @@ export default function ConfiguratorForm() {
     samples: (() => {
       const samples = samplesWatch;
       if (!samples) return 'error';
+      const matrixValue = Array.isArray(matrix) ? matrix : [];
+      if (!matrixValue.length) return 'error';
       if (!samples.agreedCount || samples.agreedCount < 1) return 'error';
       if (!selectedServices.length) return 'error';
       const hasInvalidServiceInput = selectedServices.some((service) => {
@@ -299,6 +302,11 @@ export default function ConfiguratorForm() {
 
   const getServiceId = (service: ImportedServiceDocument) =>
     service.ID_CONFIG_PARAMETRO || service.id;
+
+  const getMatEnsayoLabel = (service: ImportedServiceDocument) => {
+    const value = service.ID_MAT_ENSAYO?.trim();
+    return value && value.length > 0 ? value : 'Sin material de ensayo';
+  };
 
   const normalizeRangeValue = (raw: string) => {
     const value = raw.trim();
@@ -394,6 +402,21 @@ export default function ConfiguratorForm() {
       discountAmount: service.discountAmount,
       appliesToSampleCodes: null
     }));
+
+  const matEnsayoChips = useMemo(() => {
+    const unique = new Set<string>();
+    availableServices.forEach((service) => {
+      unique.add(getMatEnsayoLabel(service));
+    });
+    return Array.from(unique).sort((a, b) => a.localeCompare(b, 'es'));
+  }, [availableServices]);
+
+  const filteredAvailableServices = useMemo(() => {
+    if (dialogMatEnsayoFilter === 'all') return availableServices;
+    return availableServices.filter(
+      (service) => getMatEnsayoLabel(service) === dialogMatEnsayoFilter
+    );
+  }, [availableServices, dialogMatEnsayoFilter]);
 
   const mapSelectedServicesToDocument = (
     services: SelectedService[]
@@ -714,7 +737,9 @@ export default function ConfiguratorForm() {
                   ? mapStoredServicesToSelected(merged.services)
                   : merged.analyses.items.map((item, index) =>
                       (() => {
-                        const parsedRange = parseRangeOffered(item.rangeOffered);
+                        const parsedRange = parseRangeOffered(
+                          item.rangeOffered
+                        );
                         return toSelectedService(
                           {
                             id: `${item.parameterId}-${index}`,
@@ -976,6 +1001,7 @@ export default function ConfiguratorForm() {
     setDialogSelectedServiceIds(
       selectedServices.map((service) => getServiceId(service))
     );
+    setDialogMatEnsayoFilter('all');
     setIsServicesDialogOpen(true);
   };
 
@@ -1006,9 +1032,7 @@ export default function ConfiguratorForm() {
 
   const handleRemoveService = (serviceId: string) => {
     setSelectedServices((prev) =>
-      prev.filter(
-        (service) => getServiceId(service) !== serviceId
-      )
+      prev.filter((service) => getServiceId(service) !== serviceId)
     );
   };
 
@@ -1073,49 +1097,39 @@ export default function ConfiguratorForm() {
     const baseDate = toDateOrNull(createdAtValue) || new Date();
     const validUntil = new Date(baseDate);
     validUntil.setDate(validUntil.getDate() + validDaysValue);
-    return validUntil.toLocaleDateString('es-EC');
+    return validUntil.toLocaleDateString('es-EC', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
   })();
 
   const summarySubtotal = form.watch('pricing.subtotal') ?? 0;
   const summaryTaxPercent = form.watch('pricing.taxPercent') ?? 15;
   const summaryTaxAmount = (summarySubtotal * summaryTaxPercent) / 100;
-  const summaryTotal = form.watch('pricing.total') ?? summarySubtotal + summaryTaxAmount;
+  const summaryTotal =
+    form.watch('pricing.total') ?? summarySubtotal + summaryTaxAmount;
 
   return (
     <Form form={form} onSubmit={(e) => e.preventDefault()}>
       <div className='space-y-2'>
-        {isEditMode ? (
-          <p className='text-base text-black'>
-            <span className='font-medium'>
-              Referencia de la solicitud actual:
-            </span>{' '}
-            {referenceLabel}
-            {loadedRequestStatus === 'draft' ? (
-              <span className='text-muted-foreground'> (borrador)</span>
-            ) : loadedRequestStatus === 'paused' ? (
-              <span className='text-muted-foreground'> (pausada)</span>
-            ) : null}
-          </p>
-        ) : null}
+        <p className='text-base text-black'>
+          <span className='font-medium'>Referencia de la solicitud:</span>{' '}
+          {referenceLabel}
+          {isEditMode && loadedRequestStatus === 'draft' ? (
+            <span className='text-muted-foreground'> (borrador)</span>
+          ) : isEditMode && loadedRequestStatus === 'paused' ? (
+            <span className='text-muted-foreground'> (pausada)</span>
+          ) : null}
+        </p>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className='w-full'>
           <TabsList className='grid w-full grid-cols-4'>
             <TabsTrigger
-              value='type'
-              className='flex cursor-pointer items-center justify-center gap-2'
-            >
-              <span>1. Datos</span>
-              <span
-                className={`h-1.5 w-1.5 rounded-full ${
-                  tabStatus.type === 'ok' ? 'bg-emerald-500' : 'bg-red-500'
-                }`}
-              />
-            </TabsTrigger>
-            <TabsTrigger
               value='client'
               className='flex cursor-pointer items-center justify-center gap-2'
             >
-              <span>2. Cliente</span>
+              <span>1. Cliente</span>
               <span
                 className={`h-1.5 w-1.5 rounded-full ${
                   tabStatus.client === 'ok' ? 'bg-emerald-500' : 'bg-red-500'
@@ -1126,10 +1140,21 @@ export default function ConfiguratorForm() {
               value='samples'
               className='flex cursor-pointer items-center justify-center gap-2'
             >
-              <span>3. Servicios</span>
+              <span>2. Servicios</span>
               <span
                 className={`h-1.5 w-1.5 rounded-full ${
                   tabStatus.samples === 'ok' ? 'bg-emerald-500' : 'bg-red-500'
+                }`}
+              />
+            </TabsTrigger>
+            <TabsTrigger
+              value='type'
+              className='flex cursor-pointer items-center justify-center gap-2'
+            >
+              <span>3. Datos</span>
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  tabStatus.type === 'ok' ? 'bg-emerald-500' : 'bg-red-500'
                 }`}
               />
             </TabsTrigger>
@@ -1145,49 +1170,6 @@ export default function ConfiguratorForm() {
                 <CardTitle>Datos de la proforma</CardTitle>
               </CardHeader>
               <CardContent className='space-y-4'>
-                <FormField
-                  control={form.control as any}
-                  name='matrix'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Matrices</FormLabel>
-                      <FormControl>
-                        <div className='grid grid-cols-2 gap-3'>
-                          {MATRIX_OPTIONS.map((option) => {
-                            const current = Array.isArray(field.value)
-                              ? field.value
-                              : [];
-                            const checked = current.includes(option.value);
-                            return (
-                              <label
-                                key={option.value}
-                                className='flex cursor-pointer items-center gap-2 rounded-md border p-2 text-sm'
-                              >
-                                <Checkbox
-                                  checked={checked}
-                                  onCheckedChange={(nextChecked) => {
-                                    const next = nextChecked
-                                      ? Array.from(
-                                          new Set([...current, option.value])
-                                        )
-                                      : current.filter(
-                                          (entry) => entry !== option.value
-                                        );
-                                    field.onChange(next);
-                                    form.setValue('samples.items', []);
-                                  }}
-                                />
-                                <span>{option.label}</span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
                 <div className='grid grid-cols-2 gap-4'>
                   <FormField
                     control={form.control as any}
@@ -1210,9 +1192,7 @@ export default function ConfiguratorForm() {
                       <FormItem>
                         <FormLabel>Validez de oferta (días)</FormLabel>
                         <Select
-                          onValueChange={(val) =>
-                            field.onChange(parseInt(val))
-                          }
+                          onValueChange={(val) => field.onChange(parseInt(val))}
                           defaultValue={field.value?.toString()}
                         >
                           <FormControl>
@@ -1247,6 +1227,13 @@ export default function ConfiguratorForm() {
                 />
 
                 <div className='flex justify-end gap-2'>
+                  <Button
+                    type='button'
+                    variant='outline'
+                    onClick={() => setActiveTab('samples')}
+                  >
+                    Anterior
+                  </Button>
                   {showDraftActions ? clearCurrentDataButton : null}
                   {showDraftActions ? (
                     <Button
@@ -1258,7 +1245,7 @@ export default function ConfiguratorForm() {
                       Guardar como Borrador
                     </Button>
                   ) : null}
-                  <Button type='button' onClick={() => setActiveTab('client')}>
+                  <Button type='button' onClick={() => setActiveTab('summary')}>
                     Siguiente
                   </Button>
                 </div>
@@ -1379,33 +1366,21 @@ export default function ConfiguratorForm() {
                     )}
                   />
                 </div>
-                <div className='flex justify-between'>
-                  <Button
-                    type='button'
-                    variant='outline'
-                    onClick={() => setActiveTab('type')}
-                  >
-                    Anterior
-                  </Button>
-                  <div className='flex items-center gap-2'>
-                    {showDraftActions ? clearCurrentDataButton : null}
-                    {showDraftActions ? (
-                      <Button
-                        type='button'
-                        variant='secondary'
-                        disabled={isDraftSaveDisabled}
-                        onClick={() => onSubmit(form.getValues(), 'draft')}
-                      >
-                        Guardar como Borrador
-                      </Button>
-                    ) : null}
+                <div className='flex items-center justify-end gap-2'>
+                  {showDraftActions ? clearCurrentDataButton : null}
+                  {showDraftActions ? (
                     <Button
                       type='button'
-                      onClick={() => setActiveTab('samples')}
+                      variant='secondary'
+                      disabled={isDraftSaveDisabled}
+                      onClick={() => onSubmit(form.getValues(), 'draft')}
                     >
-                      Siguiente
+                      Guardar como Borrador
                     </Button>
-                  </div>
+                  ) : null}
+                  <Button type='button' onClick={() => setActiveTab('samples')}>
+                    Siguiente
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -1418,6 +1393,49 @@ export default function ConfiguratorForm() {
                 <CardTitle>Servicios</CardTitle>
               </CardHeader>
               <CardContent className='space-y-4'>
+                <FormField
+                  control={form.control as any}
+                  name='matrix'
+                  render={({ field }) => (
+                    <FormItem className='space-y-2 rounded-md border p-4'>
+                      <FormLabel>Matrices</FormLabel>
+                      <FormControl>
+                        <div className='flex flex-wrap gap-2'>
+                          {MATRIX_OPTIONS.map((option) => {
+                            const current = Array.isArray(field.value)
+                              ? field.value
+                              : [];
+                            const checked = current.includes(option.value);
+                            return (
+                              <label
+                                key={option.value}
+                                className='flex w-full max-w-[8rem] cursor-pointer items-center gap-2 rounded-md border p-2 text-sm'
+                              >
+                                <Checkbox
+                                  checked={checked}
+                                  onCheckedChange={(nextChecked) => {
+                                    const next = nextChecked
+                                      ? Array.from(
+                                          new Set([...current, option.value])
+                                        )
+                                      : current.filter(
+                                          (entry) => entry !== option.value
+                                        );
+                                    field.onChange(next);
+                                    form.setValue('samples.items', []);
+                                  }}
+                                />
+                                <span>{option.label}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <div className='space-y-3 rounded-md border p-4'>
                   <div className='flex items-center justify-between gap-2'>
                     <div>
@@ -1456,9 +1474,13 @@ export default function ConfiguratorForm() {
                             className='bg-muted/20 rounded-md border p-3'
                           >
                             <div className='flex items-start justify-between gap-2'>
-                              <div className='space-y-3 flex-1'>
+                              <div className='flex-1 space-y-3'>
                                 <p className='text-sm font-medium'>
                                   {service.ID_PARAMETRO || serviceId}
+                                </p>
+                                <p className='text-muted-foreground text-xs'>
+                                  {service.ID_MAT_ENSAYO?.trim() ||
+                                    'Sin material de ensayo'}
                                 </p>
                                 <p className='text-muted-foreground text-xs'>
                                   {service.ID_TABLA_NORMA || 'Sin tabla'} •{' '}
@@ -1629,10 +1651,7 @@ export default function ConfiguratorForm() {
                         Guardar como Borrador
                       </Button>
                     ) : null}
-                    <Button
-                      type='button'
-                      onClick={() => setActiveTab('summary')}
-                    >
+                    <Button type='button' onClick={() => setActiveTab('type')}>
                       Siguiente
                     </Button>
                   </div>
@@ -1741,13 +1760,21 @@ export default function ConfiguratorForm() {
                               const discountAmount =
                                 service.discountAmount ?? null;
                               const lineBase =
-                                unitPrice !== null ? unitPrice * quantity : null;
+                                unitPrice !== null
+                                  ? unitPrice * quantity
+                                  : null;
                               const lineTotal =
                                 lineBase !== null
-                                  ? Math.max(0, lineBase - (discountAmount ?? 0))
+                                  ? Math.max(
+                                      0,
+                                      lineBase - (discountAmount ?? 0)
+                                    )
                                   : null;
                               return (
-                                <tr key={`summary-cost-${serviceId}`} className='border-t'>
+                                <tr
+                                  key={`summary-cost-${serviceId}`}
+                                  className='border-t'
+                                >
                                   <td className='p-2'>
                                     {service.ID_PARAMETRO || serviceId}
                                   </td>
@@ -1810,7 +1837,7 @@ export default function ConfiguratorForm() {
                   <Button
                     type='button'
                     variant='outline'
-                    onClick={() => setActiveTab('samples')}
+                    onClick={() => setActiveTab('type')}
                   >
                     Anterior
                   </Button>
@@ -1885,6 +1912,34 @@ export default function ConfiguratorForm() {
             </AlertDialogDescription>
           </AlertDialogHeader>
 
+          <div className='flex flex-wrap gap-2'>
+            <button
+              type='button'
+              className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                dialogMatEnsayoFilter === 'all'
+                  ? 'border-black bg-black text-white'
+                  : 'hover:bg-muted/60 border-border'
+              }`}
+              onClick={() => setDialogMatEnsayoFilter('all')}
+            >
+              Todos
+            </button>
+            {matEnsayoChips.map((chip) => (
+              <button
+                key={chip}
+                type='button'
+                className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                  dialogMatEnsayoFilter === chip
+                    ? 'border-black bg-black text-white'
+                    : 'hover:bg-muted/60 border-border'
+                }`}
+                onClick={() => setDialogMatEnsayoFilter(chip)}
+              >
+                {chip}
+              </button>
+            ))}
+          </div>
+
           <div className='max-h-[28rem] space-y-2 overflow-y-auto pr-1'>
             {isLoadingAvailableServices ? (
               <p className='text-muted-foreground text-sm'>
@@ -1894,8 +1949,12 @@ export default function ConfiguratorForm() {
               <p className='text-muted-foreground text-sm'>
                 No hay servicios disponibles. Importalos desde Administración.
               </p>
+            ) : filteredAvailableServices.length === 0 ? (
+              <p className='text-muted-foreground text-sm'>
+                No hay servicios para el material de ensayo seleccionado.
+              </p>
             ) : (
-              availableServices.map((service) => {
+              filteredAvailableServices.map((service) => {
                 const serviceId = service.ID_CONFIG_PARAMETRO || service.id;
                 const isSelected = dialogSelectedServiceIds.includes(serviceId);
                 return (
@@ -1915,10 +1974,17 @@ export default function ConfiguratorForm() {
                           {service.ID_PARAMETRO || serviceId}
                         </p>
                         <p className='text-muted-foreground text-xs'>
+                          {getMatEnsayoLabel(service)}
+                        </p>
+                        <p className='text-muted-foreground text-xs'>
                           {service.ID_TABLA_NORMA || 'Sin tabla'} •{' '}
                           {service.UNIDAD_NORMA ||
                             service.UNIDAD_INTERNO ||
                             'Sin unidad'}
+                        </p>
+                        <p className='text-muted-foreground text-xs'>
+                          Límite interno: {service.LIM_INF_INTERNO || '—'} a{' '}
+                          {service.LIM_SUP_INTERNO || '—'}
                         </p>
                         <p className='text-muted-foreground text-xs'>
                           {service.ID_TECNICA ||
