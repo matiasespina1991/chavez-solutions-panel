@@ -2,6 +2,21 @@ import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import admin from 'firebase-admin';
 
 const db = admin.firestore();
+const ALLOWED_MATRICES = new Set(['water', 'soil', 'noise', 'gases']);
+
+const normalizeMatrixArray = (value: unknown): string[] => {
+  if (!Array.isArray(value)) return [];
+  const unique = new Set<string>();
+
+  value.forEach((entry) => {
+    if (typeof entry !== 'string') return;
+    const normalized = entry.trim().toLowerCase();
+    if (!normalized || !ALLOWED_MATRICES.has(normalized)) return;
+    unique.add(normalized);
+  });
+
+  return Array.from(unique);
+};
 
 const buildTempWorkOrderNumber = (): string => {
   const year = new Date().getFullYear();
@@ -38,7 +53,7 @@ const NON_EMITTABLE_STATUSES: ServiceRequestStatus[] = [
 interface ServiceRequestData {
   isWorkOrder?: boolean;
   status?: ServiceRequestStatus;
-  matrix?: 'water' | 'soil';
+  matrix?: string[];
   reference?: string;
   notes?: string;
   client?: unknown;
@@ -114,7 +129,7 @@ export const createWorkOrder = onCall(async (req) => {
       status: 'issued',
       sourceRequestId,
       sourceReference: source.reference ?? null,
-      matrix: source.matrix ?? null,
+      matrix: normalizeMatrixArray(source.matrix),
       notes: source.notes ?? '',
       client: source.client ?? null,
       samples: null,

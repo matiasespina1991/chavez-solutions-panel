@@ -13,7 +13,7 @@ import { db } from '@/lib/firebase';
 
 export type ConfigurationStatus = 'draft' | 'final';
 export type ConfigurationType = 'proforma' | 'work_order' | 'both';
-export type MatrixType = 'water' | 'soil';
+export type MatrixType = 'water' | 'soil' | 'noise' | 'gases';
 export type ServiceRequestStatus =
   | 'draft'
   | 'submitted'
@@ -125,7 +125,7 @@ export interface ImportedServiceDocument {
 export interface ConfigurationDocument {
   id?: string;
   type: ConfigurationType;
-  matrix: MatrixType;
+  matrix: MatrixType[];
   reference: string;
   createdAt?: any;
   updatedAt?: any;
@@ -151,6 +151,26 @@ export interface ServiceRequestDocument
 const SERVICE_REQUEST_COLLECTION = 'service_requests';
 const WORK_ORDER_COLLECTION = 'work_orders';
 const SERVICES_COLLECTION = 'services';
+
+const normalizeMatrixArray = (value: unknown): MatrixType[] => {
+  if (!Array.isArray(value)) return [];
+  const unique = new Set<MatrixType>();
+
+  value.forEach((entry) => {
+    if (typeof entry !== 'string') return;
+    const normalized = entry.trim().toLowerCase();
+    if (
+      normalized === 'water' ||
+      normalized === 'soil' ||
+      normalized === 'noise' ||
+      normalized === 'gases'
+    ) {
+      unique.add(normalized);
+    }
+  });
+
+  return Array.from(unique);
+};
 
 const toServiceRequestStatus = (
   status: ConfigurationStatus
@@ -183,6 +203,7 @@ export const createConfiguration = async (
   const { type, serviceRequestStatus, ...restData } = data;
   const docData = {
     ...restData,
+    matrix: normalizeMatrixArray(restData.matrix),
     isWorkOrder: toIsWorkOrder(type),
     status: toServiceRequestStatus(data.status),
     ...(data.status === 'final'
@@ -214,8 +235,10 @@ export const updateConfiguration = async (
     : null;
   const linkedWorkOrderId = currentData?.linkedWorkOrderId;
   const { type, serviceRequestStatus, ...restData } = data;
+  const normalizedMatrix = normalizeMatrixArray(restData.matrix);
   const docData = {
     ...restData,
+    ...(restData.matrix !== undefined ? { matrix: normalizedMatrix } : {}),
     ...(type ? { isWorkOrder: toIsWorkOrder(type) } : {}),
     ...(data.status ? { status: toServiceRequestStatus(data.status) } : {}),
     ...(data.status === 'final'
@@ -255,6 +278,7 @@ export const getConfigurationById = async (
   const data = snapshot.data() as ServiceRequestDocument;
   return {
     ...data,
+    matrix: normalizeMatrixArray(data.matrix),
     id: snapshot.id,
     type: data.isWorkOrder ? 'both' : 'proforma',
     status: toConfigurationStatus(data.status),

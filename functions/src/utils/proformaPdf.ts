@@ -5,9 +5,23 @@ interface ProformaPdfPayload {
   requestId: string;
   reference: string;
   clientName: string;
-  matrix: string;
+  matrix: string[];
   total: number;
 }
+
+const MATRIX_LABELS: Record<string, string> = {
+  water: 'Agua',
+  soil: 'Suelo',
+  noise: 'Ruido',
+  gases: 'Gases',
+};
+
+const toMatrixLabel = (matrix: string[]) =>
+  matrix.length
+    ? matrix
+        .map((entry) => MATRIX_LABELS[entry] ?? entry)
+        .join(', ')
+    : '-';
 
 const escapePdfText = (value: string): string =>
   value.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
@@ -18,7 +32,7 @@ const buildSimplePdfBuffer = (payload: ProformaPdfPayload): Buffer => {
     `Solicitud: ${payload.requestId}`,
     `Referencia: ${payload.reference || '-'}`,
     `Cliente: ${payload.clientName || '-'}`,
-    `Matriz: ${payload.matrix || '-'}`,
+    `Matrices: ${toMatrixLabel(payload.matrix)}`,
     `Total estimado: $${payload.total.toFixed(2)}`,
     '',
     'Documento PDF simple (placeholder).',
@@ -69,7 +83,7 @@ const buildSimplePdfBuffer = (payload: ProformaPdfPayload): Buffer => {
 export interface ServiceRequestPdfSource {
   id: string;
   reference?: string | null;
-  matrix?: string | null;
+  matrix?: string[] | null;
   pricing?: {
     total?: number | null;
   } | null;
@@ -88,7 +102,7 @@ export const generateAndStoreProformaPdf = async (
     requestId: source.id,
     reference: source.reference || source.id,
     clientName: source.client?.businessName || '',
-    matrix: source.matrix || '',
+    matrix: Array.isArray(source.matrix) ? source.matrix : [],
     total: Number(source.pricing?.total || 0),
   });
 

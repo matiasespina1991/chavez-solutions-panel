@@ -36,7 +36,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -52,7 +52,9 @@ import {
 
 const formSchema = z.object({
   type: z.literal('proforma'),
-  matrix: z.enum(['water', 'soil']),
+  matrix: z
+    .array(z.enum(['water', 'soil', 'noise', 'gases']))
+    .min(1, 'Debe seleccionar al menos una matriz'),
   reference: z.string().min(1, 'Referencia es requerida'),
   createdAt: z.date().optional(),
   validDays: z.number().optional(),
@@ -122,6 +124,21 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
+type MatrixOption = FormValues['matrix'][number];
+
+const MATRIX_OPTIONS: Array<{ value: MatrixOption; label: string }> = [
+  { value: 'water', label: 'Agua' },
+  { value: 'soil', label: 'Suelo' },
+  { value: 'noise', label: 'Ruido' },
+  { value: 'gases', label: 'Gases' }
+];
+
+const MATRIX_LABEL_MAP: Record<MatrixOption, string> = {
+  water: 'Agua',
+  soil: 'Suelo',
+  noise: 'Ruido',
+  gases: 'Gases'
+};
 
 type SelectedService = ImportedServiceDocument & {
   quantity: number;
@@ -133,7 +150,7 @@ type SelectedService = ImportedServiceDocument & {
 
 const createDefaultFormValues = (): FormValues => ({
   type: 'proforma',
-  matrix: 'water',
+  matrix: ['water'],
   reference: `PR-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000)}`,
   createdAt: new Date(),
   validDays: 30,
@@ -220,10 +237,10 @@ export default function ConfiguratorForm() {
 
   const tabStatus: Record<'type' | 'client' | 'samples', 'ok' | 'error'> = {
     type: (() => {
-      const matrixValue = matrix;
+      const matrixValue = Array.isArray(matrix) ? matrix : [];
       const validDays = form.watch('validDays');
 
-      if (!reference || !matrixValue) return 'error';
+      if (!reference || !matrixValue.length) return 'error';
       if (!validDays) return 'error';
       return 'ok';
     })(),
@@ -1133,36 +1150,38 @@ export default function ConfiguratorForm() {
                   name='matrix'
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Matriz</FormLabel>
+                      <FormLabel>Matrices</FormLabel>
                       <FormControl>
-                        <RadioGroup
-                          className='flex flex-row space-x-4'
-                          onValueChange={(val) => {
-                            field.onChange(val);
-                            // Operational sample details are captured post-OT.
-                            form.setValue('samples.items', []);
-                          }}
-                          defaultValue={field.value}
-                        >
-                          <FormItem className='flex items-center space-y-0 space-x-2'>
-                            <FormControl>
-                              <RadioGroupItem
-                                value='water'
-                                className='cursor-pointer'
-                              />
-                            </FormControl>
-                            <FormLabel className='font-normal'>Agua</FormLabel>
-                          </FormItem>
-                          <FormItem className='flex items-center space-y-0 space-x-2'>
-                            <FormControl>
-                              <RadioGroupItem
-                                value='soil'
-                                className='cursor-pointer'
-                              />
-                            </FormControl>
-                            <FormLabel className='font-normal'>Suelo</FormLabel>
-                          </FormItem>
-                        </RadioGroup>
+                        <div className='grid grid-cols-2 gap-3'>
+                          {MATRIX_OPTIONS.map((option) => {
+                            const current = Array.isArray(field.value)
+                              ? field.value
+                              : [];
+                            const checked = current.includes(option.value);
+                            return (
+                              <label
+                                key={option.value}
+                                className='flex cursor-pointer items-center gap-2 rounded-md border p-2 text-sm'
+                              >
+                                <Checkbox
+                                  checked={checked}
+                                  onCheckedChange={(nextChecked) => {
+                                    const next = nextChecked
+                                      ? Array.from(
+                                          new Set([...current, option.value])
+                                        )
+                                      : current.filter(
+                                          (entry) => entry !== option.value
+                                        );
+                                    field.onChange(next);
+                                    form.setValue('samples.items', []);
+                                  }}
+                                />
+                                <span>{option.label}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1635,8 +1654,12 @@ export default function ConfiguratorForm() {
                       <span className='font-medium'>Tipo:</span> Proforma
                     </p>
                     <p>
-                      <span className='font-medium'>Matriz:</span>{' '}
-                      {matrix === 'water' ? 'Agua' : 'Suelo'}
+                      <span className='font-medium'>Matrices:</span>{' '}
+                      {Array.isArray(matrix) && matrix.length
+                        ? matrix
+                            .map((entry) => MATRIX_LABEL_MAP[entry] ?? entry)
+                            .join(', ')
+                        : '—'}
                     </p>
                     <p>
                       <span className='font-medium'>Referencia:</span>{' '}

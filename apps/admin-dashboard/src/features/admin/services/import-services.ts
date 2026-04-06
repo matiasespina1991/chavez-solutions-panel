@@ -19,6 +19,18 @@ export interface ListServiceHistoryResponse {
   currentHistoryId: string | null;
 }
 
+interface MatrixMigrationStats {
+  updated: number;
+  alreadyArray: number;
+  invalidToEmpty: number;
+  errors: number;
+}
+
+export interface MigrateMatrixToArrayResponse {
+  service_requests: MatrixMigrationStats;
+  work_orders: MatrixMigrationStats;
+}
+
 export const importServicesFromCsv = async (
   csvContent: string,
   fileName?: string
@@ -70,3 +82,15 @@ export const deleteServiceHistory = async (
   const result = await callable({ historyId });
   return result.data;
 };
+
+export const migrateMatrixToArray =
+  async (): Promise<MigrateMatrixToArrayResponse> => {
+    const functions = getFunctions();
+    const callable = httpsCallable<{}, MigrateMatrixToArrayResponse>(
+      functions,
+      'migrateMatrixToArray'
+    );
+
+    const result = await callable({});
+    return result.data;
+  };

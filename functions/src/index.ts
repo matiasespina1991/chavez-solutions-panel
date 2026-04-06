@@ -28,3 +28,4 @@ export { listServiceHistory } from './callable/listServiceHistory.js';
 export { restoreServiceHistory } from './callable/restoreServiceHistory.js';
 export { deleteServiceHistory } from './callable/deleteServiceHistory.js';
 export { generateProformaPdf } from './callable/generateProformaPdf.js';
+export { migrateMatrixToArray } from './callable/migrateMatrixToArray.js';

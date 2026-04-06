@@ -50,7 +50,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
-type WorkOrderMatrix = 'water' | 'soil';
+type WorkOrderMatrix = 'water' | 'soil' | 'noise' | 'gases';
 type WorkOrderStatus =
   | 'issued'
   | 'paused'
@@ -64,7 +64,7 @@ interface WorkOrderRow {
   sourceReference: string;
   sourceRequestId: string;
   notes: string;
-  matrix: WorkOrderMatrix;
+  matrix: WorkOrderMatrix[];
   status: WorkOrderStatus;
   client: {
     businessName: string;
@@ -111,8 +111,26 @@ type SortDirection = 'asc' | 'desc';
 
 const matrixLabelMap: Record<WorkOrderMatrix, string> = {
   water: 'Agua',
-  soil: 'Suelo'
+  soil: 'Suelo',
+  noise: 'Ruido',
+  gases: 'Gases'
 };
+
+const normalizeMatrixArray = (value: unknown): WorkOrderMatrix[] => {
+  if (!Array.isArray(value)) return [];
+  const unique = new Set<WorkOrderMatrix>();
+
+  value.forEach((entry) => {
+    if (entry === 'water' || entry === 'soil' || entry === 'noise' || entry === 'gases') {
+      unique.add(entry);
+    }
+  });
+
+  return Array.from(unique);
+};
+
+const formatMatrixLabel = (matrix: WorkOrderMatrix[]) =>
+  matrix.length ? matrix.map((entry) => matrixLabelMap[entry]).join(', ') : '—';
 
 const statusLabelMap: Record<WorkOrderStatus, string> = {
   issued: 'OT emitida',
@@ -342,7 +360,7 @@ export default function WorkOrdersListing() {
         const nextRows: WorkOrderRow[] = snapshot.docs.map((docSnap) => {
           const value = docSnap.data() as Record<string, unknown>;
 
-          const matrix = (value.matrix as WorkOrderMatrix) ?? 'water';
+          const matrix = normalizeMatrixArray(value.matrix);
           const rawStatus = String(value.status ?? '').toLowerCase();
           const status: WorkOrderStatus =
             rawStatus === 'issued' ||
@@ -574,8 +592,8 @@ export default function WorkOrdersListing() {
           break;
         case 'matrix':
           compare = collator.compare(
-            matrixLabelMap[left.matrix],
-            matrixLabelMap[right.matrix]
+            formatMatrixLabel(left.matrix),
+            formatMatrixLabel(right.matrix)
           );
           break;
         case 'client':
@@ -643,8 +661,8 @@ export default function WorkOrdersListing() {
         row.sourceReference,
         row.sourceRequestId,
         row.notes,
-        row.matrix,
-        matrixLabelMap[row.matrix],
+        row.matrix.join(','),
+        formatMatrixLabel(row.matrix),
         row.status,
         statusLabelMap[row.status],
         row.client.businessName,
@@ -760,7 +778,7 @@ export default function WorkOrdersListing() {
                     className='cursor-pointer select-none'
                     onClick={() => handleSort('matrix')}
                   >
-                    Matriz{getSortIndicator('matrix')}
+                    Matrices{getSortIndicator('matrix')}
                   </button>
                 </th>
                 <th className='w-[4.5rem] px-3 py-3 text-right md:px-4'>
@@ -847,7 +865,9 @@ export default function WorkOrdersListing() {
                       </span>
                     </td>
                     <td className='w-[4.5rem] px-3 py-3 md:w-[5rem] md:px-4'>
-                      {matrixLabelMap[row.matrix]}
+                      <span className='block w-full max-w-full truncate'>
+                        {formatMatrixLabel(row.matrix)}
+                      </span>
                     </td>
                     <td className='w-[4.5rem] px-3 py-3 text-right md:px-4'>
                       {row.analysesCount}
@@ -1034,8 +1054,8 @@ export default function WorkOrdersListing() {
                       {selectedRow.sourceReference}
                     </p>
                     <p>
-                      <span className='font-medium'>Matriz:</span>{' '}
-                      {selectedRow.matrix === 'water' ? 'Agua' : 'Suelo'}
+                      <span className='font-medium'>Matrices:</span>{' '}
+                      {formatMatrixLabel(selectedRow.matrix)}
                     </p>
                   </div>
                   <div className='bg-muted/20 space-y-2 rounded-md border p-4'>

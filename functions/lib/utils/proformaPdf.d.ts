@@ -1,7 +1,7 @@
 export interface ServiceRequestPdfSource {
     id: string;
     reference?: string | null;
-    matrix?: string | null;
+    matrix?: string[] | null;
     pricing?: {
         total?: number | null;
     } | null;

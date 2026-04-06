@@ -12,12 +12,41 @@ interface ServiceRequestClient {
 interface ServiceRequestData {
   status?: string;
   reference?: string;
-  matrix?: string;
+  matrix?: string[];
   pricing?: {
     total?: number | null;
   } | null;
   client?: ServiceRequestClient | null;
 }
+
+const MATRIX_LABELS: Record<string, string> = {
+  water: 'Agua',
+  soil: 'Suelo',
+  noise: 'Ruido',
+  gases: 'Gases',
+};
+const ALLOWED_MATRICES = new Set(Object.keys(MATRIX_LABELS));
+
+const normalizeMatrixArray = (value: unknown): string[] => {
+  if (!Array.isArray(value)) return [];
+  const unique = new Set<string>();
+
+  value.forEach((entry) => {
+    if (typeof entry !== 'string') return;
+    const normalized = entry.trim().toLowerCase();
+    if (!normalized || !ALLOWED_MATRICES.has(normalized)) return;
+    unique.add(normalized);
+  });
+
+  return Array.from(unique);
+};
+
+const toMatrixLabel = (matrix: string[]) =>
+  matrix.length
+    ? matrix
+        .map((entry) => MATRIX_LABELS[entry] ?? entry)
+        .join(', ')
+    : '—';
 
 export const onServiceRequestSubmitted = onDocumentWritten(
   {
@@ -52,6 +81,7 @@ export const onServiceRequestSubmitted = onDocumentWritten(
     const outboxRef = db.collection(MAIL_OUTBOX_COLLECTION).doc(outboxId);
 
     try {
+      const matrix = normalizeMatrixArray(afterData.matrix);
       await outboxRef.create({
         type: 'proforma_submitted',
         status: 'pending',
@@ -60,7 +90,8 @@ export const onServiceRequestSubmitted = onDocumentWritten(
         subject: `Proforma ${afterData.reference || after.id}`,
         payload: {
           reference: afterData.reference || '',
-          matrix: afterData.matrix || '',
+          matrix,
+          matrixLabel: toMatrixLabel(matrix),
           clientBusinessName: afterData.client?.businessName || '',
           total: Number(afterData.pricing?.total || 0),
         },

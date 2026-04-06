@@ -63,7 +63,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
-type ServiceRequestMatrix = 'water' | 'soil';
+type ServiceRequestMatrix = 'water' | 'soil' | 'noise' | 'gases';
 type ServiceRequestStatus =
   | 'draft'
   | 'submitted'
@@ -79,7 +79,7 @@ interface ServiceRequestRow {
   reference: string;
   notes: string;
   isWorkOrder: boolean;
-  matrix: ServiceRequestMatrix;
+  matrix: ServiceRequestMatrix[];
   status: ServiceRequestStatus;
   approvalStatus: ServiceRequestApprovalStatus | null;
   approvalFeedback: string;
@@ -130,8 +130,26 @@ type SortDirection = 'asc' | 'desc';
 
 const matrixLabelMap: Record<ServiceRequestMatrix, string> = {
   water: 'Agua',
-  soil: 'Suelo'
+  soil: 'Suelo',
+  noise: 'Ruido',
+  gases: 'Gases'
 };
+
+const normalizeMatrixArray = (value: unknown): ServiceRequestMatrix[] => {
+  if (!Array.isArray(value)) return [];
+
+  const unique = new Set<ServiceRequestMatrix>();
+  value.forEach((entry) => {
+    if (entry === 'water' || entry === 'soil' || entry === 'noise' || entry === 'gases') {
+      unique.add(entry);
+    }
+  });
+
+  return Array.from(unique);
+};
+
+const formatMatrixLabel = (matrix: ServiceRequestMatrix[]) =>
+  matrix.length ? matrix.map((entry) => matrixLabelMap[entry]).join(', ') : '—';
 
 const statusLabelMap: Record<ServiceRequestStatus, string> = {
   draft: '(Borrador)',
@@ -696,7 +714,7 @@ export default function ServiceRequestsListing() {
           const value = docSnap.data() as Record<string, unknown>;
 
           const isWorkOrder = Boolean(value.isWorkOrder);
-          const matrix = (value.matrix as ServiceRequestMatrix) ?? 'water';
+          const matrix = normalizeMatrixArray(value.matrix);
           const status =
             (value.status as ServiceRequestStatus) ??
             ('draft' as ServiceRequestStatus);
@@ -949,8 +967,8 @@ export default function ServiceRequestsListing() {
           break;
         case 'matrix':
           compare = collator.compare(
-            matrixLabelMap[left.matrix],
-            matrixLabelMap[right.matrix]
+            formatMatrixLabel(left.matrix),
+            formatMatrixLabel(right.matrix)
           );
           break;
         case 'client':
@@ -1014,8 +1032,8 @@ export default function ServiceRequestsListing() {
       const searchableParts = [
         row.reference,
         row.notes,
-        row.matrix,
-        matrixLabelMap[row.matrix],
+        row.matrix.join(','),
+        formatMatrixLabel(row.matrix),
         row.status,
         row.approvalStatus ?? '',
         getApprovalStatusLabel(row),
@@ -1145,7 +1163,7 @@ export default function ServiceRequestsListing() {
                     className='cursor-pointer select-none'
                     onClick={() => handleSort('matrix')}
                   >
-                    Matriz{getSortIndicator('matrix')}
+                    Matrices{getSortIndicator('matrix')}
                   </button>
                 </th>
                 <th className='w-[4.5rem] px-3 py-3 text-right md:px-4'>
@@ -1252,7 +1270,9 @@ export default function ServiceRequestsListing() {
                       </span>
                     </td>
                     <td className='w-[4.5rem] px-3 py-3 md:w-[5rem] md:px-4'>
-                      {matrixLabelMap[row.matrix]}
+                      <span className='block w-full max-w-full truncate'>
+                        {formatMatrixLabel(row.matrix)}
+                      </span>
                     </td>
                     <td className='w-[4.5rem] px-3 py-3 text-right md:px-4'>
                       {row.analysesCount}
@@ -1603,8 +1623,8 @@ export default function ServiceRequestsListing() {
                       {selectedRow.isWorkOrder ? 'Proforma + OT' : 'Proforma'}
                     </p>
                     <p>
-                      <span className='font-medium'>Matriz:</span>{' '}
-                      {selectedRow.matrix === 'water' ? 'Agua' : 'Suelo'}
+                      <span className='font-medium'>Matrices:</span>{' '}
+                      {formatMatrixLabel(selectedRow.matrix)}
                     </p>
                     <p>
                       <span className='font-medium'>Referencia:</span>{' '}
