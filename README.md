@@ -1,35 +1,50 @@
-# Laura Butallo Monorepo
+# Chavez Solutions Monorepo
 
-This repo now houses multiple apps plus Firebase Functions:
+Repositorio del panel operativo de laboratorio y backend serverless.
 
-- `apps/admin-dashboard` – dashboard app (WIP placeholder)
-- `functions` – Firebase Cloud Functions
+## Estructura
 
-## Commands
+- `apps/admin-dashboard`: aplicación web (Next.js) del panel.
+- `functions`: Cloud Functions (Firebase) con lógica de negocio, PDF y correo.
+- `docs`: documentación funcional/comercial del proyecto.
 
-From the repo root you can run:
+## Ejecutar localmente
+
+### 1) Dashboard
 
 ```bash
-npm run dev:web
-npm run build:web
-npm run dev:admin
-npm run deploy:functions
+cd apps/admin-dashboard
+npm install
+npm run dev
 ```
 
-Or `cd` into each app and use the regular `npm run dev`, `npm run build`, etc.
+### 2) Functions
 
-> Remember to install dependencies inside each app folder (`apps/web`, `apps/admin`).
+```bash
+cd functions
+npm install
+npm run build
+```
 
-Tareas:
+## Deploy Functions
 
-- En vez Muestras deberían llamarse servicios y se deberían usar los valores de las Tablas de Google Sheet (HECHO)
+```bash
+cd functions
+npm run build
+firebase deploy --only functions
+```
 
-- Unidad y método están fijos y sus valores están conectados a los valores de la Tabla
+## Flujo funcional principal
 
-- Poder asignar ordenes de trabajo a usuarios de cierto rol
+1. Configuración de proforma en `/dashboard/configurator`.
+2. Gestión de solicitudes en `/dashboard/service-requests`.
+3. Gestión de órdenes de trabajo en `/dashboard/work-orders`.
+4. Registro de análisis en `/dashboard/lab-analysis`.
+5. Administración de catálogo de servicios en `/dashboard/admin/import-services`.
 
-- Agregar estado de Revision de calidad del informe
+## Estado actual (resumen)
 
-- Si se finaliza la OT se envia un email con el informe al usuario.
-
-- Asignar roles de usuarios.
+- Dominio principal unificado en **Servicios** (en lugar de Muestras/Análisis como origen de pricing).
+- Solicitudes y OT trabajan sobre `services[]` con cantidad, rangos, precio y descuento opcional.
+- Envío automático de mail al enviar proforma mediante outbox + trigger.
+- PDF de proforma backend actualmente en versión placeholder (base para template final).

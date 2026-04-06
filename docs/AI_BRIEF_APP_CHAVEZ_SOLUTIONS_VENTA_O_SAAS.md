@@ -1,6 +1,6 @@
 # Brief Integral para IA Comercial/Técnica
 
-Fecha de actualización: 17 de marzo de 2026  
+Fecha de actualización: 6 de abril de 2026  
 Proyecto: Chavez Solutions (panel operativo de proformas, solicitudes y órdenes de trabajo)
 
 ## 1) Objetivo de este documento
@@ -76,7 +76,7 @@ Resultado: menos fricción operativa, trazabilidad de estado y una base para est
 
 - Tabla operativa con búsqueda y ordenamiento.
 - Campos de negocio visibles:
-  - Referencia, estado, aprobación, cliente, matriz, servicios (conteo), total, última actualización, notas.
+  - Referencia, estado, cliente, matriz, servicios (conteo), total, última actualización, notas.
 - Menú de acciones por fila:
   - Ver resumen
   - Editar (si estado lo permite)
@@ -377,4 +377,3 @@ El sistema ya tiene una base sólida de flujo operativo real y backend transacci
 Para SaaS puro y escalable, necesita una etapa de productización adicional (seguridad, multi-tenant, gobernanza de roles, PDF definitivo, observabilidad).  
 
 Conclusión práctica: hoy está en muy buen punto para venderse, pero el formato de venta recomendado inicialmente es “producto + servicio gestionado”, con transición planificada a SaaS completo.
-
