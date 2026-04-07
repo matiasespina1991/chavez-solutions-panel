@@ -120,7 +120,7 @@ const formatMoney = (value: number | null | undefined): string => {
 };
 
 const truncate = (value: string, max: number): string =>
-  value.length > max ? `${value.slice(0, max - 1)}...` : value;
+  value.length > max ? value.slice(0, max) : value;
 
 const wrapText = (text: string, maxCharsPerLine: number, maxLines: number) => {
   const words = toPdfSafeText(text).trim().split(/\s+/).filter(Boolean);
@@ -142,44 +142,44 @@ const wrapText = (text: string, maxCharsPerLine: number, maxLines: number) => {
     lines.push(current);
   }
   if (lines.length > maxLines) return lines.slice(0, maxLines);
-  if (lines.length === maxLines && words.join(' ').length > lines.join(' ').length) {
-    lines[maxLines - 1] = truncate(lines[maxLines - 1], maxCharsPerLine - 1) + '...';
-  }
-  return lines;
+  return lines.slice(0, maxLines);
 };
 
 const buildPreviewPdfBuffer = (payload: ProformaPreviewPayload): Buffer => {
-  const ops: string[] = [];
   const pageWidth = 612; // letter
   const pageHeight = 792;
   const marginX = 42;
   const contentWidth = pageWidth - marginX * 2;
 
-  const drawText = (
-    text: string,
-    x: number,
-    y: number,
-    size = 11,
-    font: 'F1' | 'F2' = 'F1'
-  ) => {
-    ops.push('BT');
-    ops.push(`/${font} ${size} Tf`);
-    ops.push(`${x} ${y} Td`);
-    ops.push(`(${escapePdfText(toPdfSafeText(text))}) Tj`);
-    ops.push('ET');
+  const createOps = () => {
+    const ops: string[] = [];
+    const drawText = (
+      text: string,
+      x: number,
+      y: number,
+      size = 11,
+      font: 'F1' | 'F2' = 'F1'
+    ) => {
+      ops.push('BT');
+      ops.push(`/${font} ${size} Tf`);
+      ops.push(`${x} ${y} Td`);
+      ops.push(`(${escapePdfText(toPdfSafeText(text))}) Tj`);
+      ops.push('ET');
+    };
+    const drawRect = (x: number, y: number, w: number, h: number) => {
+      ops.push(`${x} ${y} ${w} ${h} re S`);
+    };
+    const drawLine = (x1: number, y1: number, x2: number, y2: number) => {
+      ops.push(`${x1} ${y1} m ${x2} ${y2} l S`);
+    };
+    return { ops, drawText, drawRect, drawLine };
   };
 
-  const drawRect = (x: number, y: number, w: number, h: number) => {
-    ops.push(`${x} ${y} ${w} ${h} re S`);
-  };
-
-  const drawLine = (x1: number, y1: number, x2: number, y2: number) => {
-    ops.push(`${x1} ${y1} m ${x2} ${y2} l S`);
-  };
-
+  const page1 = createOps();
   const titleY = pageHeight - 34;
-  drawText('Resumen de proforma', marginX, titleY, 21, 'F2');
-  drawText(`Referencia: ${payload.reference || '-'}`, marginX, titleY - 26, 13, 'F2');
+  page1.drawText('Resumen de proforma', marginX, titleY, 21, 'F2');
+  page1.drawText(`Referencia: ${payload.reference || '-'}`, marginX, titleY - 26, 13, 'F2');
+
   const blocksTopY = pageHeight - 72;
   const blockHeight = 124;
   const blockGap = 12;
@@ -188,41 +188,46 @@ const buildPreviewPdfBuffer = (payload: ProformaPreviewPayload): Buffer => {
   const rightBlockX = marginX + blockWidth + blockGap;
   const blockY = blocksTopY - blockHeight;
 
-  drawRect(leftBlockX, blockY, blockWidth, blockHeight);
-  drawRect(rightBlockX, blockY, blockWidth, blockHeight);
+  page1.drawRect(leftBlockX, blockY, blockWidth, blockHeight);
+  page1.drawRect(rightBlockX, blockY, blockWidth, blockHeight);
 
-  drawText('DATOS DEL CLIENTE', leftBlockX + 12, blocksTopY - 20, 11, 'F2');
+  page1.drawText('Datos Del Cliente', leftBlockX + 12, blocksTopY - 20, 11, 'F2');
   const clientRows: string[] = [
-    `RAZON SOCIAL: ${payload.client.businessName || '-'}`,
+    `Razon Social: ${payload.client.businessName || '-'}`,
     `RUC: ${payload.client.taxId || '-'}`,
-    `NOMBRE DE CONTACTO: ${payload.client.contactName || '-'}`,
-    `DIRECCION: ${payload.client.address || '-'}`,
-    `CORREO: ${payload.client.email || '-'}`,
-    `TELEFONO: ${payload.client.phone || '-'}`,
-    `CELULAR: ${payload.client.mobile || payload.client.phone || '-'}`
+    `Nombre De Contacto: ${payload.client.contactName || '-'}`,
+    `Direccion: ${payload.client.address || '-'}`,
+    `Correo: ${payload.client.email || '-'}`,
+    `Telefono: ${payload.client.phone || '-'}`,
+    `Celular: ${payload.client.mobile || payload.client.phone || '-'}`
   ];
   clientRows.forEach((row, index) => {
-    drawText(truncate(row, 49), leftBlockX + 12, blocksTopY - 38 - index * 14, 9.5);
+    page1.drawText(truncate(row, 49), leftBlockX + 12, blocksTopY - 38 - index * 14, 9.5);
   });
 
-  drawText('DATOS DE PROFORMA', rightBlockX + 12, blocksTopY - 20, 11, 'F2');
+  page1.drawText('Datos De Proforma', rightBlockX + 12, blocksTopY - 20, 11, 'F2');
   const matrixText = payload.matrixLabels.length ? payload.matrixLabels.join(', ') : '-';
   const metadataRows = [
-    `REFERENCIA: ${payload.reference || '-'}`,
-    `FECHA DE EMISION: ${payload.issuedAtLabel || '-'}`,
-    `VALIDEZ DE OFERTA: ${payload.validDays ?? '-'} dias`,
-    `VALIDA HASTA: ${payload.validUntilLabel || '-'}`,
-    `MATRICES: ${truncate(matrixText, 36)}`
+    `Referencia: ${payload.reference || '-'}`,
+    `Fecha De Emision: ${payload.issuedAtLabel || '-'}`,
+    `Validez De Oferta: ${payload.validDays ?? '-'} dias`,
+    `Valida Hasta: ${payload.validUntilLabel || '-'}`,
+    `Matrices: ${truncate(matrixText, 36)}`
   ];
   metadataRows.forEach((row, index) => {
-    drawText(row, rightBlockX + 12, blocksTopY - 38 - index * 18, 10, index === 0 ? 'F2' : 'F1');
+    page1.drawText(
+      row,
+      rightBlockX + 12,
+      blocksTopY - 38 - index * 18,
+      10,
+      index === 0 ? 'F2' : 'F1'
+    );
   });
 
   const tableTop = blockY - 14;
-  const tableHeight = 226;
+  const tableHeight = 188;
   const tableY = tableTop - tableHeight;
-  drawRect(marginX, tableY, contentWidth, tableHeight);
-  drawText('Detalle de costos por analisis', marginX + 12, tableTop - 20, 15, 'F2');
+  page1.drawText('Detalle de costos por analisis', marginX + 12, tableTop - 20, 15, 'F2');
 
   const colStart = marginX + 10;
   const colWidths = [42, 108, 52, 102, 72, 56, 48, 48];
@@ -243,90 +248,98 @@ const buildPreviewPdfBuffer = (payload: ProformaPreviewPayload): Buffer => {
     'Subtotal'
   ];
   headers.forEach((header, index) => {
-    drawText(header, colX[index] + 3, headerY, 9.2, 'F2');
+    page1.drawText(header, colX[index] + 3, headerY, 9.2, 'F2');
   });
 
-  drawLine(marginX + 8, headerY - 7, marginX + contentWidth - 8, headerY - 7);
-  colX.forEach((x) => {
-    drawLine(x, tableY + 12, x, headerY + 10);
-  });
-  drawLine(marginX + contentWidth - 8, tableY + 12, marginX + contentWidth - 8, headerY + 10);
+  page1.drawLine(marginX + 8, headerY - 7, marginX + contentWidth - 8, headerY - 7);
+  for (let i = 1; i < colX.length - 2; i += 1) {
+    page1.drawLine(colX[i], tableY + 12, colX[i], headerY + 10);
+  }
 
-  const tableRowStep = 16;
+  const tableRowStep = 24;
   const tableStartY = headerY - 19;
-  const tableEndY = tableY + 50;
+  const tableEndY = tableY + 56;
   const maxRows = Math.max(1, Math.floor((tableStartY - tableEndY) / tableRowStep));
   let rowY = tableStartY;
 
   payload.services.slice(0, maxRows).forEach((service) => {
-    drawText(String(service.quantity || 0), colX[0] + 3, rowY, 9.2);
-    drawText(truncate(service.label || 'Servicio', 22), colX[1] + 3, rowY, 9.2);
-    drawText(truncate(service.unit || '-', 8), colX[2] + 3, rowY, 9.2);
-    drawText(truncate(service.method || '-', 17), colX[3] + 3, rowY, 9.2);
-    drawText(truncate(service.rangeOffered || '-', 13), colX[4] + 3, rowY, 9.2);
-    drawText(formatMoney(service.unitPrice), colX[5] + 3, rowY, 9.2);
-    drawText(formatMoney(service.discountAmount), colX[6] + 3, rowY, 9.2);
-    drawText(formatMoney(service.subtotal), colX[7] + 3, rowY, 9.2);
-    drawLine(marginX + 8, rowY - 5, marginX + contentWidth - 8, rowY - 5);
+    page1.drawText(String(service.quantity || 0), colX[0] + 3, rowY, 9.2);
+    const parameterLines = wrapText(service.label || 'Servicio', 22, 2);
+    parameterLines.forEach((line, index) => {
+      page1.drawText(line, colX[1] + 3, rowY - index * 10, 9.2);
+    });
+    page1.drawText(truncate(service.unit || '-', 8), colX[2] + 3, rowY, 9.2);
+    page1.drawText(truncate(service.method || '-', 17), colX[3] + 3, rowY, 9.2);
+    page1.drawText(truncate(service.rangeOffered || '-', 13), colX[4] + 3, rowY, 9.2);
+    page1.drawText(formatMoney(service.unitPrice), colX[5] + 3, rowY, 9.2);
+    page1.drawText(formatMoney(service.discountAmount), colX[6] + 3, rowY, 9.2);
+    page1.drawText(formatMoney(service.subtotal), colX[7] + 3, rowY, 9.2);
+    page1.drawLine(marginX + 8, rowY - 5, marginX + contentWidth - 8, rowY - 5);
     rowY -= tableRowStep;
   });
 
   if (payload.services.length > maxRows) {
-    drawText(
-      `... y ${payload.services.length - maxRows} servicios mas`,
-      colX[1] + 3,
-      rowY,
-      9
-    );
+    page1.drawText(`Y ${payload.services.length - maxRows} servicios mas`, colX[1] + 3, rowY, 9);
   }
 
-  const totalsY = tableY + 30;
-  drawText('Subtotal', marginX + contentWidth - 182, totalsY + 16, 10, 'F2');
-  drawText(formatMoney(payload.pricing.subtotal), marginX + contentWidth - 70, totalsY + 16, 10);
-  drawText(`IVA ${payload.pricing.taxPercent}%`, marginX + contentWidth - 182, totalsY, 10, 'F2');
-  drawText(
+  const totalsBoxX = marginX + 12;
+  const totalsBoxY = tableY - 114;
+  const totalsBoxW = 230;
+  const totalsBoxH = 96;
+  page1.drawText('Costos estimados', totalsBoxX + 10, totalsBoxY + totalsBoxH - 22, 12.5, 'F2');
+  page1.drawText('Subtotal:', totalsBoxX + 10, totalsBoxY + totalsBoxH - 44, 11);
+  page1.drawText(formatMoney(payload.pricing.subtotal), totalsBoxX + 132, totalsBoxY + totalsBoxH - 44, 11);
+  page1.drawText(`IVA (${payload.pricing.taxPercent}%):`, totalsBoxX + 10, totalsBoxY + totalsBoxH - 64, 11);
+  page1.drawText(
     formatMoney((payload.pricing.subtotal * payload.pricing.taxPercent) / 100),
-    marginX + contentWidth - 70,
-    totalsY,
-    10
+    totalsBoxX + 132,
+    totalsBoxY + totalsBoxH - 64,
+    11
   );
-  drawText('Total', marginX + contentWidth - 182, totalsY - 18, 11.5, 'F2');
-  drawText(formatMoney(payload.pricing.total), marginX + contentWidth - 70, totalsY - 18, 11.5, 'F2');
+  page1.drawLine(totalsBoxX + 10, totalsBoxY + totalsBoxH - 76, totalsBoxX + totalsBoxW - 10, totalsBoxY + totalsBoxH - 76);
+  page1.drawText('Total:', totalsBoxX + 10, totalsBoxY + totalsBoxH - 94, 17, 'F2');
+  page1.drawText(formatMoney(payload.pricing.total), totalsBoxX + 132, totalsBoxY + totalsBoxH - 94, 17, 'F2');
 
-  let legalY = tableY - 16;
-  drawText('Leyenda de acreditacion:', marginX, legalY, 10, 'F2');
-  legalY -= 12;
+  const page2 = createOps();
+  const page2TitleY = pageHeight - 34;
+  page2.drawText('Condiciones de la proforma', marginX, page2TitleY, 20, 'F2');
+  page2.drawText(`Referencia: ${payload.reference || '-'}`, marginX, page2TitleY - 24, 12, 'F2');
+
+  let legalY = page2TitleY - 56;
+  page2.drawText('Leyenda de acreditacion:', marginX, legalY, 11, 'F2');
+  legalY -= 14;
   [
     '* Parametro acreditado',
     '(*) Parametro no acreditado',
     '0 Parametro subcontratado no acreditado',
     '** Parametro subcontratado acreditado (fuera del alcance de acreditacion)'
   ].forEach((line) => {
-    drawText(line, marginX + 6, legalY, 8.7);
-    legalY -= 10;
+    page2.drawText(line, marginX + 8, legalY, 10);
+    legalY -= 13;
   });
 
   legalY -= 4;
-  drawText('Forma de Pago:', marginX, legalY, 10, 'F2');
-  drawText(
-    '50% anticipo y 50% contra entrega de informes. Pagos por transferencia bancaria.',
-    marginX + 70,
-    legalY,
-    8.6
-  );
-
-  legalY -= 14;
-  drawText('Tiempo de Entrega de Resultados:', marginX, legalY, 10, 'F2');
+  page2.drawText('Forma de Pago:', marginX, legalY, 11, 'F2');
   wrapText(
-    '8 dias laborables para parametros acreditados y 15 dias para subcontratados, contados desde la entrega del informe digital.',
-    97,
+    '50% anticipo y 50% contra entrega de informes. Pagos por transferencia bancaria.',
+    90,
     2
   ).forEach((line, index) => {
-    drawText(line, marginX + 142, legalY - index * 10, 8.4);
+    page2.drawText(line, marginX + 92, legalY - index * 12, 10);
   });
 
-  legalY -= 26;
-  drawText('Notas:', marginX, legalY, 10, 'F2');
+  legalY -= 30;
+  page2.drawText('Tiempo de Entrega de Resultados:', marginX, legalY, 11, 'F2');
+  wrapText(
+    '8 dias laborables para parametros acreditados y 15 dias para subcontratados, contados desde la entrega del informe digital.',
+    78,
+    3
+  ).forEach((line, index) => {
+    page2.drawText(line, marginX + 176, legalY - index * 12, 10);
+  });
+
+  legalY -= 46;
+  page2.drawText('Notas:', marginX, legalY, 11, 'F2');
   const notesLines = [
     '- Cronogramas de ejecucion definidos de mutuo acuerdo. Cambios de fecha pueden generar costos adicionales.',
     '- Suspensiones en sitio programado podran facturar costo de STAND BY.',
@@ -335,19 +348,23 @@ const buildPreviewPdfBuffer = (payload: ProformaPreviewPayload): Buffer => {
     '- En caso de requerir evaluaciones adicionales, se informaran costos complementarios antes de ejecutar.'
   ];
   notesLines.forEach((line) => {
-    wrapText(line, 104, 2).forEach((wrapped, index) => {
-      drawText(wrapped, marginX + 6, legalY - 12 - index * 9, 8.2);
+    const wrapped = wrapText(line, 104, 2);
+    wrapped.forEach((w, index) => {
+      page2.drawText(w, marginX + 8, legalY - 14 - index * 11, 9.8);
     });
-    legalY -= 22;
+    legalY -= wrapped.length * 11 + 10;
   });
 
-  const textOps = ops.join('\n');
+  const textOpsPage1 = page1.ops.join('\n');
+  const textOpsPage2 = page2.ops.join('\n');
 
   const objects: string[] = [
     '<< /Type /Catalog /Pages 2 0 R >>',
-    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>',
-    `<< /Length ${Buffer.byteLength(textOps, 'utf8')} >>\nstream\n${textOps}\nendstream`,
+    '<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 5 0 R /Resources << /Font << /F1 7 0 R /F2 8 0 R >> >> >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 6 0 R /Resources << /Font << /F1 7 0 R /F2 8 0 R >> >> >>',
+    `<< /Length ${Buffer.byteLength(textOpsPage1, 'utf8')} >>\nstream\n${textOpsPage1}\nendstream`,
+    `<< /Length ${Buffer.byteLength(textOpsPage2, 'utf8')} >>\nstream\n${textOpsPage2}\nendstream`,
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>'
   ];
