@@ -127,6 +127,7 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 type MatrixOption = FormValues['matrix'][number];
+type ConfiguratorTab = 'client' | 'samples' | 'type' | 'summary';
 
 const MATRIX_OPTIONS: Array<{ value: MatrixOption; label: string }> = [
   { value: 'water', label: 'Agua' },
@@ -141,6 +142,8 @@ const MATRIX_LABEL_MAP: Record<MatrixOption, string> = {
   noise: 'Ruido',
   gases: 'Gases'
 };
+
+const TAB_ORDER: ConfiguratorTab[] = ['client', 'samples', 'type', 'summary'];
 
 type SelectedService = ImportedServiceDocument & {
   quantity: number;
@@ -193,7 +196,7 @@ export default function ConfiguratorForm() {
   const editRequestId = searchParams.get('requestId');
   const isEditMode = Boolean(editRequestId);
   const cacheKey = `configurator:cache:${editRequestId ?? 'new'}`;
-  const [activeTab, setActiveTab] = useState('client');
+  const [activeTab, setActiveTab] = useState<ConfiguratorTab>('client');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGeneratingPreviewPdf, setIsGeneratingPreviewPdf] = useState(false);
   const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = useState(false);
@@ -233,7 +236,11 @@ export default function ConfiguratorForm() {
         requestedTab
       )
     ) {
-      setActiveTab(requestedTab === 'services' ? 'samples' : requestedTab);
+      const normalizedTab: ConfiguratorTab =
+        requestedTab === 'services'
+          ? 'samples'
+          : (requestedTab as ConfiguratorTab);
+      setActiveTab(normalizedTab);
     }
   }, [requestedTab]);
 
@@ -1161,17 +1168,15 @@ export default function ConfiguratorForm() {
             service.ID_CONFIG_PARAMETRO ||
             service.id ||
             'Servicio',
-          unit:
-            service.UNIDAD_NORMA || service.UNIDAD_INTERNO || 'Sin unidad',
+          unit: service.UNIDAD_NORMA || service.UNIDAD_INTERNO || 'Sin unidad',
           method:
             service.ID_TECNICA ||
             service.ID_MET_REFERENCIA ||
             service.ID_MET_INTERNO ||
             'Sin método',
-          rangeOffered:
-            `${service.LIM_INF_NORMA || service.LIM_INF_INTERNO || '—'} a ${
-              service.LIM_SUP_NORMA || service.LIM_SUP_INTERNO || '—'
-            }`,
+          rangeOffered: `${service.LIM_INF_NORMA || service.LIM_INF_INTERNO || '—'} a ${
+            service.LIM_SUP_NORMA || service.LIM_SUP_INTERNO || '—'
+          }`,
           quantity,
           unitPrice,
           discountAmount,
@@ -1201,7 +1206,7 @@ export default function ConfiguratorForm() {
       toast.success('PDF de vista previa generado.');
     } catch (error) {
       console.error('Error generating preview PDF:', error);
-      toast.error('No se pudo generar la vista previa en PDF.');
+      toast.error('Error al intentar descargar proforma.');
     } finally {
       setIsGeneratingPreviewPdf(false);
     }
@@ -1237,6 +1242,113 @@ export default function ConfiguratorForm() {
     }
   };
 
+  const activeTabIndex = TAB_ORDER.indexOf(activeTab);
+  const isFirstTab = activeTabIndex <= 0;
+  const isLastTab = activeTabIndex === TAB_ORDER.length - 1;
+
+  const goToPreviousTab = () => {
+    if (isFirstTab) return;
+    setActiveTab(TAB_ORDER[activeTabIndex - 1]);
+  };
+
+  const goToNextTab = () => {
+    if (isLastTab) return;
+    setActiveTab(TAB_ORDER[activeTabIndex + 1]);
+  };
+
+  const renderPrimarySubmitAction = () => {
+    if (isDraftEditMode) {
+      return (
+        <Button
+          type='button'
+          className='bg-black text-white hover:bg-black/90 disabled:bg-black disabled:text-white'
+          disabled={isSubmitting || isLoadingRequest || !canSubmitFinal}
+          onClick={handleExecuteClick}
+        >
+          Ejecutar Proforma
+        </Button>
+      );
+    }
+
+    if (isEditMode) {
+      return (
+        <Button
+          type='button'
+          disabled={isSubmitting || isLoadingRequest || !canSubmitFinal}
+          onClick={() => form.handleSubmit((data) => onUpdateRequest(data))()}
+        >
+          Actualizar solicitud
+        </Button>
+      );
+    }
+
+    return (
+      <Button
+        type='button'
+        className='bg-black text-white hover:bg-black/90 disabled:bg-black disabled:text-white'
+        disabled={isSubmitting || isLoadingRequest || !canSubmitFinal}
+        onClick={handleExecuteClick}
+      >
+        Ejecutar Proforma
+      </Button>
+    );
+  };
+
+  const renderTabActions = (withTopBorder = false) => (
+    <div
+      className={`mt-6 flex items-center justify-between ${withTopBorder ? 'border-t pt-4' : ''}`}
+    >
+      <div>
+        {!isFirstTab ? (
+          <Button type='button' variant='outline' onClick={goToPreviousTab}>
+            Anterior
+          </Button>
+        ) : null}
+      </div>
+      <div className='flex items-center gap-2'>
+        {showDraftActions ? clearCurrentDataButton : null}
+        {showDraftActions ? (
+          <Button
+            type='button'
+            variant='secondary'
+            disabled={isDraftSaveDisabled}
+            onClick={() => onSubmit(form.getValues(), 'draft')}
+          >
+            Guardar como Borrador
+          </Button>
+        ) : null}
+        <Button
+          type='button'
+          variant='outline'
+          size='icon'
+          disabled={isGeneratingPreviewPdf || isLoadingRequest}
+          onClick={handleDownloadPreviewPdf}
+          aria-label='Descargar PDF'
+          title='Descargar PDF'
+        >
+          <CircleArrowDown className='h-4 w-5' />
+        </Button>
+        <Button
+          type='button'
+          variant='outline'
+          size='icon'
+          disabled={isSendingPreviewEmail || isLoadingRequest}
+          onClick={handleOpenSendEmailDialog}
+          aria-label='Enviar proforma por email'
+          title='Enviar proforma por email'
+        >
+          <Mail className='h-4 w-5' />
+        </Button>
+        {renderPrimarySubmitAction()}
+        {!isLastTab ? (
+          <Button type='button' onClick={goToNextTab}>
+            Siguiente
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  );
+
   return (
     <Form form={form} onSubmit={(e) => e.preventDefault()}>
       <div className='space-y-2'>
@@ -1250,7 +1362,11 @@ export default function ConfiguratorForm() {
           ) : null}
         </p>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className='w-full'>
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as ConfiguratorTab)}
+          className='w-full'
+        >
           <TabsList className='grid w-full grid-cols-4'>
             <TabsTrigger
               value='client'
@@ -1353,29 +1469,7 @@ export default function ConfiguratorForm() {
                   )}
                 />
 
-                <div className='flex justify-end gap-2'>
-                  <Button
-                    type='button'
-                    variant='outline'
-                    onClick={() => setActiveTab('samples')}
-                  >
-                    Anterior
-                  </Button>
-                  {showDraftActions ? clearCurrentDataButton : null}
-                  {showDraftActions ? (
-                    <Button
-                      type='button'
-                      variant='secondary'
-                      disabled={isDraftSaveDisabled}
-                      onClick={() => onSubmit(form.getValues(), 'draft')}
-                    >
-                      Guardar como Borrador
-                    </Button>
-                  ) : null}
-                  <Button type='button' onClick={() => setActiveTab('summary')}>
-                    Siguiente
-                  </Button>
-                </div>
+                {renderTabActions()}
               </CardContent>
             </Card>
           </TabsContent>
@@ -1493,22 +1587,7 @@ export default function ConfiguratorForm() {
                     )}
                   />
                 </div>
-                <div className='flex items-center justify-end gap-2'>
-                  {showDraftActions ? clearCurrentDataButton : null}
-                  {showDraftActions ? (
-                    <Button
-                      type='button'
-                      variant='secondary'
-                      disabled={isDraftSaveDisabled}
-                      onClick={() => onSubmit(form.getValues(), 'draft')}
-                    >
-                      Guardar como Borrador
-                    </Button>
-                  ) : null}
-                  <Button type='button' onClick={() => setActiveTab('samples')}>
-                    Siguiente
-                  </Button>
-                </div>
+                {renderTabActions()}
               </CardContent>
             </Card>
           </TabsContent>
@@ -1758,31 +1837,7 @@ export default function ConfiguratorForm() {
                   )}
                 </div>
 
-                <div className='mt-6 flex justify-between'>
-                  <Button
-                    type='button'
-                    variant='outline'
-                    onClick={() => setActiveTab('client')}
-                  >
-                    Anterior
-                  </Button>
-                  <div className='flex items-center gap-2'>
-                    {showDraftActions ? clearCurrentDataButton : null}
-                    {showDraftActions ? (
-                      <Button
-                        type='button'
-                        variant='secondary'
-                        disabled={isDraftSaveDisabled}
-                        onClick={() => onSubmit(form.getValues(), 'draft')}
-                      >
-                        Guardar como Borrador
-                      </Button>
-                    ) : null}
-                    <Button type='button' onClick={() => setActiveTab('type')}>
-                      Siguiente
-                    </Button>
-                  </div>
-                </div>
+                {renderTabActions()}
               </CardContent>
             </Card>
           </TabsContent>
@@ -1960,89 +2015,7 @@ export default function ConfiguratorForm() {
                   </div>
                 ) : null}
 
-                <div className='mt-6 flex justify-between border-t pt-4'>
-                  <Button
-                    type='button'
-                    variant='outline'
-                    onClick={() => setActiveTab('type')}
-                  >
-                    Anterior
-                  </Button>
-                  <div className='flex items-center gap-2'>
-                    {showDraftActions ? clearCurrentDataButton : null}
-                    {isDraftEditMode ? (
-                      <>
-                        <Button
-                          type='button'
-                          className='bg-black text-white hover:bg-black/90 disabled:bg-black disabled:text-white'
-                          disabled={
-                            isSubmitting || isLoadingRequest || !canSubmitFinal
-                          }
-                          onClick={handleExecuteClick}
-                        >
-                          Ejecutar Proforma
-                        </Button>
-                      </>
-                    ) : isEditMode ? (
-                      <Button
-                        type='button'
-                        disabled={
-                          isSubmitting || isLoadingRequest || !canSubmitFinal
-                        }
-                        onClick={() =>
-                          form.handleSubmit((data) => onUpdateRequest(data))()
-                        }
-                      >
-                        Actualizar solicitud
-                      </Button>
-                    ) : (
-                      <>
-                        {showDraftActions ? (
-                          <Button
-                            type='button'
-                            variant='secondary'
-                            disabled={isDraftSaveDisabled}
-                            onClick={() => onSubmit(form.getValues(), 'draft')}
-                          >
-                            Guardar como Borrador
-                          </Button>
-                        ) : null}
-                        <Button
-                          type='button'
-                          variant='outline'
-                          size='icon'
-                          disabled={isGeneratingPreviewPdf || isLoadingRequest}
-                          onClick={handleDownloadPreviewPdf}
-                          aria-label='Descargar PDF'
-                          title='Descargar PDF'
-                        >
-                          <CircleArrowDown className='h-4 w-5' />
-                        </Button>
-                        <Button
-                          type='button'
-                          variant='outline'
-                          size='icon'
-                          disabled={isSendingPreviewEmail || isLoadingRequest}
-                          onClick={handleOpenSendEmailDialog}
-                          aria-label='Enviar proforma por email'
-                          title='Enviar proforma por email'
-                        >
-                          <Mail className='h-4 w-5' />
-                        </Button>
-                        <Button
-                          type='button'
-                          className='bg-black text-white hover:bg-black/90 disabled:bg-black disabled:text-white'
-                          disabled={
-                            isSubmitting || isLoadingRequest || !canSubmitFinal
-                          }
-                          onClick={handleExecuteClick}
-                        >
-                          Ejecutar Proforma
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
+                {renderTabActions(true)}
               </CardContent>
             </Card>
           </TabsContent>
@@ -2186,20 +2159,6 @@ export default function ConfiguratorForm() {
           </AlertDialogHeader>
 
           <div className='space-y-3'>
-            <div className='space-y-1 rounded-md border p-3 text-sm'>
-              <p>
-                <span className='font-medium'>Referencia:</span> {referenceLabel}
-              </p>
-              <p>
-                <span className='font-medium'>Cliente:</span>{' '}
-                {form.getValues('client.businessName') || '—'}
-              </p>
-              <p>
-                <span className='font-medium'>Total estimado:</span> $
-                {summaryTotal.toFixed(2)}
-              </p>
-            </div>
-
             <div className='space-y-1'>
               <label
                 htmlFor='send-proforma-email'
@@ -2212,8 +2171,22 @@ export default function ConfiguratorForm() {
                 type='email'
                 value={recipientEmail}
                 onChange={(event) => setRecipientEmail(event.target.value)}
-                placeholder='cliente@empresa.com'
+                placeholder='Email de destino'
               />
+            </div>
+            <div className='space-y-1 rounded-md border p-3 text-sm'>
+              <p>
+                <span className='font-medium'>Referencia:</span>{' '}
+                {referenceLabel}
+              </p>
+              <p>
+                <span className='font-medium'>Cliente:</span>{' '}
+                {form.getValues('client.businessName') || '—'}
+              </p>
+              <p>
+                <span className='font-medium'>Total estimado:</span> $
+                {summaryTotal.toFixed(2)}
+              </p>
             </div>
           </div>
 
