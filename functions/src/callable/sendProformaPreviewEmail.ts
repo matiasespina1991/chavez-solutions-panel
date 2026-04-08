@@ -16,7 +16,12 @@ interface SendProformaPreviewEmailRequest {
 
 const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
-export const sendProformaPreviewEmail = onCall(async (req) => {
+export const sendProformaPreviewEmail = onCall(
+  {
+    memory: '4GiB',
+    cpu: 2
+  },
+  async (req) => {
   if (!req.auth?.uid) {
     throw new HttpsError('unauthenticated', 'Authentication is required.');
   }
@@ -65,4 +70,5 @@ export const sendProformaPreviewEmail = onCall(async (req) => {
     downloadURL: pdf.downloadURL,
     fileName: pdf.fileName
   };
-});
+  }
+);

@@ -117,6 +117,13 @@ const formatMoney = (value: number | null | undefined): string => {
   return `$${value.toFixed(2)}`;
 };
 
+const formatMoneyCompact = (value: number | null | undefined): string => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '-';
+  const normalized = Math.round(value * 100) / 100;
+  if (Number.isInteger(normalized)) return `$${normalized.toFixed(0)}`;
+  return `$${normalized.toFixed(2)}`;
+};
+
 const truncate = (value: string, max: number): string =>
   value.length > max ? value.slice(0, max) : value;
 
@@ -162,9 +169,9 @@ const buildProformaPreviewHtml = (payload: ProformaPreviewPayload): string => {
         <td>${escapeHtml(service.unit || '-')}</td>
         <td>${escapeHtml(service.method || '-')}</td>
         <td>${escapeHtml(service.rangeOffered || '-')}</td>
-        <td>${formatMoney(service.unitPrice)}</td>
-        <td>${formatMoney(service.discountAmount)}</td>
-        <td>${formatMoney(service.subtotal)}</td>
+        <td>${formatMoneyCompact(service.unitPrice)}</td>
+        <td>${formatMoneyCompact(service.discountAmount)}</td>
+        <td>${formatMoneyCompact(service.subtotal)}</td>
       </tr>`
     )
     .join('');
@@ -184,7 +191,19 @@ const buildProformaPreviewHtml = (payload: ProformaPreviewPayload): string => {
     }
     h1 { margin: 0; font-size: 42px; }
     h2 { margin: 0; font-size: 18px; }
-    .ref { margin-top: 8px; font-weight: 700; font-size: 21px; }
+    .doc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    .title { margin: 0; font-size: 32px; font-weight: 700; line-height: 1.1; }
+    .ref { margin-top: 6px; font-weight: 600; font-size: 14px; }
+    .brand-logo {
+      max-height: 3rem;
+      width: auto;
+      object-fit: contain;
+    }
     .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
     .card { border: 1px solid #111; padding: 10px 12px; }
     .card h3 { margin: 0 0 8px; font-size: 16px; }
@@ -204,9 +223,9 @@ const buildProformaPreviewHtml = (payload: ProformaPreviewPayload): string => {
     th { font-weight: 700; }
     th.nowrap { white-space: nowrap; }
     .totals { margin-top: 20px; width: 300px; }
-    .totals h3 { margin: 0 0 8px; font-size: 22px; }
+    .totals h3 { margin: 0 0 8px; font-size: 18px; }
     .totals .row { display: flex; justify-content: space-between; font-size: 18px; margin: 2px 0; }
-    .totals .total { border-top: 1px solid #111; margin-top: 8px; padding-top: 6px; font-size: 34px; font-weight: 700; display: flex; justify-content: space-between; }
+    .totals .total { border-top: 1px solid #111; margin-top: 8px; padding-top: 6px; font-size: 24px; font-weight: 700; display: flex; justify-content: space-between; }
     .break { break-before: page; page-break-before: always; }
     .legal h2 { margin-bottom: 10px; }
     .legal h4 { margin: 14px 0 6px; font-size: 14px; }
@@ -215,8 +234,17 @@ const buildProformaPreviewHtml = (payload: ProformaPreviewPayload): string => {
   </style>
 </head>
 <body>
-  <h2>Resumen de proforma</h2>
-  <div class="ref">Referencia: ${escapeHtml(payload.reference || '-')}</div>
+  <div class="doc-header">
+    <div>
+      <h1 class="title">Proforma</h1>
+      <div class="ref">Referencia: ${escapeHtml(payload.reference || '-')}</div>
+    </div>
+    <img
+      class="brand-logo"
+      src="https://firebasestorage.googleapis.com/v0/b/escriba-app-302f5.appspot.com/o/system%2Fassets%2Fimages%2Flogos%2Fchavez%20logo.png?alt=media&token=38de24ec-2cdf-4494-87a5-c8e24aa0765b"
+      alt="Chavez Solutions"
+    />
+  </div>
 
   <div class="cards">
     <div class="card">
@@ -302,12 +330,16 @@ const tryRenderPdfWithPuppeteerInFunction = async (
       'moduleName',
       'return import(moduleName)'
     ) as (moduleName: string) => Promise<any>;
-    const puppeteerModule = await dynamicImport('puppeteer');
-    const puppeteer = puppeteerModule?.default ?? puppeteerModule;
+    const chromiumModule = await dynamicImport('@sparticuz/chromium');
+    const puppeteerCoreModule = await dynamicImport('puppeteer-core');
+    const chromium = chromiumModule?.default ?? chromiumModule;
+    const puppeteer = puppeteerCoreModule?.default ?? puppeteerCoreModule;
 
     const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless
     });
     const page = await browser.newPage();
     await page.setContent(buildProformaPreviewHtml(payload), {
@@ -364,7 +396,7 @@ const buildPreviewPdfBuffer = (payload: ProformaPreviewPayload): Buffer => {
 
   const page1 = createOps();
   const titleY = pageHeight - 34;
-  page1.drawText('Resumen de proforma', marginX, titleY, 21, 'F2');
+  page1.drawText('Proforma', marginX, titleY, 21, 'F2');
   page1.drawText(`Referencia: ${payload.reference || '-'}`, marginX, titleY - 26, 13, 'F2');
 
   const blocksTopY = pageHeight - 72;
@@ -470,9 +502,9 @@ const buildPreviewPdfBuffer = (payload: ProformaPreviewPayload): Buffer => {
     page1.drawText(truncate(service.unit || '-', 8), colX[2] + 3, rowTextY, 9.2);
     page1.drawText(truncate(service.method || '-', 17), colX[3] + 3, rowTextY, 9.2);
     page1.drawText(truncate(service.rangeOffered || '-', 13), colX[4] + 3, rowTextY, 9.2);
-    page1.drawText(formatMoney(service.unitPrice), colX[5] + 3, rowTextY, 9.2);
-    page1.drawText(formatMoney(service.discountAmount), colX[6] + 3, rowTextY, 9.2);
-    page1.drawText(formatMoney(service.subtotal), colX[7] + 3, rowTextY, 9.2);
+    page1.drawText(formatMoneyCompact(service.unitPrice), colX[5] + 3, rowTextY, 9.2);
+    page1.drawText(formatMoneyCompact(service.discountAmount), colX[6] + 3, rowTextY, 9.2);
+    page1.drawText(formatMoneyCompact(service.subtotal), colX[7] + 3, rowTextY, 9.2);
     currentRowTop -= rowHeight;
     page1.drawLine(tableLeft, currentRowTop, tableRight, currentRowTop);
   });
@@ -490,7 +522,7 @@ const buildPreviewPdfBuffer = (payload: ProformaPreviewPayload): Buffer => {
   const totalsBoxY = tableBottomY - 112;
   const totalsBoxW = 230;
   const totalsBoxH = 96;
-  page1.drawText('Costos estimados', totalsBoxX + 10, totalsBoxY + totalsBoxH - 22, 11.5, 'F2');
+  page1.drawText('Costos estimados', totalsBoxX + 10, totalsBoxY + totalsBoxH - 22, 15, 'F2');
   page1.drawText('Subtotal:', totalsBoxX + 10, totalsBoxY + totalsBoxH - 44, 10);
   page1.drawText(formatMoney(payload.pricing.subtotal), totalsBoxX + 132, totalsBoxY + totalsBoxH - 44, 10);
   page1.drawText(`IVA (${payload.pricing.taxPercent}%):`, totalsBoxX + 10, totalsBoxY + totalsBoxH - 64, 10);
@@ -501,8 +533,8 @@ const buildPreviewPdfBuffer = (payload: ProformaPreviewPayload): Buffer => {
     10
   );
   page1.drawLine(totalsBoxX + 10, totalsBoxY + totalsBoxH - 76, totalsBoxX + totalsBoxW - 10, totalsBoxY + totalsBoxH - 76);
-  page1.drawText('Total:', totalsBoxX + 10, totalsBoxY + totalsBoxH - 94, 17, 'F2');
-  page1.drawText(formatMoney(payload.pricing.total), totalsBoxX + 132, totalsBoxY + totalsBoxH - 94, 17, 'F2');
+  page1.drawText('Total:', totalsBoxX + 10, totalsBoxY + totalsBoxH - 94, 14, 'F2');
+  page1.drawText(formatMoney(payload.pricing.total), totalsBoxX + 132, totalsBoxY + totalsBoxH - 94, 14, 'F2');
 
   const page2 = createOps();
   const page2TitleY = pageHeight - 34;

@@ -9,7 +9,12 @@ interface GenerateProformaPreviewPdfRequest {
   payload?: ProformaPreviewPayload;
 }
 
-export const generateProformaPreviewPdf = onCall(async (req) => {
+export const generateProformaPreviewPdf = onCall(
+  {
+    memory: '4GiB',
+    cpu: 2
+  },
+  async (req) => {
   if (!req.auth?.uid) {
     throw new HttpsError('unauthenticated', 'Authentication is required.');
   }
@@ -33,4 +38,5 @@ export const generateProformaPreviewPdf = onCall(async (req) => {
     downloadURL: pdf.downloadURL,
     fileName: pdf.fileName
   };
-});
+  }
+);
