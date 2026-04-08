@@ -1353,8 +1353,7 @@ export default function ConfiguratorForm() {
     <Form form={form} onSubmit={(e) => e.preventDefault()}>
       <div className='space-y-2'>
         <p className='text-base text-black'>
-          <span className='font-medium'>Referencia de la solicitud:</span>{' '}
-          {referenceLabel}
+          <span className='font-medium'>Referencia:</span> {referenceLabel}
           {isEditMode && loadedRequestStatus === 'draft' ? (
             <span className='text-muted-foreground'> (borrador)</span>
           ) : isEditMode && loadedRequestStatus === 'paused' ? (
@@ -1770,7 +1769,7 @@ export default function ConfiguratorForm() {
                                       Precio (USD)
                                     </label>
                                     <div className='relative'>
-                                      <span className='text-muted-foreground pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm'>
+                                      <span className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm'>
                                         $
                                       </span>
                                       <Input
@@ -1803,7 +1802,7 @@ export default function ConfiguratorForm() {
                                       Descuento (USD)
                                     </label>
                                     <div className='relative'>
-                                      <span className='text-muted-foreground pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm'>
+                                      <span className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm'>
                                         $
                                       </span>
                                       <Input
