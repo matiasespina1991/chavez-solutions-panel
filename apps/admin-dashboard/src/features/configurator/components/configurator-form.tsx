@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Check, CircleArrowDown, Mail, Plus, Send, Trash2 } from 'lucide-react';
+import { ArrowDownToLine, Check, Mail, Plus, Send, Trash2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -1200,9 +1200,9 @@ export default function ConfiguratorForm() {
       const link = document.createElement('a');
       link.href = result.downloadURL;
       link.download = result.fileName;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
       link.click();
+      link.remove();
       toast.success('PDF de vista previa generado.');
     } catch (error) {
       console.error('Error generating preview PDF:', error);
@@ -1326,7 +1326,7 @@ export default function ConfiguratorForm() {
           aria-label='Descargar PDF'
           title='Descargar PDF'
         >
-          <CircleArrowDown className='h-4 w-5' />
+          <ArrowDownToLine className='h-4 w-5' />
         </Button>
         <Button
           type='button'
@@ -1769,25 +1769,31 @@ export default function ConfiguratorForm() {
                                     >
                                       Precio (USD)
                                     </label>
-                                    <Input
-                                      id={`price-${serviceId}`}
-                                      type='number'
-                                      min={0}
-                                      step='0.01'
-                                      value={
-                                        typeof service.unitPrice === 'number'
-                                          ? service.unitPrice
-                                          : ''
-                                      }
-                                      onChange={(event) =>
-                                        handleUpdateServiceField(
-                                          serviceId,
-                                          'unitPrice',
-                                          event.target.value
-                                        )
-                                      }
-                                      placeholder='Ej: 12.50'
-                                    />
+                                    <div className='relative'>
+                                      <span className='text-muted-foreground pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm'>
+                                        $
+                                      </span>
+                                      <Input
+                                        id={`price-${serviceId}`}
+                                        type='number'
+                                        min={0}
+                                        step='0.01'
+                                        value={
+                                          typeof service.unitPrice === 'number'
+                                            ? service.unitPrice
+                                            : ''
+                                        }
+                                        onChange={(event) =>
+                                          handleUpdateServiceField(
+                                            serviceId,
+                                            'unitPrice',
+                                            event.target.value
+                                          )
+                                        }
+                                        placeholder='Ej: 12.50'
+                                        className='pl-7'
+                                      />
+                                    </div>
                                   </div>
                                   <div className='space-y-1'>
                                     <label
@@ -1796,26 +1802,32 @@ export default function ConfiguratorForm() {
                                     >
                                       Descuento (USD)
                                     </label>
-                                    <Input
-                                      id={`discount-${serviceId}`}
-                                      type='number'
-                                      min={0}
-                                      step='0.01'
-                                      value={
-                                        typeof service.discountAmount ===
-                                        'number'
-                                          ? service.discountAmount
-                                          : ''
-                                      }
-                                      onChange={(event) =>
-                                        handleUpdateServiceField(
-                                          serviceId,
-                                          'discountAmount',
-                                          event.target.value
-                                        )
-                                      }
-                                      placeholder='Ej: 2.50'
-                                    />
+                                    <div className='relative'>
+                                      <span className='text-muted-foreground pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm'>
+                                        $
+                                      </span>
+                                      <Input
+                                        id={`discount-${serviceId}`}
+                                        type='number'
+                                        min={0}
+                                        step='0.01'
+                                        value={
+                                          typeof service.discountAmount ===
+                                          'number'
+                                            ? service.discountAmount
+                                            : ''
+                                        }
+                                        onChange={(event) =>
+                                          handleUpdateServiceField(
+                                            serviceId,
+                                            'discountAmount',
+                                            event.target.value
+                                          )
+                                        }
+                                        placeholder='Ej: 2.50'
+                                        className='pl-7'
+                                      />
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -2001,7 +2013,7 @@ export default function ConfiguratorForm() {
                     </div>
                     <div className='mt-1 flex justify-between border-t pt-1 text-lg font-bold'>
                       <span>Total:</span>
-                      <span>${summaryTotal.toFixed(2)}</span>
+                      <span>${summaryTotal.toFixed(2)} USD</span>
                     </div>
                   </div>
                 </div>

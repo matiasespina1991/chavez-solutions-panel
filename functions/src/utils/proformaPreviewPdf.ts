@@ -646,7 +646,8 @@ export const generateAndStoreProformaPreviewPdf = async (params: {
     resumable: false,
     metadata: {
       contentType: 'application/pdf',
-      cacheControl: 'private, max-age=0, no-transform'
+      cacheControl: 'private, max-age=0, no-transform',
+      contentDisposition: `attachment; filename="${fileName}"`
     }
   });
 
