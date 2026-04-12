@@ -4,9 +4,9 @@
 
 El configurador (`/dashboard/configurator`) crea y actualiza solicitudes de servicio (`service_requests`) usando un wizard de 4 pasos:
 
-1. Datos
-2. Cliente
-3. Servicios
+1. Cliente
+2. Servicios
+3. Datos
 4. Resumen
 
 El dominio operativo actual está centrado en **servicios** (no en muestras como unidad de pricing).
@@ -19,7 +19,7 @@ El dominio operativo actual está centrado en **servicios** (no en muestras como
 
 ## Datos que captura
 
-- Matriz (`water` / `soil`)
+- Matrices (`water` / `soil` / `noise` / `gases`) con selección múltiple
 - Referencia y validez
 - Datos de cliente
 - Notas
@@ -56,6 +56,7 @@ El step **Servicios** queda en error si:
 - Guardado como borrador (`draft`) o final (`submitted`)
 - Soporta edición por `requestId` en query params
 - Usa cache local por clave `configurator:cache:*`
+- `matrix` se persiste como `string[]` (sin compatibilidad con `string` legacy)
 
 ## Relación con OT
 
@@ -63,7 +64,8 @@ La emisión de orden de trabajo se hace vía callable backend (`createWorkOrder`
 
 ## Estado actual relevante
 
-- Tab 3 rotulada como **Servicios**.
+- Tabs actuales: **Cliente → Servicios → Datos → Resumen**.
 - Diálogo de agregar servicios desde catálogo importado.
 - UI y resumen alineados a servicios y desglose de costos por servicio.
 - Campos de rangos y precio ingresados por usuario (no pre-rellenados por default).
+- Permite descargar PDF de preview y enviar proforma por email desde el flujo del configurador.

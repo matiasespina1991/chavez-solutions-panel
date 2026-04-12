@@ -1,6 +1,6 @@
 # Brief Integral para IA Comercial/Técnica
 
-Fecha de actualización: 6 de abril de 2026  
+Fecha de actualización: 12 de abril de 2026  
 Proyecto: Chavez Solutions (panel operativo de proformas, solicitudes y órdenes de trabajo)
 
 ## 1) Objetivo de este documento
@@ -20,7 +20,7 @@ La aplicación es un panel administrativo para un laboratorio (flujo comercial-o
 - Emitir, pausar, reanudar y finalizar órdenes de trabajo.
 - Administrar catálogo de servicios mediante CSV.
 - Registrar análisis de laboratorio en órdenes emitidas.
-- Generar PDF de proforma y enviar mail automático al enviar una proforma.
+- Generar PDF de proforma (preview) y enviar mail automático/manual con adjunto.
 
 Tecnológicamente es una app web Next.js conectada a Firebase (Firestore, Auth, Storage, Cloud Functions).  
 El flujo core ya está implementado y usable, pero aún hay áreas de madurez pendientes para escalar comercialmente (roles finos, endurecimiento de seguridad de reglas, PDF final de producción, auditoría operativa extendida, etc.).
@@ -53,12 +53,12 @@ Resultado: menos fricción operativa, trazabilidad de estado y una base para est
 #### Configurador
 
 - Wizard de 4 pasos visuales:
-1. Datos
-2. Cliente
-3. Servicios
+1. Cliente
+2. Servicios
+3. Datos
 4. Resumen
 - Captura:
-  - Matriz (agua/suelo)
+  - Matrices múltiples (agua/suelo/ruido/gases)
   - Referencia y validez
   - Datos de cliente
   - Servicios seleccionados desde colección `services`
@@ -69,6 +69,8 @@ Resultado: menos fricción operativa, trazabilidad de estado y una base para est
   - Subtotal general + IVA + total
 - Permite:
   - Guardar borrador
+  - Descargar PDF de preview
+  - Enviar proforma por email desde UI
   - Ejecutar proforma
   - Editar solicitudes existentes en estados permitidos
 
@@ -162,7 +164,8 @@ Resultado: menos fricción operativa, trazabilidad de estado y una base para est
 - `deleteServiceRequest`: elimina solicitud y cancela OT vinculada si existe.
 - `importServicesFromCsv`: reemplazo masivo de catálogo de servicios.
 - `listServiceHistory` / `restoreServiceHistory` / `deleteServiceHistory`: versionado de catálogo.
-- `generateProformaPdf`: genera PDF simple de proforma (placeholder preparado para evolucionar).
+- `generateProformaPreviewPdf`: genera PDF de proforma con render HTML + Puppeteer.
+- `sendProformaPreviewEmail`: genera PDF preview y lo envía por Gmail API.
 
 ### 6.3 Triggers clave
 
@@ -170,7 +173,7 @@ Resultado: menos fricción operativa, trazabilidad de estado y una base para est
   - cuando una solicitud pasa a `submitted`, crea item en `mail_outbox` con estado `pending`.
 - `onMailOutboxCreated`:
   - procesa `mail_outbox`,
-  - genera/obtiene PDF de proforma,
+  - genera PDF de proforma con el renderer actual (Puppeteer),
   - envía correo por Gmail API (OAuth2),
   - marca `sent` o `failed`.
 
@@ -181,6 +184,8 @@ Patrón implementado:
 1. Evento de negocio (`service_requests.status -> submitted`)
 2. Escritura en outbox (`mail_outbox`)
 3. Trigger consumidor procesa outbox
+
+Además existe envío manual desde el configurador vía callable (`sendProformaPreviewEmail`), sin depender del outbox.
 
 Ventajas:
 
@@ -236,6 +241,11 @@ Cada servicio seleccionado en una solicitud puede incluir:
 - `discountAmount`
 
 Con esto se calcula subtotal/iva/total de la proforma.
+
+## 7.4 Campo de matrices
+
+- `matrix` se maneja como arreglo `string[]` (sin compatibilidad runtime con string legacy).
+- Opciones operativas actuales: `water`, `soil`, `noise`, `gases`.
 
 ## 8) Reglas operativas implementadas
 
