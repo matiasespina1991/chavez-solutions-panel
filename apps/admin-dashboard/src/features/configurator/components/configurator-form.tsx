@@ -8,12 +8,15 @@ import { toast } from 'sonner';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowDownToLine,
+  ChevronDown,
   Check,
   Mail,
   Plus,
   Search,
   Send,
-  Trash2
+  SlidersHorizontal,
+  Trash2,
+  X
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -47,6 +50,15 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 
 import {
   createConfiguration,
@@ -136,13 +148,16 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 type MatrixOption = FormValues['matrix'][number];
 type ConfiguratorTab = 'client' | 'samples' | 'type' | 'summary';
+type DialogFilterKey = 'matEnsayo' | 'norma' | 'tabla' | 'tecnica';
+type DialogFilters = Record<DialogFilterKey, string[]>;
+type ServiceFilterOption = { value: string; count: number };
 
-const MATRIX_OPTIONS: Array<{ value: MatrixOption; label: string }> = [
-  { value: 'water', label: 'Agua' },
-  { value: 'soil', label: 'Suelo' },
-  { value: 'noise', label: 'Ruido' },
-  { value: 'gases', label: 'Gases' }
-];
+const DIALOG_FILTER_LABELS: Record<DialogFilterKey, string> = {
+  matEnsayo: 'Material de ensayo',
+  norma: 'Norma',
+  tabla: 'Tabla',
+  tecnica: 'Técnica'
+};
 
 const MATRIX_LABEL_MAP: Record<MatrixOption, string> = {
   water: 'Agua',
@@ -221,12 +236,18 @@ export default function ConfiguratorForm() {
   >([]);
   const [isLoadingAvailableServices, setIsLoadingAvailableServices] =
     useState(false);
-  const [dialogMatEnsayoFilter, setDialogMatEnsayoFilter] =
-    useState<string>('all');
+  const [dialogFilters, setDialogFilters] = useState<DialogFilters>({
+    matEnsayo: [],
+    norma: [],
+    tabla: [],
+    tecnica: []
+  });
   const [dialogSearchTerm, setDialogSearchTerm] = useState('');
   const [dialogSelectedServiceIds, setDialogSelectedServiceIds] = useState<
     string[]
   >([]);
+  const [isAppliedFiltersExpanded, setIsAppliedFiltersExpanded] =
+    useState(true);
   const [selectedServices, setSelectedServices] = useState<SelectedService[]>(
     []
   );
@@ -330,6 +351,21 @@ export default function ConfiguratorForm() {
     return value && value.length > 0 ? value : 'Sin material de ensayo';
   };
 
+  const getNormaLabel = (service: ImportedServiceDocument) => {
+    const value = service.ID_NORMA?.trim();
+    return value && value.length > 0 ? value : 'Sin norma';
+  };
+
+  const getTablaLabel = (service: ImportedServiceDocument) => {
+    const value = service.ID_TABLA_NORMA?.trim();
+    return value && value.length > 0 ? value : 'Sin tabla';
+  };
+
+  const getTecnicaLabel = (service: ImportedServiceDocument) => {
+    const value = service.ID_TECNICA?.trim();
+    return value && value.length > 0 ? value : 'Sin técnica';
+  };
+
   const normalizeRangeValue = (raw: string) => {
     const value = raw.trim();
     if (!value) return '';
@@ -425,30 +461,74 @@ export default function ConfiguratorForm() {
       appliesToSampleCodes: null
     }));
 
-  const matEnsayoChips = useMemo(() => {
-    const unique = new Set<string>();
-    availableServices.forEach((service) => {
-      unique.add(getMatEnsayoLabel(service));
-    });
-    return Array.from(unique).sort((a, b) => a.localeCompare(b, 'es'));
-  }, [availableServices]);
+  const buildFilterOptions = useMemo(
+    () => (readLabel: (service: ImportedServiceDocument) => string) => {
+      const counts = new Map<string, number>();
+      availableServices.forEach((service) => {
+        const label = readLabel(service);
+        counts.set(label, (counts.get(label) || 0) + 1);
+      });
 
-  const matEnsayoCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    availableServices.forEach((service) => {
-      const label = getMatEnsayoLabel(service);
-      counts.set(label, (counts.get(label) || 0) + 1);
-    });
-    return counts;
-  }, [availableServices]);
+      return Array.from(counts.entries())
+        .map(([value, count]) => ({ value, count }))
+        .sort((a, b) => a.value.localeCompare(b.value, 'es'));
+    },
+    [availableServices]
+  );
+
+  const matEnsayoFilterOptions = useMemo<ServiceFilterOption[]>(
+    () => buildFilterOptions(getMatEnsayoLabel),
+    [buildFilterOptions]
+  );
+
+  const normaFilterOptions = useMemo<ServiceFilterOption[]>(
+    () => buildFilterOptions(getNormaLabel),
+    [buildFilterOptions]
+  );
+
+  const tablaFilterOptions = useMemo<ServiceFilterOption[]>(
+    () => buildFilterOptions(getTablaLabel),
+    [buildFilterOptions]
+  );
+
+  const tecnicaFilterOptions = useMemo<ServiceFilterOption[]>(
+    () => buildFilterOptions(getTecnicaLabel),
+    [buildFilterOptions]
+  );
 
   const filteredAvailableServices = useMemo(() => {
     const normalizedSearch = dialogSearchTerm.trim().toLowerCase();
 
     return availableServices.filter((service) => {
+      const matEnsayoLabel = getMatEnsayoLabel(service);
+      const normaLabel = getNormaLabel(service);
+      const tablaLabel = getTablaLabel(service);
+      const tecnicaLabel = getTecnicaLabel(service);
+
       if (
-        dialogMatEnsayoFilter !== 'all' &&
-        getMatEnsayoLabel(service) !== dialogMatEnsayoFilter
+        dialogFilters.matEnsayo.length > 0 &&
+        !dialogFilters.matEnsayo.includes(matEnsayoLabel)
+      ) {
+        return false;
+      }
+
+      if (
+        dialogFilters.norma.length > 0 &&
+        !dialogFilters.norma.includes(normaLabel)
+      ) {
+        return false;
+      }
+
+      if (
+        dialogFilters.tabla.length > 0 &&
+        !dialogFilters.tabla.includes(tablaLabel)
+      ) {
+        return false;
+      }
+
+      if (
+        dialogFilters.tecnica.length > 0 &&
+        !dialogFilters.tecnica.includes(tecnicaLabel)
       ) {
         return false;
       }
@@ -458,6 +538,7 @@ export default function ConfiguratorForm() {
       const searchHaystack = [
         service.ID_PARAMETRO,
         service.ID_MAT_ENSAYO,
+        service.ID_NORMA,
         service.ID_TABLA_NORMA,
         service.UNIDAD_NORMA,
         service.UNIDAD_INTERNO,
@@ -472,7 +553,34 @@ export default function ConfiguratorForm() {
 
       return searchHaystack.includes(normalizedSearch);
     });
-  }, [availableServices, dialogMatEnsayoFilter, dialogSearchTerm]);
+  }, [availableServices, dialogFilters, dialogSearchTerm]);
+
+  const activeDialogFiltersCount =
+    dialogFilters.matEnsayo.length +
+    dialogFilters.norma.length +
+    dialogFilters.tabla.length +
+    dialogFilters.tecnica.length;
+
+  const dialogFilterOptionsByKey: Record<
+    DialogFilterKey,
+    ServiceFilterOption[]
+  > = {
+    matEnsayo: matEnsayoFilterOptions,
+    norma: normaFilterOptions,
+    tabla: tablaFilterOptions,
+    tecnica: tecnicaFilterOptions
+  };
+
+  const visibleServiceIds = useMemo(
+    () => filteredAvailableServices.map((service) => getServiceId(service)),
+    [filteredAvailableServices]
+  );
+
+  const areAllVisibleSelected =
+    visibleServiceIds.length > 0 &&
+    visibleServiceIds.every((serviceId) =>
+      dialogSelectedServiceIds.includes(serviceId)
+    );
 
   const mapSelectedServicesToDocument = (
     services: SelectedService[]
@@ -1057,9 +1165,62 @@ export default function ConfiguratorForm() {
     setDialogSelectedServiceIds(
       selectedServices.map((service) => getServiceId(service))
     );
-    setDialogMatEnsayoFilter('all');
+    setDialogFilters({
+      matEnsayo: [],
+      norma: [],
+      tabla: [],
+      tecnica: []
+    });
     setDialogSearchTerm('');
     setIsServicesDialogOpen(true);
+  };
+
+  const handleToggleDialogFilterValue = (
+    key: DialogFilterKey,
+    value: string
+  ) => {
+    setDialogFilters((prev) => ({
+      ...prev,
+      [key]: prev[key].includes(value)
+        ? prev[key].filter((entry) => entry !== value)
+        : [...prev[key], value]
+    }));
+  };
+
+  const handleSelectAllVisibleToggle = (checked: boolean) => {
+    if (visibleServiceIds.length === 0) return;
+
+    if (checked) {
+      setDialogSelectedServiceIds((prev) =>
+        Array.from(new Set([...prev, ...visibleServiceIds]))
+      );
+      return;
+    }
+
+    const visibleSet = new Set(visibleServiceIds);
+    setDialogSelectedServiceIds((prev) =>
+      prev.filter((serviceId) => !visibleSet.has(serviceId))
+    );
+  };
+
+  const handleClearDialogFilters = () => {
+    setDialogFilters({
+      matEnsayo: [],
+      norma: [],
+      tabla: [],
+      tecnica: []
+    });
+    setDialogSearchTerm('');
+  };
+
+  const handleRemoveDialogFilterValue = (
+    key: DialogFilterKey,
+    value: string
+  ) => {
+    setDialogFilters((prev) => ({
+      ...prev,
+      [key]: prev[key].filter((entry) => entry !== value)
+    }));
   };
 
   const handleToggleServiceSelection = (serviceId: string) => {
@@ -1085,28 +1246,6 @@ export default function ConfiguratorForm() {
 
     setSelectedServices(nextServices);
     setIsServicesDialogOpen(false);
-  };
-
-  const handleSelectVisibleServices = () => {
-    if (!filteredAvailableServices.length) return;
-
-    const visibleIds = filteredAvailableServices.map((service) =>
-      getServiceId(service)
-    );
-    setDialogSelectedServiceIds((prev) =>
-      Array.from(new Set([...prev, ...visibleIds]))
-    );
-  };
-
-  const handleUnselectVisibleServices = () => {
-    if (!filteredAvailableServices.length) return;
-
-    const visibleIds = new Set(
-      filteredAvailableServices.map((service) => getServiceId(service))
-    );
-    setDialogSelectedServiceIds((prev) =>
-      prev.filter((serviceId) => !visibleIds.has(serviceId))
-    );
   };
 
   const handleRemoveService = (serviceId: string) => {
@@ -1670,49 +1809,6 @@ export default function ConfiguratorForm() {
                 <CardTitle>Servicios</CardTitle>
               </CardHeader>
               <CardContent className='space-y-4'>
-                <FormField
-                  control={form.control as any}
-                  name='matrix'
-                  render={({ field }) => (
-                    <FormItem className='space-y-2 rounded-md border p-4'>
-                      <FormLabel>Matrices</FormLabel>
-                      <FormControl>
-                        <div className='flex flex-wrap gap-2'>
-                          {MATRIX_OPTIONS.map((option) => {
-                            const current = Array.isArray(field.value)
-                              ? field.value
-                              : [];
-                            const checked = current.includes(option.value);
-                            return (
-                              <label
-                                key={option.value}
-                                className='flex w-full max-w-[8rem] cursor-pointer items-center gap-2 rounded-md border p-2 text-sm'
-                              >
-                                <Checkbox
-                                  checked={checked}
-                                  onCheckedChange={(nextChecked) => {
-                                    const next = nextChecked
-                                      ? Array.from(
-                                          new Set([...current, option.value])
-                                        )
-                                      : current.filter(
-                                          (entry) => entry !== option.value
-                                        );
-                                    field.onChange(next);
-                                    form.setValue('samples.items', []);
-                                  }}
-                                />
-                                <span>{option.label}</span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
                 <div className='space-y-3 rounded-md border p-4'>
                   <div className='flex items-center justify-between gap-2'>
                     <div>
@@ -2131,98 +2227,180 @@ export default function ConfiguratorForm() {
         open={isServicesDialogOpen}
         onOpenChange={setIsServicesDialogOpen}
       >
-        <AlertDialogContent className='w-[96vw] max-w-[1100px] overflow-x-hidden sm:max-w-[1100px]'>
+        <AlertDialogContent className='flex h-[88vh] max-h-[88vh] w-[96vw] max-w-[1100px] flex-col overflow-x-hidden sm:max-w-[1100px]'>
           <AlertDialogHeader>
             <AlertDialogTitle>Agregar servicios</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription className='m-0'>
               Seleccioná uno o varios servicios para incluir en la proforma.
             </AlertDialogDescription>
           </AlertDialogHeader>
 
           <div className='min-w-0 space-y-3'>
-            <div className='flex min-w-0 flex-col gap-2 md:flex-row md:items-center'>
-              <div className='relative w-full min-w-0'>
-                <Search className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2' />
-                <Input
-                  value={dialogSearchTerm}
-                  onChange={(event) => setDialogSearchTerm(event.target.value)}
-                  placeholder='Buscar por parámetro, método, tabla, unidad o material...'
-                  className='pl-9'
-                />
-              </div>
-              <div className='text-muted-foreground shrink-0 whitespace-nowrap text-xs md:text-sm'>
-                {filteredAvailableServices.length} resultados ·{' '}
-                {dialogSelectedServiceIds.length} seleccionados
-              </div>
+            <div className='relative w-full min-w-0'>
+              <Search className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2' />
+              <Input
+                value={dialogSearchTerm}
+                onChange={(event) => setDialogSearchTerm(event.target.value)}
+                placeholder='Buscar por parámetro, método, norma, tabla, unidad o material...'
+                className='w-full pl-9'
+              />
             </div>
 
-            <div className='flex min-w-0 items-center justify-between gap-2'>
-              <div className='no-scrollbar flex min-w-0 max-w-full flex-1 gap-2 overflow-x-auto pb-1'>
-                <button
-                  type='button'
-                  className={`shrink-0 rounded-full border px-3 py-1 text-xs transition-colors ${
-                    dialogMatEnsayoFilter === 'all'
-                      ? 'border-black bg-black text-white'
-                      : 'hover:bg-muted/60 border-border'
-                  }`}
-                  onClick={() => setDialogMatEnsayoFilter('all')}
-                >
-                  Todos ({availableServices.length})
-                </button>
-                {matEnsayoChips.map((chip) => (
-                  <button
-                    key={chip}
+            <div className='flex min-w-0 flex-wrap items-center gap-2'>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
                     type='button'
-                    className={`max-w-[18rem] shrink-0 truncate rounded-full border px-3 py-1 text-xs transition-colors ${
-                      dialogMatEnsayoFilter === chip
-                        ? 'border-black bg-black text-white'
-                        : 'hover:bg-muted/60 border-border'
-                    }`}
-                    onClick={() => setDialogMatEnsayoFilter(chip)}
+                    variant='outline'
+                    size='sm'
+                    className='h-9 gap-1.5 border-transparent bg-muted/35 text-xs text-foreground shadow-none hover:bg-muted/55'
                   >
-                    {chip} ({matEnsayoCounts.get(chip) || 0})
-                  </button>
-                ))}
-              </div>
+                    <SlidersHorizontal className='h-3.5 w-3.5' />
+                    Agregar filtro
+                    <ChevronDown className='h-3.5 w-3.5' />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align='start' className='w-60'>
+                  {(Object.keys(DIALOG_FILTER_LABELS) as DialogFilterKey[]).map(
+                    (filterKey) => (
+                      <DropdownMenuSub key={filterKey}>
+                        <DropdownMenuSubTrigger className='text-sm'>
+                          <span>{DIALOG_FILTER_LABELS[filterKey]}</span>
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent className='max-h-72 w-[36rem] max-w-[78vw] overflow-y-auto'>
+                          {dialogFilterOptionsByKey[filterKey].map((option) => (
+                            <DropdownMenuCheckboxItem
+                              key={`${filterKey}-${option.value}`}
+                              checked={dialogFilters[filterKey].includes(
+                                option.value
+                              )}
+                              onCheckedChange={() =>
+                                handleToggleDialogFilterValue(
+                                  filterKey,
+                                  option.value
+                                )
+                              }
+                              className='w-full pr-2'
+                            >
+                              <span
+                                className='min-w-0 flex-1 truncate'
+                                title={option.value}
+                              >
+                                {option.value}
+                              </span>
+                              <span className='text-muted-foreground ml-2 shrink-0 text-xs'>
+                                {option.count}
+                              </span>
+                            </DropdownMenuCheckboxItem>
+                          ))}
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                    )
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               <Button
                 type='button'
-                variant='ghost'
+                variant='outline'
                 size='sm'
-                className='shrink-0 text-xs'
-                onClick={() => {
-                  setDialogMatEnsayoFilter('all');
-                  setDialogSearchTerm('');
-                }}
+                className='h-9 border-border bg-muted/40 text-xs text-foreground hover:bg-muted/55'
+                onClick={handleClearDialogFilters}
+                disabled={
+                  activeDialogFiltersCount === 0 &&
+                  dialogSearchTerm.trim().length === 0
+                }
               >
                 Limpiar filtros
               </Button>
             </div>
 
-            <div className='flex flex-wrap items-center gap-2'>
-              <Button
-                type='button'
-                variant='outline'
-                size='sm'
-                className='h-8 text-xs'
-                onClick={handleSelectVisibleServices}
-                disabled={filteredAvailableServices.length === 0}
-              >
-                Seleccionar visibles
-              </Button>
-              <Button
-                type='button'
-                variant='outline'
-                size='sm'
-                className='h-8 text-xs'
-                onClick={handleUnselectVisibleServices}
-                disabled={filteredAvailableServices.length === 0}
-              >
-                Quitar visibles
-              </Button>
+            {activeDialogFiltersCount > 0 ? (
+              <div className='space-y-2'>
+                <button
+                  type='button'
+                  className='inline-flex cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-1 text-left'
+                  onClick={() =>
+                    setIsAppliedFiltersExpanded((previous) => !previous)
+                  }
+                >
+                  <span className='text-foreground/85 text-sm font-medium'>
+                    Filtros ({activeDialogFiltersCount})
+                  </span>
+                  <ChevronDown
+                    className={`text-muted-foreground h-4 w-4 transition-transform ${
+                      isAppliedFiltersExpanded ? '' : '-rotate-90'
+                    }`}
+                  />
+                </button>
+
+                {isAppliedFiltersExpanded ? (
+                  <div className='bg-muted/20 space-y-2 rounded-md border p-3'>
+                    {(
+                      Object.keys(DIALOG_FILTER_LABELS) as DialogFilterKey[]
+                    ).map((filterKey) => {
+                      const selectedValues = dialogFilters[filterKey];
+                      if (selectedValues.length === 0) return null;
+
+                      return (
+                        <div key={filterKey} className='space-y-1'>
+                          <p className='text-muted-foreground text-xs font-medium'>
+                            {DIALOG_FILTER_LABELS[filterKey]}
+                          </p>
+                          <div className='flex flex-wrap gap-1.5'>
+                            {selectedValues.map((value) => (
+                              <span
+                                key={`${filterKey}-${value}`}
+                                title={value}
+                                className='bg-background inline-flex max-w-[24rem] items-center gap-1 rounded-md border px-2 py-1 text-[11px]'
+                              >
+                                <span className='truncate'>{value}</span>
+                                <button
+                                  type='button'
+                                  aria-label={`Quitar filtro ${value}`}
+                                  className='text-muted-foreground hover:text-foreground inline-flex h-3.5 w-3.5 shrink-0 cursor-pointer items-center justify-center rounded-sm'
+                                  onClick={() =>
+                                    handleRemoveDialogFilterValue(
+                                      filterKey,
+                                      value
+                                    )
+                                  }
+                                >
+                                  <X className='h-3 w-3' />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            <div className='flex items-center justify-end gap-2'>
+              <p className='text-muted-foreground shrink-0 text-xs sm:text-sm'>
+                {dialogSelectedServiceIds.length} seleccionados
+                <span className='px-1.5'>·</span>
+                {filteredAvailableServices.length} resultados
+              </p>
+              <span className='text-muted-foreground text-xs'>·</span>
+              <label className='text-muted-foreground flex shrink-0 cursor-pointer items-center gap-2 text-xs sm:text-sm'>
+                <Checkbox
+                  checked={areAllVisibleSelected}
+                  onCheckedChange={(checked) =>
+                    handleSelectAllVisibleToggle(checked === true)
+                  }
+                  disabled={filteredAvailableServices.length === 0}
+                  className='cursor-pointer'
+                />
+                Seleccionar todo
+              </label>
             </div>
           </div>
 
-          <div className='max-h-[28rem] min-w-0 space-y-2 overflow-y-auto pr-1'>
+          <div className='min-h-0 flex-1 space-y-2 overflow-y-auto pr-1'>
             {isLoadingAvailableServices ? (
               <p className='text-muted-foreground text-sm'>
                 Cargando servicios...
@@ -2233,7 +2411,7 @@ export default function ConfiguratorForm() {
               </p>
             ) : filteredAvailableServices.length === 0 ? (
               <p className='text-muted-foreground text-sm'>
-                No hay servicios para el material de ensayo seleccionado.
+                No hay servicios para los filtros aplicados.
               </p>
             ) : (
               filteredAvailableServices.map((service) => {
