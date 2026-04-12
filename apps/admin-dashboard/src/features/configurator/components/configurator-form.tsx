@@ -6,7 +6,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowDownToLine, Check, Mail, Plus, Send, Trash2 } from 'lucide-react';
+import {
+  ArrowDownToLine,
+  Check,
+  Mail,
+  Plus,
+  Search,
+  Send,
+  Trash2
+} from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -215,6 +223,7 @@ export default function ConfiguratorForm() {
     useState(false);
   const [dialogMatEnsayoFilter, setDialogMatEnsayoFilter] =
     useState<string>('all');
+  const [dialogSearchTerm, setDialogSearchTerm] = useState('');
   const [dialogSelectedServiceIds, setDialogSelectedServiceIds] = useState<
     string[]
   >([]);
@@ -424,12 +433,46 @@ export default function ConfiguratorForm() {
     return Array.from(unique).sort((a, b) => a.localeCompare(b, 'es'));
   }, [availableServices]);
 
+  const matEnsayoCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    availableServices.forEach((service) => {
+      const label = getMatEnsayoLabel(service);
+      counts.set(label, (counts.get(label) || 0) + 1);
+    });
+    return counts;
+  }, [availableServices]);
+
   const filteredAvailableServices = useMemo(() => {
-    if (dialogMatEnsayoFilter === 'all') return availableServices;
-    return availableServices.filter(
-      (service) => getMatEnsayoLabel(service) === dialogMatEnsayoFilter
-    );
-  }, [availableServices, dialogMatEnsayoFilter]);
+    const normalizedSearch = dialogSearchTerm.trim().toLowerCase();
+
+    return availableServices.filter((service) => {
+      if (
+        dialogMatEnsayoFilter !== 'all' &&
+        getMatEnsayoLabel(service) !== dialogMatEnsayoFilter
+      ) {
+        return false;
+      }
+
+      if (!normalizedSearch) return true;
+
+      const searchHaystack = [
+        service.ID_PARAMETRO,
+        service.ID_MAT_ENSAYO,
+        service.ID_TABLA_NORMA,
+        service.UNIDAD_NORMA,
+        service.UNIDAD_INTERNO,
+        service.ID_TECNICA,
+        service.ID_MET_REFERENCIA,
+        service.ID_MET_INTERNO,
+        service.ID_CONFIG_PARAMETRO
+      ]
+        .filter((value): value is string => typeof value === 'string')
+        .join(' ')
+        .toLowerCase();
+
+      return searchHaystack.includes(normalizedSearch);
+    });
+  }, [availableServices, dialogMatEnsayoFilter, dialogSearchTerm]);
 
   const mapSelectedServicesToDocument = (
     services: SelectedService[]
@@ -1015,6 +1058,7 @@ export default function ConfiguratorForm() {
       selectedServices.map((service) => getServiceId(service))
     );
     setDialogMatEnsayoFilter('all');
+    setDialogSearchTerm('');
     setIsServicesDialogOpen(true);
   };
 
@@ -1041,6 +1085,28 @@ export default function ConfiguratorForm() {
 
     setSelectedServices(nextServices);
     setIsServicesDialogOpen(false);
+  };
+
+  const handleSelectVisibleServices = () => {
+    if (!filteredAvailableServices.length) return;
+
+    const visibleIds = filteredAvailableServices.map((service) =>
+      getServiceId(service)
+    );
+    setDialogSelectedServiceIds((prev) =>
+      Array.from(new Set([...prev, ...visibleIds]))
+    );
+  };
+
+  const handleUnselectVisibleServices = () => {
+    if (!filteredAvailableServices.length) return;
+
+    const visibleIds = new Set(
+      filteredAvailableServices.map((service) => getServiceId(service))
+    );
+    setDialogSelectedServiceIds((prev) =>
+      prev.filter((serviceId) => !visibleIds.has(serviceId))
+    );
   };
 
   const handleRemoveService = (serviceId: string) => {
@@ -1261,7 +1327,7 @@ export default function ConfiguratorForm() {
       return (
         <Button
           type='button'
-          className='bg-black text-white hover:bg-black/90 disabled:bg-black disabled:text-white'
+          className='border border-black bg-black text-white hover:bg-black/90 disabled:border-black disabled:bg-black disabled:text-white dark:border-white'
           disabled={isSubmitting || isLoadingRequest || !canSubmitFinal}
           onClick={handleExecuteClick}
         >
@@ -1274,6 +1340,7 @@ export default function ConfiguratorForm() {
       return (
         <Button
           type='button'
+          className='border-primary dark:border-primary border'
           disabled={isSubmitting || isLoadingRequest || !canSubmitFinal}
           onClick={() => form.handleSubmit((data) => onUpdateRequest(data))()}
         >
@@ -1285,7 +1352,7 @@ export default function ConfiguratorForm() {
     return (
       <Button
         type='button'
-        className='bg-black text-white hover:bg-black/90 disabled:bg-black disabled:text-white'
+        className='border border-black bg-black text-white hover:bg-black/90 disabled:border-black disabled:bg-black disabled:text-white dark:border-white'
         disabled={isSubmitting || isLoadingRequest || !canSubmitFinal}
         onClick={handleExecuteClick}
       >
@@ -1311,6 +1378,7 @@ export default function ConfiguratorForm() {
           <Button
             type='button'
             variant='secondary'
+            className='border-border dark:border-border border'
             disabled={isDraftSaveDisabled}
             onClick={() => onSubmit(form.getValues(), 'draft')}
           >
@@ -1341,7 +1409,11 @@ export default function ConfiguratorForm() {
         </Button>
         {renderPrimarySubmitAction()}
         {!isLastTab ? (
-          <Button type='button' onClick={goToNextTab}>
+          <Button
+            type='button'
+            className='border border-emerald-600 dark:border-emerald-400'
+            onClick={goToNextTab}
+          >
             Siguiente
           </Button>
         ) : null}
@@ -1848,6 +1920,28 @@ export default function ConfiguratorForm() {
                   )}
                 </div>
 
+                <div className='space-y-2 rounded-md border p-4'>
+                  <h4 className='text-muted-foreground font-semibold'>
+                    Costos estimados
+                  </h4>
+                  <div className='w-full max-w-xs space-y-1'>
+                    <div className='flex justify-between'>
+                      <span className='text-muted-foreground'>Subtotal:</span>
+                      <span>${summarySubtotal.toFixed(2)}</span>
+                    </div>
+                    <div className='flex justify-between'>
+                      <span className='text-muted-foreground'>
+                        IVA ({summaryTaxPercent}%):
+                      </span>
+                      <span>${summaryTaxAmount.toFixed(2)}</span>
+                    </div>
+                    <div className='mt-1 flex justify-between border-t pt-1 text-lg font-bold'>
+                      <span>Total:</span>
+                      <span>${summaryTotal.toFixed(2)} USD</span>
+                    </div>
+                  </div>
+                </div>
+
                 {renderTabActions()}
               </CardContent>
             </Card>
@@ -1906,7 +2000,7 @@ export default function ConfiguratorForm() {
                 </div>
 
                 <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
-                  <h4 className='font-semibold text-black'>
+                  <h4 className='text-muted-foreground font-semibold'>
                     Servicios ({selectedServices.length})
                   </h4>
                   {selectedServices.length ? (
@@ -2037,7 +2131,7 @@ export default function ConfiguratorForm() {
         open={isServicesDialogOpen}
         onOpenChange={setIsServicesDialogOpen}
       >
-        <AlertDialogContent className='w-[96vw] max-w-[1100px] sm:max-w-[1100px]'>
+        <AlertDialogContent className='w-[96vw] max-w-[1100px] overflow-x-hidden sm:max-w-[1100px]'>
           <AlertDialogHeader>
             <AlertDialogTitle>Agregar servicios</AlertDialogTitle>
             <AlertDialogDescription>
@@ -2045,35 +2139,90 @@ export default function ConfiguratorForm() {
             </AlertDialogDescription>
           </AlertDialogHeader>
 
-          <div className='flex flex-wrap gap-2'>
-            <button
-              type='button'
-              className={`rounded-full border px-3 py-1 text-xs transition-colors ${
-                dialogMatEnsayoFilter === 'all'
-                  ? 'border-black bg-black text-white'
-                  : 'hover:bg-muted/60 border-border'
-              }`}
-              onClick={() => setDialogMatEnsayoFilter('all')}
-            >
-              Todos
-            </button>
-            {matEnsayoChips.map((chip) => (
-              <button
-                key={chip}
+          <div className='min-w-0 space-y-3'>
+            <div className='flex min-w-0 flex-col gap-2 md:flex-row md:items-center'>
+              <div className='relative w-full min-w-0'>
+                <Search className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2' />
+                <Input
+                  value={dialogSearchTerm}
+                  onChange={(event) => setDialogSearchTerm(event.target.value)}
+                  placeholder='Buscar por parámetro, método, tabla, unidad o material...'
+                  className='pl-9'
+                />
+              </div>
+              <div className='text-muted-foreground shrink-0 whitespace-nowrap text-xs md:text-sm'>
+                {filteredAvailableServices.length} resultados ·{' '}
+                {dialogSelectedServiceIds.length} seleccionados
+              </div>
+            </div>
+
+            <div className='flex min-w-0 items-center justify-between gap-2'>
+              <div className='no-scrollbar flex min-w-0 max-w-full flex-1 gap-2 overflow-x-auto pb-1'>
+                <button
+                  type='button'
+                  className={`shrink-0 rounded-full border px-3 py-1 text-xs transition-colors ${
+                    dialogMatEnsayoFilter === 'all'
+                      ? 'border-black bg-black text-white'
+                      : 'hover:bg-muted/60 border-border'
+                  }`}
+                  onClick={() => setDialogMatEnsayoFilter('all')}
+                >
+                  Todos ({availableServices.length})
+                </button>
+                {matEnsayoChips.map((chip) => (
+                  <button
+                    key={chip}
+                    type='button'
+                    className={`max-w-[18rem] shrink-0 truncate rounded-full border px-3 py-1 text-xs transition-colors ${
+                      dialogMatEnsayoFilter === chip
+                        ? 'border-black bg-black text-white'
+                        : 'hover:bg-muted/60 border-border'
+                    }`}
+                    onClick={() => setDialogMatEnsayoFilter(chip)}
+                  >
+                    {chip} ({matEnsayoCounts.get(chip) || 0})
+                  </button>
+                ))}
+              </div>
+              <Button
                 type='button'
-                className={`rounded-full border px-3 py-1 text-xs transition-colors ${
-                  dialogMatEnsayoFilter === chip
-                    ? 'border-black bg-black text-white'
-                    : 'hover:bg-muted/60 border-border'
-                }`}
-                onClick={() => setDialogMatEnsayoFilter(chip)}
+                variant='ghost'
+                size='sm'
+                className='shrink-0 text-xs'
+                onClick={() => {
+                  setDialogMatEnsayoFilter('all');
+                  setDialogSearchTerm('');
+                }}
               >
-                {chip}
-              </button>
-            ))}
+                Limpiar filtros
+              </Button>
+            </div>
+
+            <div className='flex flex-wrap items-center gap-2'>
+              <Button
+                type='button'
+                variant='outline'
+                size='sm'
+                className='h-8 text-xs'
+                onClick={handleSelectVisibleServices}
+                disabled={filteredAvailableServices.length === 0}
+              >
+                Seleccionar visibles
+              </Button>
+              <Button
+                type='button'
+                variant='outline'
+                size='sm'
+                className='h-8 text-xs'
+                onClick={handleUnselectVisibleServices}
+                disabled={filteredAvailableServices.length === 0}
+              >
+                Quitar visibles
+              </Button>
+            </div>
           </div>
 
-          <div className='max-h-[28rem] space-y-2 overflow-y-auto pr-1'>
+          <div className='max-h-[28rem] min-w-0 space-y-2 overflow-y-auto pr-1'>
             {isLoadingAvailableServices ? (
               <p className='text-muted-foreground text-sm'>
                 Cargando servicios...
