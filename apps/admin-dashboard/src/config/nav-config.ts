@@ -26,6 +26,14 @@ export const navItems: NavItem[] = [
     items: []
   },
   {
+    title: 'Servicios (Conf. Técnica)',
+    url: '/dashboard/services-catalog',
+    icon: 'servicesCatalog',
+    shortcut: ['t', 't'],
+    isActive: false,
+    items: []
+  },
+  {
     title: 'Admin',
     url: '/dashboard/admin',
     icon: 'account',

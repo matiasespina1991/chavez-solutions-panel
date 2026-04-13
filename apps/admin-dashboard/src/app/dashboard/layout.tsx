@@ -1,5 +1,6 @@
 import KBar from '@/components/kbar';
 import AppSidebar from '@/components/layout/app-sidebar';
+import DashboardHistorySwipeGuard from '@/components/layout/dashboard-history-swipe-guard';
 import Header from '@/components/layout/header';
 import RouteFade from '@/components/layout/route-fade';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
@@ -24,6 +25,7 @@ export default async function DashboardLayout({
       <SidebarProvider defaultOpen={defaultOpen}>
         <AppSidebar />
         <SidebarInset>
+          <DashboardHistorySwipeGuard />
           <Header />
           {/* page main content */}
           <RouteFade>{children}</RouteFade>

@@ -31,6 +31,21 @@ export interface MigrateMatrixToArrayResponse {
   work_orders: MatrixMigrationStats;
 }
 
+export interface SaveServicesTechnicalChange {
+  id: string;
+  patch: Record<string, string | number | null>;
+  lastKnownUpdatedAt?: string | null;
+}
+
+export interface SaveServicesTechnicalChangesResponse {
+  updated: number;
+  skipped: number;
+  notFound: string[];
+  conflicts: string[];
+  invalid: string[];
+  auditId: string;
+}
+
 export const importServicesFromCsv = async (
   csvContent: string,
   fileName?: string
@@ -80,5 +95,19 @@ export const deleteServiceHistory = async (
   );
 
   const result = await callable({ historyId });
+  return result.data;
+};
+
+export const saveServicesTechnicalChanges = async (
+  changes: SaveServicesTechnicalChange[],
+  reason?: string
+): Promise<SaveServicesTechnicalChangesResponse> => {
+  const functions = getFunctions();
+  const callable = httpsCallable<
+    { changes: SaveServicesTechnicalChange[]; reason?: string },
+    SaveServicesTechnicalChangesResponse
+  >(functions, 'saveServicesTechnicalChanges');
+
+  const result = await callable({ changes, reason });
   return result.data;
 };

@@ -161,6 +161,14 @@
   display: none !important;
 }
 
+/* Prevent back/forward history swipe across the whole dashboard area. */
+html.dashboard-no-history-swipe,
+body.dashboard-no-history-swipe,
+html.services-catalog-no-history-swipe,
+body.services-catalog-no-history-swipe {
+  overscroll-behavior-x: none;
+}
+
 /* .quill-editor .ql-editor p {
   font-size: 0.95rem;
 } */

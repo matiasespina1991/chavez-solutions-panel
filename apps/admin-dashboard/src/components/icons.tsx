@@ -47,6 +47,7 @@ import {
   IconList,
   IconUpload
 } from '@tabler/icons-react';
+import { FileCog } from 'lucide-react';
 
 export type Icon = React.ComponentType<IconProps>;
 
@@ -94,6 +95,7 @@ export const Icons = {
   home: IconHome,
   gallery: IconPhotoPlus,
   works: IconLayoutGrid,
+  servicesCatalog: FileCog,
   list: IconList,
   checklist: IconChecklist,
   configurator: IconWand,
