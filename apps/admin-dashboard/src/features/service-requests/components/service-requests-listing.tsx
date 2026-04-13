@@ -38,7 +38,8 @@ import {
   rejectServiceRequest,
   createWorkOrderFromRequest,
   pauseWorkOrderFromRequest,
-  resumeWorkOrderFromRequest
+  resumeWorkOrderFromRequest,
+  generateProformaPreviewPdf
 } from '@/features/configurator/services/configurations';
 import { db } from '@/lib/firebase';
 import {
@@ -89,6 +90,10 @@ interface ServiceRequestRow {
     businessName: string;
     taxId: string;
     contactName: string;
+    address: string;
+    city: string;
+    email: string;
+    phone: string;
   };
   serviceItems: Array<{
     serviceId: string;
@@ -218,75 +223,13 @@ const formatDate = (valueMs: number | null) => {
   return new Date(valueMs).toLocaleDateString('es-EC');
 };
 
-const escapeHtml = (value: string) =>
-  value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-
-const formatCurrency = (value: number) => `$${value.toFixed(2)}`;
-
-const buildPrintDocumentHtml = (title: string, bodyHtml: string) => `<!doctype html>
-<html lang="es">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>${escapeHtml(title)}</title>
-    <style>
-      body { font-family: Arial, sans-serif; color: #111; margin: 0; padding: 24px; }
-      h1 { margin: 0 0 6px 0; font-size: 28px; }
-      .sub { margin: 0 0 16px 0; color: #555; font-size: 14px; }
-      .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-      .card { border: 1px solid #d4d4d8; border-radius: 8px; padding: 12px; }
-      .card h3 { margin: 0 0 8px 0; font-size: 16px; }
-      .line { margin: 4px 0; font-size: 14px; }
-      .section { border: 1px solid #d4d4d8; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
-      .section h3 { margin: 0 0 8px 0; font-size: 16px; }
-      table { width: 100%; border-collapse: collapse; font-size: 13px; }
-      th, td { border-top: 1px solid #e4e4e7; padding: 8px; text-align: left; vertical-align: top; }
-      thead th { border-top: none; background: #f4f4f5; color: #3f3f46; }
-      .right { text-align: right; }
-      .costs { width: 320px; max-width: 100%; }
-      .cost-row { display: flex; justify-content: space-between; margin: 6px 0; }
-      .cost-total { border-top: 1px solid #e4e4e7; margin-top: 8px; padding-top: 8px; font-weight: 700; font-size: 18px; }
-      .muted { color: #71717a; }
-      ul { margin: 0; padding-left: 16px; }
-      li { margin: 4px 0; font-size: 14px; }
-      @media print {
-        body { padding: 14mm; }
-      }
-    </style>
-  </head>
-  <body>
-    ${bodyHtml}
-  </body>
-</html>`;
-
-const openPrintWindow = (html: string) => {
-  const printWindow = window.open('', '_blank', 'noopener,noreferrer');
-  if (!printWindow) return false;
-  printWindow.document.open();
-  printWindow.document.write(html);
-  printWindow.document.close();
-  printWindow.focus();
-  setTimeout(() => {
-    printWindow.print();
-  }, 200);
-  return true;
-};
-
-const downloadHtml = (fileName: string, html: string) => {
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+const formatDateLabel = (valueMs: number | null) => {
+  if (!valueMs) return '—';
+  return new Date(valueMs).toLocaleDateString('es-EC', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
 };
 
 export default function ServiceRequestsListing() {
@@ -764,134 +707,112 @@ export default function ServiceRequestsListing() {
     openWorkOrderToggleDialog(selectedRow);
   };
 
-  const handleDialogDownload = () => {
-    if (!selectedRow) return;
+  const buildProformaPreviewPayloadFromRow = (row: ServiceRequestRow) => {
+    const issuedAtMs = row.createdAtMs || Date.now();
+    const validUntilMs = getValidUntilMs(row.createdAtMs, row.validDays);
 
-    const taxAmount = (selectedRow.subtotal * selectedRow.taxPercent) / 100;
-    const servicesListHtml =
-      selectedRow.serviceItems.length > 0
-        ? `<ul>${selectedRow.serviceItems
-            .map((service) => `<li>${escapeHtml(service.parameterLabel)}</li>`)
-            .join('')}</ul>`
-        : `<p class="line">No hay servicios seleccionados.</p>`;
+    return {
+      reference: row.reference,
+      matrixLabels: row.matrix.map((entry) => matrixLabelMap[entry] ?? entry),
+      validDays: row.validDays,
+      issuedAtLabel: formatDateLabel(issuedAtMs),
+      validUntilLabel: formatDateLabel(validUntilMs),
+      client: {
+        businessName: row.client.businessName || '',
+        taxId: row.client.taxId || '',
+        contactName: row.client.contactName || '',
+        address: row.client.address || '',
+        city: row.client.city || '',
+        email: row.client.email || '',
+        phone: row.client.phone || '',
+        mobile: ''
+      },
+      services: row.serviceItems.map((service) => {
+        const quantity = service.quantity ?? 0;
+        const unitPrice = Number.isFinite(service.unitPrice)
+          ? service.unitPrice
+          : null;
+        const discountAmount = Number.isFinite(service.discountAmount)
+          ? service.discountAmount
+          : null;
+        const lineSubtotal =
+          typeof unitPrice === 'number'
+            ? Math.max(0, quantity * unitPrice - (discountAmount ?? 0))
+            : null;
 
-    const servicesTableHtml =
-      selectedRow.serviceItems.length > 0
-        ? `<div class="section">
-            <h3>Detalle de costos por servicios</h3>
-            <table>
-              <thead>
-                <tr>
-                  <th>Parámetro</th>
-                  <th class="right">Muestras</th>
-                  <th class="right">Costo unitario</th>
-                  <th class="right">Descuento</th>
-                  <th class="right">Subtotal</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${selectedRow.serviceItems
-                  .map((service) => {
-                    const lineTotal = Math.max(
-                      0,
-                      service.unitPrice * service.quantity - service.discountAmount
-                    );
-                    return `<tr>
-                      <td>${escapeHtml(service.parameterLabel)}</td>
-                      <td class="right">${service.quantity}</td>
-                      <td class="right">${formatCurrency(service.unitPrice)}</td>
-                      <td class="right">${formatCurrency(service.discountAmount)}</td>
-                      <td class="right">${formatCurrency(lineTotal)}</td>
-                    </tr>`;
-                  })
-                  .join('')}
-              </tbody>
-            </table>
-          </div>`
-        : '';
-
-    const html = buildPrintDocumentHtml(
-      `Solicitud ${selectedRow.reference}`,
-      `<h1>Resumen de solicitud</h1>
-       <p class="sub">Referencia: ${escapeHtml(selectedRow.reference)}</p>
-       <div class="cards">
-          <div class="card">
-            <h3>Datos generales</h3>
-            <p class="line"><strong>Tipo:</strong> ${selectedRow.isWorkOrder ? 'Proforma + OT' : 'Proforma'}</p>
-            <p class="line"><strong>Matrices:</strong> ${escapeHtml(formatMatrixLabel(selectedRow.matrix))}</p>
-            <p class="line"><strong>Referencia:</strong> ${escapeHtml(selectedRow.reference)}</p>
-            <p class="line"><strong>Validez:</strong> ${selectedRow.validDays ? `${selectedRow.validDays} días` : '—'}</p>
-            <p class="line"><strong>Válida hasta:</strong> ${escapeHtml(
-              formatDate(getValidUntilMs(selectedRow.createdAtMs, selectedRow.validDays))
-            )}</p>
-            <p class="line"><strong>Aprobación:</strong> ${escapeHtml(getApprovalStatusLabel(selectedRow))}</p>
-          </div>
-          <div class="card">
-            <h3>Cliente</h3>
-            <p class="line"><strong>Razón social:</strong> ${escapeHtml(selectedRow.client.businessName || '—')}</p>
-            <p class="line"><strong>RUC:</strong> ${escapeHtml(selectedRow.client.taxId || '—')}</p>
-            <p class="line"><strong>Contacto:</strong> ${escapeHtml(selectedRow.client.contactName || '—')}</p>
-          </div>
-       </div>
-       <div class="section">
-          <h3>Servicios (${selectedRow.serviceItems.length})</h3>
-          ${servicesListHtml}
-       </div>
-       ${servicesTableHtml}
-       <div class="section">
-          <h3>Costos estimados</h3>
-          <div class="costs">
-            <div class="cost-row"><span class="muted">Subtotal:</span><span>${formatCurrency(selectedRow.subtotal)}</span></div>
-            <div class="cost-row"><span class="muted">IVA (${selectedRow.taxPercent}%):</span><span>${formatCurrency(taxAmount)}</span></div>
-            <div class="cost-row cost-total"><span>Total:</span><span>${formatCurrency(selectedRow.total)}</span></div>
-          </div>
-       </div>
-       ${
-         selectedRow.notes?.trim()
-           ? `<div class="section"><h3>Notas</h3><p class="line">${escapeHtml(selectedRow.notes)}</p></div>`
-           : ''
-       }`
-    );
-
-    downloadHtml(`solicitud-${selectedRow.reference}.html`, html);
-    toast.success('Resumen descargado correctamente');
+        return {
+          label: service.parameterLabel || service.parameterId || 'Servicio',
+          unit: service.unit || 'Sin unidad',
+          method: service.method || 'Sin método',
+          rangeOffered: `${service.rangeMin || '—'} a ${service.rangeMax || '—'}`,
+          quantity,
+          unitPrice,
+          discountAmount,
+          subtotal: lineSubtotal
+        };
+      }),
+      pricing: {
+        subtotal: row.subtotal ?? 0,
+        taxPercent: row.taxPercent ?? 15,
+        total: row.total ?? 0
+      }
+    };
   };
 
-  const handleDialogPrint = () => {
+  const handleDialogDownload = async () => {
     if (!selectedRow) return;
-    const htmlTitle = `Solicitud ${selectedRow.reference}`;
-    const printed = openPrintWindow(
-      buildPrintDocumentHtml(
-        htmlTitle,
-        `<h1>Resumen de solicitud</h1>
-         <p class="sub">Referencia: ${escapeHtml(selectedRow.reference)}</p>
-         <div class="section">
-           <h3>Cliente</h3>
-           <p class="line"><strong>Razón social:</strong> ${escapeHtml(selectedRow.client.businessName || '—')}</p>
-           <p class="line"><strong>RUC:</strong> ${escapeHtml(selectedRow.client.taxId || '—')}</p>
-           <p class="line"><strong>Contacto:</strong> ${escapeHtml(selectedRow.client.contactName || '—')}</p>
-         </div>
-         <div class="section">
-           <h3>Servicios (${selectedRow.serviceItems.length})</h3>
-           ${
-             selectedRow.serviceItems.length
-               ? `<ul>${selectedRow.serviceItems
-                   .map((service) => `<li>${escapeHtml(service.parameterLabel)}</li>`)
-                   .join('')}</ul>`
-               : '<p class="line">No hay servicios seleccionados.</p>'
-           }
-         </div>
-         <div class="section">
-           <h3>Total estimado</h3>
-           <p class="line"><strong>Total:</strong> ${formatCurrency(selectedRow.total)}</p>
-         </div>`
-      )
-    );
-    if (!printed) {
-      toast.error('No se pudo abrir la ventana de impresión');
-      return;
+
+    try {
+      const result = await generateProformaPreviewPdf(
+        buildProformaPreviewPayloadFromRow(selectedRow)
+      );
+
+      const link = document.createElement('a');
+      link.href = result.downloadURL;
+      link.download = result.fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success('PDF de proforma descargado.');
+    } catch (error) {
+      console.error('[ServiceRequests] download pdf error', error);
+      toast.error('No se pudo descargar el PDF de la proforma.');
     }
-    toast.success('Abriendo vista de impresión…');
+  };
+
+  const handleDialogPrint = async () => {
+    if (!selectedRow) return;
+
+    try {
+      const result = await generateProformaPreviewPdf(
+        buildProformaPreviewPayloadFromRow(selectedRow)
+      );
+
+      const printWindow = window.open(
+        result.downloadURL,
+        '_blank',
+        'noopener,noreferrer'
+      );
+
+      if (!printWindow) {
+        toast.error('No se pudo abrir la vista de impresión.');
+        return;
+      }
+
+      setTimeout(() => {
+        try {
+          printWindow.focus();
+          printWindow.print();
+        } catch (error) {
+          console.warn('[ServiceRequests] print trigger warning', error);
+        }
+      }, 800);
+
+      toast.success('Abriendo PDF para impresión…');
+    } catch (error) {
+      console.error('[ServiceRequests] print pdf error', error);
+      toast.error('No se pudo generar el PDF para imprimir.');
+    }
   };
 
   useEffect(() => {
@@ -989,12 +910,26 @@ export default function ServiceRequestsListing() {
                   ),
                   contactName: String(
                     (value.client as { contactName?: string }).contactName ?? ''
+                  ),
+                  address: String(
+                    (value.client as { address?: string }).address ?? ''
+                  ),
+                  city: String((value.client as { city?: string }).city ?? ''),
+                  email: String(
+                    (value.client as { email?: string }).email ?? ''
+                  ),
+                  phone: String(
+                    (value.client as { phone?: string }).phone ?? ''
                   )
                 }
               : {
                   businessName: '',
                   taxId: '',
-                  contactName: ''
+                  contactName: '',
+                  address: '',
+                  city: '',
+                  email: '',
+                  phone: ''
                 };
 
           const sampleItems =

@@ -2179,8 +2179,12 @@ export default function ConfiguratorForm() {
                         return (
                           <div
                             key={group.id}
-                            className='bg-primary/10 border-primary/25 space-y-3 rounded-md border p-3'
+                            className='bg-primary/15 border-primary/30 relative space-y-3 overflow-hidden rounded-xl border p-3'
                           >
+                            <span
+                              aria-hidden='true'
+                              className='text-primary/35 absolute top-0 left-0 h-4 w-4 [background-image:radial-gradient(currentColor_1px,transparent_1px)] [background-size:3px_3px] [clip-path:polygon(0_0,100%_0,0_100%)]'
+                            />
                             <div className='flex items-center justify-between gap-3'>
                               <div className='flex items-center gap-1'>
                                 <Input
@@ -2195,7 +2199,7 @@ export default function ConfiguratorForm() {
                                   <TooltipTrigger asChild>
                                     <button
                                       type='button'
-                                      className='text-muted-foreground hover:text-foreground inline-flex h-7 w-7 cursor-pointer items-center justify-center'
+                                      className='text-foreground/70 hover:text-foreground inline-flex h-7 w-7 cursor-pointer items-center justify-center'
                                       onClick={() =>
                                         handleEditGroupServices(
                                           group,
@@ -2219,7 +2223,7 @@ export default function ConfiguratorForm() {
                                   type='button'
                                   variant='ghost'
                                   size='icon'
-                                  className='h-7 w-7 cursor-pointer'
+                                  className='text-destructive hover:text-destructive h-7 w-7 cursor-pointer'
                                   onClick={() => handleOpenRemoveGroupDialog(group)}
                                   aria-label='Quitar combo'
                                 >
@@ -2235,7 +2239,7 @@ export default function ConfiguratorForm() {
                                 return (
                                   <div
                                     key={serviceId}
-                                    className='bg-background rounded-md border p-3'
+                                    className='bg-background rounded-xl border p-3'
                                   >
                                     <div className='flex items-start justify-between gap-2'>
                                       <div className='flex-1 space-y-3'>
