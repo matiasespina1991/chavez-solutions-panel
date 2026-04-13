@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo, Fragment } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -77,6 +77,7 @@ import {
   ImportedServiceDocument,
   listImportedServices
 } from '../services/configurations';
+import { ProformaSummaryPanel } from '@/features/proformas/components/proforma-summary-panel';
 
 const formSchema = z.object({
   type: z.literal('proforma'),
@@ -1001,7 +1002,7 @@ export default function ConfiguratorForm() {
 
         if (!existing) {
           toast.error('No se encontró la solicitud seleccionada');
-          router.push('/dashboard/service-requests');
+          router.push('/dashboard/requests-list');
           return;
         }
 
@@ -1302,7 +1303,7 @@ export default function ConfiguratorForm() {
         );
       }
       removeCachedDraft();
-      router.push('/dashboard/service-requests');
+      router.push('/dashboard/requests-list');
     } catch (error) {
       console.error('Error saving configuration:', error);
       const errorMessage =
@@ -1348,7 +1349,7 @@ export default function ConfiguratorForm() {
       await updateConfiguration(editRequestId, updateData);
       toast.success('Solicitud actualizada');
       removeCachedDraft();
-      router.push('/dashboard/service-requests');
+      router.push('/dashboard/requests-list');
     } catch (error) {
       console.error('Error updating request:', error);
       toast.error('Error al actualizar la solicitud');
@@ -2466,218 +2467,49 @@ export default function ConfiguratorForm() {
           <TabsContent value='summary' className='mt-4'>
             <Card className='border-0 p-0 shadow-none'>
               <CardContent className='space-y-5 px-6 py-5'>
-                <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
-                  <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
-                    <h4 className='text-muted-foreground font-semibold'>
-                      Datos Generales
-                    </h4>
-                    <p>
-                      <span className='font-medium'>Tipo:</span> Proforma
-                    </p>
-                    <p>
-                      <span className='font-medium'>Matrices:</span>{' '}
-                      {Array.isArray(matrix) && matrix.length
-                        ? matrix
-                            .map((entry) => MATRIX_LABEL_MAP[entry] ?? entry)
-                            .join(', ')
-                        : '—'}
-                    </p>
-                    <p>
-                      <span className='font-medium'>Referencia:</span>{' '}
-                      {form.getValues('reference')}
-                    </p>
-                    <p>
-                      <span className='font-medium'>Validez:</span>{' '}
-                      {validDaysValue ? `${validDaysValue} días` : '—'}
-                    </p>
-                    <p>
-                      <span className='font-medium'>Válida hasta:</span>{' '}
-                      {validUntilLabel}
-                    </p>
-                  </div>
-                  <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
-                    <h4 className='text-muted-foreground font-semibold'>
-                      Cliente
-                    </h4>
-                    <p>
-                      <span className='font-medium'>Razón Social:</span>{' '}
-                      {form.getValues('client.businessName') || '—'}
-                    </p>
-                    <p>
-                      <span className='font-medium'>RUC:</span>{' '}
-                      {form.getValues('client.taxId') || '—'}
-                    </p>
-                    <p>
-                      <span className='font-medium'>Contacto:</span>{' '}
-                      {form.getValues('client.contactName') || '—'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
-                  <h4 className='text-muted-foreground font-semibold'>
-                    Servicios ({selectedServices.length})
-                  </h4>
-                  {selectedServices.length ? (
-                    <div className='space-y-1'>
-                      {selectedServices.map((service) => (
-                        <p
-                          key={service.ID_CONFIG_PARAMETRO || service.id}
-                          className='text-sm'
-                        >
-                          {service.ID_PARAMETRO ||
-                            service.ID_CONFIG_PARAMETRO ||
-                            service.id}
-                        </p>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className='text-sm'>No hay servicios seleccionados.</p>
-                  )}
-                </div>
-
-                <div className='space-y-4 rounded-md border p-4'>
-                  {summaryServiceGroups.length > 0 ? (
-                    <div className='space-y-2'>
-                      <h4 className='text-muted-foreground font-semibold'>
-                        Detalle de costos por análisis
-                      </h4>
-                      <div className='overflow-x-auto rounded-md border'>
-                        <table className='w-full text-left text-sm'>
-                          <thead className='bg-muted text-muted-foreground'>
-                            <tr>
-                              <th className='p-2'>Parámetro</th>
-                              <th className='p-2 text-right'>Muestras</th>
-                              <th className='p-2 text-right'>Costo unitario</th>
-                              <th className='p-2 text-right'>Descuento</th>
-                              <th className='p-2 text-right'>Subtotal</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {summaryServiceGroups.map((group, groupIndex) => {
-                              const groupSubtotal = group.items.reduce(
-                                (acc, service) => {
-                                  const quantity = service.quantity ?? 1;
-                                  const unitPrice = service.unitPrice ?? null;
-                                  const discountAmount =
-                                    service.discountAmount ?? null;
-                                  if (unitPrice === null) return acc;
-                                  return (
-                                    acc +
-                                    Math.max(
-                                      0,
-                                      unitPrice * quantity - (discountAmount ?? 0)
-                                    )
-                                  );
-                                },
-                                0
-                              );
-
-                              return (
-                                <Fragment
-                                  key={`summary-group-${group.id}-${groupIndex}`}
-                                >
-                                  {group.items.map((service, itemIndex) => {
-                                    const serviceId =
-                                      service.ID_CONFIG_PARAMETRO || service.id;
-                                    const quantity = service.quantity ?? 1;
-                                    const unitPrice = service.unitPrice ?? null;
-                                    const discountAmount =
-                                      service.discountAmount ?? null;
-                                    const lineBase =
-                                      unitPrice !== null
-                                        ? unitPrice * quantity
-                                        : null;
-                                    const lineTotal =
-                                      lineBase !== null
-                                        ? Math.max(
-                                            0,
-                                            lineBase - (discountAmount ?? 0)
-                                          )
-                                        : null;
-                                    return (
-                                      <tr
-                                        key={`summary-cost-${group.id}-${serviceId}-${itemIndex}`}
-                                        className='border-t'
-                                      >
-                                        <td className='p-2'>
-                                          {service.ID_PARAMETRO || serviceId}
-                                        </td>
-                                        <td className='p-2 text-right'>
-                                          {quantity}
-                                        </td>
-                                        <td className='p-2 text-right'>
-                                          {unitPrice !== null
-                                            ? `$${unitPrice.toFixed(2)}`
-                                            : '—'}
-                                        </td>
-                                        <td className='p-2 text-right'>
-                                          {discountAmount !== null
-                                            ? `$${discountAmount.toFixed(2)}`
-                                            : '—'}
-                                        </td>
-                                        <td className='p-2 text-right'>
-                                          {lineTotal !== null
-                                            ? `$${lineTotal.toFixed(2)}`
-                                            : '—'}
-                                        </td>
-                                      </tr>
-                                    );
-                                  })}
-                                  <tr
-                                    key={`summary-group-subtotal-${group.id}-${groupIndex}`}
-                                    className='bg-muted/40 border-t font-medium'
-                                  >
-                                    <td className='p-2' colSpan={5}>
-                                      <div className='flex items-center justify-between gap-2'>
-                                        <span>
-                                          Subtotal{' '}
-                                          {group.name || `Combo ${groupIndex + 1}`}
-                                        </span>
-                                        <span className='text-right'>
-                                          ${groupSubtotal.toFixed(2)}
-                                        </span>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                </Fragment>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  <h4 className='text-muted-foreground font-semibold'>
-                    Costos estimados
-                  </h4>
-                  <div className='w-full max-w-xs space-y-1'>
-                    <div className='flex justify-between'>
-                      <span className='text-muted-foreground'>Subtotal:</span>
-                      <span>${summarySubtotal.toFixed(2)}</span>
-                    </div>
-                    <div className='flex justify-between'>
-                      <span className='text-muted-foreground'>
-                        IVA ({summaryTaxPercent}%):
-                      </span>
-                      <span>${summaryTaxAmount.toFixed(2)}</span>
-                    </div>
-                    <div className='mt-1 flex justify-between border-t pt-1 text-lg font-bold'>
-                      <span>Total:</span>
-                      <span>${summaryTotal.toFixed(2)} USD</span>
-                    </div>
-                  </div>
-                </div>
-
-                {summaryNotes ? (
-                  <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
-                    <h4 className='text-muted-foreground font-semibold'>
-                      Notas
-                    </h4>
-                    <p className='whitespace-pre-wrap'>{summaryNotes}</p>
-                  </div>
-                ) : null}
+                <ProformaSummaryPanel
+                  typeLabel='Proforma'
+                  matrixLabel={
+                    Array.isArray(matrix) && matrix.length
+                      ? matrix
+                          .map((entry) => MATRIX_LABEL_MAP[entry] ?? entry)
+                          .join(', ')
+                      : '—'
+                  }
+                  reference={form.getValues('reference') || '—'}
+                  validDaysLabel={validDaysValue ? `${validDaysValue} días` : '—'}
+                  validUntilLabel={validUntilLabel}
+                  client={{
+                    businessName: form.getValues('client.businessName') || '—',
+                    taxId: form.getValues('client.taxId') || '—',
+                    contactName: form.getValues('client.contactName') || '—'
+                  }}
+                  groups={summaryServiceGroups.map((group) => ({
+                    id: group.id,
+                    name: group.name,
+                    items: group.items.map((service, index) => ({
+                      id:
+                        service.ID_CONFIG_PARAMETRO ||
+                        service.id ||
+                        `${group.id}-service-${index}`,
+                      label:
+                        service.ID_PARAMETRO ||
+                        service.ID_CONFIG_PARAMETRO ||
+                        service.id ||
+                        'Servicio',
+                      quantity: service.quantity ?? 1,
+                      unitPrice: service.unitPrice ?? null,
+                      discountAmount: service.discountAmount ?? null
+                    }))
+                  }))}
+                  pricing={{
+                    subtotal: summarySubtotal,
+                    taxPercent: summaryTaxPercent,
+                    total: summaryTotal
+                  }}
+                  notes={summaryNotes}
+                  showTotalUsdSuffix
+                />
 
                 {renderTabActions(true)}
               </CardContent>

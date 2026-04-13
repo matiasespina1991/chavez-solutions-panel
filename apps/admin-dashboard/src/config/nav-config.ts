@@ -11,7 +11,7 @@ export const navItems: NavItem[] = [
   },
   {
     title: 'Lista de solicitudes',
-    url: '/dashboard/service-requests',
+    url: '/dashboard/requests-list',
     icon: 'list',
     shortcut: ['e', 'e'],
     isActive: false,

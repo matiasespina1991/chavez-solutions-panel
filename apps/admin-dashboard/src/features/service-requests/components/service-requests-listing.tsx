@@ -62,6 +62,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { ProformaSummaryPanel } from '@/features/proformas/components/proforma-summary-panel';
 
 type ServiceRequestMatrix = 'water' | 'soil' | 'noise' | 'gases';
 type ServiceRequestStatus =
@@ -106,6 +107,17 @@ interface ServiceRequestRow {
     quantity: number;
     unitPrice: number;
     discountAmount: number;
+  }>;
+  serviceGroups: Array<{
+    id: string;
+    name: string;
+    items: Array<{
+      serviceId: string;
+      parameterLabel: string;
+      quantity: number;
+      unitPrice: number;
+      discountAmount: number;
+    }>;
   }>;
   sampleItems: Array<{ sampleCode: string; sampleType: string }>;
   analysisItems: Array<{ parameterLabelEs: string; unitPrice: number }>;
@@ -1039,6 +1051,83 @@ export default function ServiceRequestsListing() {
                   discountAmount: 0
                 }));
 
+          const rawGroupedServiceItems =
+            value.services &&
+            typeof value.services === 'object' &&
+            !Array.isArray(value.services)
+              ? (value.services as { grouped?: unknown[] }).grouped
+              : [];
+
+          const serviceGroups = Array.isArray(rawGroupedServiceItems)
+            ? rawGroupedServiceItems
+                .map((group, groupIndex) => {
+                  const groupValue = group as {
+                    name?: string;
+                    items?: unknown[];
+                  };
+                  const mappedItems = Array.isArray(groupValue.items)
+                    ? groupValue.items.map((item, itemIndex) => {
+                        const rowItem = item as {
+                          serviceId?: string;
+                          parameterId?: string;
+                          parameterLabel?: string;
+                          quantity?: number;
+                          unitPrice?: number | null;
+                          discountAmount?: number | null;
+                        };
+                        const unitPrice = Number(rowItem.unitPrice ?? 0);
+                        const discountAmount = Number(rowItem.discountAmount ?? 0);
+                        return {
+                          serviceId: String(
+                            rowItem.serviceId ??
+                              rowItem.parameterId ??
+                              `grouped-service-${groupIndex}-${itemIndex}`
+                          ),
+                          parameterLabel: String(
+                            rowItem.parameterLabel ??
+                              rowItem.parameterId ??
+                              'Servicio'
+                          ),
+                          quantity: Math.max(1, Number(rowItem.quantity ?? 1)),
+                          unitPrice: Number.isFinite(unitPrice) ? unitPrice : 0,
+                          discountAmount:
+                            Number.isFinite(discountAmount) && discountAmount >= 0
+                              ? discountAmount
+                              : 0
+                        };
+                      })
+                    : [];
+
+                  return {
+                    id: `group-${groupIndex}`,
+                    name: String(
+                      groupValue.name?.trim() || `Combo ${groupIndex + 1}`
+                    ),
+                    items: mappedItems
+                  };
+                })
+                .filter((group) => group.items.length > 0)
+            : [];
+
+          const normalizedServiceGroups =
+            serviceGroups.length > 0
+              ? serviceGroups
+              : normalizedServiceItems.length > 0
+                ? [
+                    {
+                      id: 'fallback-group',
+                      name: 'Combo 1',
+                      items: normalizedServiceItems.map((item) => ({
+                        serviceId: item.serviceId,
+                        parameterLabel: item.parameterLabel,
+                        quantity: item.quantity,
+                        unitPrice: item.unitPrice,
+                        discountAmount: item.discountAmount
+                      }))
+                    }
+                  ]
+                : [];
+
           return {
             id: docSnap.id,
             reference: String(value.reference ?? '—'),
@@ -1053,6 +1142,7 @@ export default function ServiceRequestsListing() {
             createdAtMs,
             client,
             serviceItems: normalizedServiceItems,
+            serviceGroups: normalizedServiceGroups,
             sampleItems,
             analysisItems,
             taxPercent: Number.isFinite(taxPercent) ? taxPercent : 15,
@@ -1756,177 +1846,46 @@ export default function ServiceRequestsListing() {
                     ) : null}
                   </div>
                 ) : null}
-                <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
-                  <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
-                    <h4 className='text-muted-foreground font-semibold'>
-                      Datos Generales
-                    </h4>
-                    <p>
-                      <span className='font-medium'>Tipo:</span>{' '}
-                      {selectedRow.isWorkOrder ? 'Proforma + OT' : 'Proforma'}
-                    </p>
-                    <p>
-                      <span className='font-medium'>Matrices:</span>{' '}
-                      {formatMatrixLabel(selectedRow.matrix)}
-                    </p>
-                    <p>
-                      <span className='font-medium'>Referencia:</span>{' '}
-                      {selectedRow.reference}
-                    </p>
-                    <p>
-                      <span className='font-medium'>Validez:</span>{' '}
-                      {selectedRow.validDays
-                        ? `${selectedRow.validDays} días`
-                        : '—'}
-                    </p>
-                    <p>
-                      <span className='font-medium'>Válida hasta:</span>{' '}
-                      {formatDate(
-                        getValidUntilMs(
-                          selectedRow.createdAtMs,
-                          selectedRow.validDays
-                        )
-                      )}
-                    </p>
-                    <p>
-                      <span className='font-medium'>Aprobación:</span>{' '}
-                      {getApprovalStatusLabel(selectedRow)}
-                    </p>
-                    {selectedRow.approvalStatus === 'rejected' &&
-                    selectedRow.approvalFeedback.trim() ? (
-                      <p>
-                        <span className='font-medium'>Motivo rechazo:</span>{' '}
-                        {selectedRow.approvalFeedback}
-                      </p>
-                    ) : null}
-                  </div>
-                  <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
-                    <h4 className='text-muted-foreground font-semibold'>
-                      Cliente
-                    </h4>
-                    <p>
-                      <span className='font-medium'>Razón Social:</span>{' '}
-                      {selectedRow.client.businessName || '—'}
-                    </p>
-                    <p>
-                      <span className='font-medium'>RUC:</span>{' '}
-                      {selectedRow.client.taxId || '—'}
-                    </p>
-                    <p>
-                      <span className='font-medium'>Contacto:</span>{' '}
-                      {selectedRow.client.contactName || '—'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
-                  <h4 className='text-muted-foreground font-semibold'>
-                    Servicios ({selectedRow.serviceItems.length})
-                  </h4>
-                  <div className='space-y-1'>
-                    {selectedRow.serviceItems.length > 0 ? (
-                      selectedRow.serviceItems.map((service, index) => (
-                        <p
-                          key={`${service.serviceId}-${index}`}
-                          className='text-sm'
-                        >
-                          {service.parameterLabel}
-                        </p>
-                      ))
-                    ) : (
-                      <p className='text-sm'>No hay servicios seleccionados.</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className='space-y-4 rounded-md border p-4'>
-                  {selectedRow.serviceItems.length > 0 && (
-                    <div className='space-y-2'>
-                      <h4 className='text-muted-foreground font-semibold'>
-                        Detalle de costos por servicios
-                      </h4>
-                      <div className='overflow-x-auto rounded-md border'>
-                        <table className='w-full text-left text-sm'>
-                          <thead className='bg-muted text-muted-foreground'>
-                            <tr>
-                              <th className='p-2'>Parámetro</th>
-                              <th className='p-2 text-right'>Muestras</th>
-                              <th className='p-2 text-right'>Costo unitario</th>
-                              <th className='p-2 text-right'>Descuento</th>
-                              <th className='p-2 text-right'>Subtotal</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {selectedRow.serviceItems.map((service, index) => {
-                              const lineTotal = Math.max(
-                                0,
-                                service.unitPrice * service.quantity -
-                                  service.discountAmount
-                              );
-                              return (
-                                <tr
-                                  key={`${service.serviceId}-${index}`}
-                                  className='border-t'
-                                >
-                                  <td className='p-2'>
-                                    {service.parameterLabel}
-                                  </td>
-                                  <td className='p-2 text-right'>
-                                    {service.quantity}
-                                  </td>
-                                  <td className='p-2 text-right'>
-                                    ${service.unitPrice.toFixed(2)}
-                                  </td>
-                                  <td className='p-2 text-right'>
-                                    ${service.discountAmount.toFixed(2)}
-                                  </td>
-                                  <td className='p-2 text-right'>
-                                    ${lineTotal.toFixed(2)}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
+                <ProformaSummaryPanel
+                  typeLabel={selectedRow.isWorkOrder ? 'Proforma + OT' : 'Proforma'}
+                  matrixLabel={formatMatrixLabel(selectedRow.matrix)}
+                  reference={selectedRow.reference}
+                  validDaysLabel={
+                    selectedRow.validDays ? `${selectedRow.validDays} días` : '—'
+                  }
+                  validUntilLabel={formatDate(
+                    getValidUntilMs(selectedRow.createdAtMs, selectedRow.validDays)
                   )}
-
-                  <h4 className='text-muted-foreground font-semibold'>
-                    Costos Estimados
-                  </h4>
-                  <div className='w-full max-w-xs space-y-1'>
-                    <div className='flex justify-between'>
-                      <span className='text-muted-foreground'>Subtotal:</span>
-                      <span>${selectedRow.subtotal.toFixed(2)}</span>
-                    </div>
-                    <div className='flex justify-between'>
-                      <span className='text-muted-foreground'>
-                        IVA ({selectedRow.taxPercent}%):
-                      </span>
-                      <span>
-                        $
-                        {(
-                          (selectedRow.subtotal * selectedRow.taxPercent) /
-                          100
-                        ).toFixed(2)}
-                      </span>
-                    </div>
-                    <div className='mt-1 flex justify-between border-t pt-1 text-lg font-bold'>
-                      <span>Total:</span>
-                      <span>${selectedRow.total.toFixed(2)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {selectedRow.notes?.trim() ? (
-                  <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
-                    <h4 className='text-muted-foreground font-semibold'>
-                      Notas
-                    </h4>
-                    <p className='whitespace-pre-wrap'>{selectedRow.notes}</p>
-                  </div>
-                ) : null}
+                  client={{
+                    businessName: selectedRow.client.businessName || '—',
+                    taxId: selectedRow.client.taxId || '—',
+                    contactName: selectedRow.client.contactName || '—'
+                  }}
+                  groups={selectedRow.serviceGroups.map((group) => ({
+                    id: group.id,
+                    name: group.name,
+                    items: group.items.map((item) => ({
+                      id: item.serviceId,
+                      label: item.parameterLabel,
+                      quantity: item.quantity,
+                      unitPrice: item.unitPrice,
+                      discountAmount: item.discountAmount
+                    }))
+                  }))}
+                  pricing={{
+                    subtotal: selectedRow.subtotal,
+                    taxPercent: selectedRow.taxPercent,
+                    total: selectedRow.total
+                  }}
+                  notes={selectedRow.notes}
+                  approvalStatusLabel={getApprovalStatusLabel(selectedRow)}
+                  rejectionReason={
+                    selectedRow.approvalStatus === 'rejected'
+                      ? selectedRow.approvalFeedback
+                      : null
+                  }
+                  showTotalUsdSuffix
+                />
               </div>
             </div>
           )}
