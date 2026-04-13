@@ -2,7 +2,15 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { collection, getDocs, Timestamp } from 'firebase/firestore';
-import { Loader2, Plus, Save, Search, Undo2 } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  Loader2,
+  Plus,
+  Save,
+  Search,
+  Undo2
+} from 'lucide-react';
 import { toast } from 'sonner';
 
 import { db } from '@/lib/firebase';
@@ -48,6 +56,7 @@ type EditableFieldKey =
   | 'ID_PARAMETRO'
   | 'ID_MAT_ENSAYO'
   | 'ID_MATRIZ'
+  | 'ID_UBICACION'
   | 'ID_NORMA'
   | 'ID_TABLA_NORMA'
   | 'ID_TECNICA'
@@ -55,8 +64,10 @@ type EditableFieldKey =
   | 'ID_MET_REFERENCIA'
   | 'UNIDAD_INTERNO'
   | 'LIM_INF_INTERNO'
-  | 'LIM_SUP_INTERNO'
-  | 'PRECIO';
+  | 'LIM_SUP_INTERNO';
+
+type SortableCatalogFieldKey = 'ID_CONFIG_PARAMETRO' | EditableFieldKey;
+type SortDirection = 'asc' | 'desc' | null;
 
 type ServiceCatalogRow = {
   id: string;
@@ -65,15 +76,16 @@ type ServiceCatalogRow = {
   ID_PARAMETRO: string;
   ID_MAT_ENSAYO: string;
   ID_MATRIZ: string;
+  ID_UBICACION: string;
   ID_NORMA: string;
   ID_TABLA_NORMA: string;
   ID_TECNICA: string;
   ID_MET_INTERNO: string;
   ID_MET_REFERENCIA: string;
   UNIDAD_INTERNO: string;
+  UNIDAD_NORMA: string;
   LIM_INF_INTERNO: string;
   LIM_SUP_INTERNO: string;
-  PRECIO: string;
 };
 
 type CreateServiceDraft = {
@@ -94,7 +106,6 @@ type CreateServiceDraft = {
   LIM_SUP_INTERNO: string;
   LIM_INF_NORMA: string;
   LIM_SUP_NORMA: string;
-  PRECIO: string;
 };
 
 const INITIAL_CREATE_SERVICE_DRAFT: CreateServiceDraft = {
@@ -114,8 +125,7 @@ const INITIAL_CREATE_SERVICE_DRAFT: CreateServiceDraft = {
   LIM_INF_INTERNO: '',
   LIM_SUP_INTERNO: '',
   LIM_INF_NORMA: '',
-  LIM_SUP_NORMA: '',
-  PRECIO: ''
+  LIM_SUP_NORMA: ''
 };
 
 const CREATE_SERVICE_SECTIONS: Array<{
@@ -190,7 +200,7 @@ const CREATE_SERVICE_SECTIONS: Array<{
         label: 'Técnica',
         className: 'md:col-span-2',
         placeholder:
-          'Ej: Espectrofotometría de Absorción Atómica, Llama Aire - Acetileno'
+          'Espectrofotometría de Absorción Atómica, Llama Aire - Acetileno'
       },
       {
         key: 'ID_MET_INTERNO',
@@ -251,6 +261,7 @@ const EDITABLE_COLUMNS: Array<{
   { key: 'ID_PARAMETRO', label: 'Parámetro', minWidth: 'min-w-[14rem]' },
   { key: 'ID_MAT_ENSAYO', label: 'Material', minWidth: 'min-w-[12rem]' },
   { key: 'ID_MATRIZ', label: 'Matriz', minWidth: 'min-w-[13rem]' },
+  { key: 'ID_UBICACION', label: 'Ubicación', minWidth: 'min-w-[11rem]' },
   { key: 'ID_NORMA', label: 'Norma', minWidth: 'min-w-[12rem]' },
   { key: 'ID_TABLA_NORMA', label: 'Tabla', minWidth: 'min-w-[16rem]' },
   { key: 'ID_TECNICA', label: 'Técnica', minWidth: 'min-w-[14rem]' },
@@ -262,8 +273,7 @@ const EDITABLE_COLUMNS: Array<{
   },
   { key: 'UNIDAD_INTERNO', label: 'Unidad', minWidth: 'min-w-[8rem]' },
   { key: 'LIM_INF_INTERNO', label: 'Límite inf.', minWidth: 'min-w-[9rem]' },
-  { key: 'LIM_SUP_INTERNO', label: 'Límite sup.', minWidth: 'min-w-[9rem]' },
-  { key: 'PRECIO', label: 'Precio', minWidth: 'min-w-[8rem]' }
+  { key: 'LIM_SUP_INTERNO', label: 'Límite sup.', minWidth: 'min-w-[9rem]' }
 ];
 
 const toStringValue = (value: unknown): string => {
@@ -304,16 +314,27 @@ const buildRowFromDoc = (
   ID_PARAMETRO: toStringValue(data.ID_PARAMETRO),
   ID_MAT_ENSAYO: toStringValue(data.ID_MAT_ENSAYO),
   ID_MATRIZ: toStringValue(data.ID_MATRIZ),
+  ID_UBICACION: toStringValue(data.ID_UBICACION),
   ID_NORMA: toStringValue(data.ID_NORMA),
   ID_TABLA_NORMA: toStringValue(data.ID_TABLA_NORMA),
   ID_TECNICA: toStringValue(data.ID_TECNICA),
   ID_MET_INTERNO: toStringValue(data.ID_MET_INTERNO),
   ID_MET_REFERENCIA: toStringValue(data.ID_MET_REFERENCIA),
   UNIDAD_INTERNO: toStringValue(data.UNIDAD_INTERNO),
+  UNIDAD_NORMA: toStringValue(data.UNIDAD_NORMA),
   LIM_INF_INTERNO: toStringValue(data.LIM_INF_INTERNO),
-  LIM_SUP_INTERNO: toStringValue(data.LIM_SUP_INTERNO),
-  PRECIO: toStringValue(data.PRECIO)
+  LIM_SUP_INTERNO: toStringValue(data.LIM_SUP_INTERNO)
 });
+
+const AUTOCOMPLETE_FIELD_KEYS: Array<keyof CreateServiceDraft> = [
+  'ID_TABLA_NORMA',
+  'ID_MAT_ENSAYO',
+  'UNIDAD_INTERNO',
+  'UNIDAD_NORMA',
+  'ID_MATRIZ',
+  'ID_TECNICA',
+  'ID_UBICACION'
+];
 
 const normalizeForCompare = (value: string): string => value.trim();
 
@@ -328,26 +349,6 @@ const getChangedPatch = (
   EDITABLE_COLUMNS.forEach(({ key }) => {
     const nextRaw = current[key];
     const prevRaw = original[key];
-
-    if (key === 'PRECIO') {
-      const nextNormalized = normalizeForCompare(nextRaw);
-      const prevNormalized = normalizeForCompare(prevRaw);
-
-      if (nextNormalized === prevNormalized) return;
-
-      if (nextNormalized.length === 0) {
-        patch.PRECIO = null;
-        return;
-      }
-
-      const numeric = Number(nextNormalized.replace(',', '.'));
-      if (!Number.isFinite(numeric)) {
-        return;
-      }
-
-      patch.PRECIO = numeric;
-      return;
-    }
 
     const next = normalizeForCompare(nextRaw);
     const prev = normalizeForCompare(prevRaw);
@@ -374,6 +375,10 @@ export function ServicesCatalogPanel() {
     useState(false);
   const [isDiscardCreateDialogOpen, setIsDiscardCreateDialogOpen] =
     useState(false);
+  const [activeAutocompleteField, setActiveAutocompleteField] =
+    useState<keyof CreateServiceDraft | null>(null);
+  const [sortKey, setSortKey] = useState<SortableCatalogFieldKey | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [createServiceDraft, setCreateServiceDraft] =
     useState<CreateServiceDraft>(INITIAL_CREATE_SERVICE_DRAFT);
 
@@ -425,6 +430,7 @@ export function ServicesCatalogPanel() {
         row.ID_PARAMETRO,
         row.ID_MAT_ENSAYO,
         row.ID_MATRIZ,
+        row.ID_UBICACION,
         row.ID_NORMA,
         row.ID_TABLA_NORMA,
         row.ID_TECNICA,
@@ -439,6 +445,20 @@ export function ServicesCatalogPanel() {
     });
   }, [rows, query]);
 
+  const sortedFilteredRows = useMemo(() => {
+    if (!sortKey || !sortDirection) {
+      return filteredRows;
+    }
+
+    const sorted = [...filteredRows];
+    sorted.sort((a, b) =>
+      a[sortKey].localeCompare(b[sortKey], 'es', { sensitivity: 'base' })
+    );
+    if (sortDirection === 'desc') sorted.reverse();
+
+    return sorted;
+  }, [filteredRows, sortKey, sortDirection]);
+
   const dirtyIds = useMemo(() => {
     return rows
       .filter((row) => {
@@ -450,7 +470,7 @@ export function ServicesCatalogPanel() {
 
   const dirtySet = useMemo(() => new Set(dirtyIds), [dirtyIds]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(sortedFilteredRows.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
 
   useEffect(() => {
@@ -459,8 +479,39 @@ export function ServicesCatalogPanel() {
 
   const pageRows = useMemo(() => {
     const start = (currentPage - 1) * PAGE_SIZE;
-    return filteredRows.slice(start, start + PAGE_SIZE);
-  }, [filteredRows, currentPage]);
+    return sortedFilteredRows.slice(start, start + PAGE_SIZE);
+  }, [sortedFilteredRows, currentPage]);
+
+  const handleSortBy = (key: SortableCatalogFieldKey) => {
+    setPage(1);
+    if (sortKey !== key) {
+      setSortKey(key);
+      setSortDirection('asc');
+      return;
+    }
+
+    if (sortDirection === 'asc') {
+      setSortDirection('desc');
+      return;
+    }
+
+    if (sortDirection === 'desc') {
+      setSortKey(null);
+      setSortDirection(null);
+      return;
+    }
+
+    setSortDirection('asc');
+  };
+
+  const renderSortIcon = (key: SortableCatalogFieldKey) => {
+    if (sortKey !== key || !sortDirection) return null;
+    return sortDirection === 'asc' ? (
+      <ArrowUp className='h-3.5 w-3.5 opacity-80' />
+    ) : (
+      <ArrowDown className='h-3.5 w-3.5 opacity-80' />
+    );
+  };
 
   const handleCellChange = (
     rowId: string,
@@ -498,20 +549,6 @@ export function ServicesCatalogPanel() {
 
     if (changes.length === 0) {
       toast.info('No hay cambios para guardar.');
-      return;
-    }
-
-    const invalidPriceRows = changes.filter((change) => {
-      if (!Object.prototype.hasOwnProperty.call(change.patch, 'PRECIO'))
-        return false;
-      const priceValue = change.patch.PRECIO;
-      return priceValue !== null && typeof priceValue !== 'number';
-    });
-
-    if (invalidPriceRows.length > 0) {
-      toast.error(
-        'Hay filas con precio inválido. Revisa los valores numéricos.'
-      );
       return;
     }
 
@@ -565,8 +602,47 @@ export function ServicesCatalogPanel() {
     setCreateServiceDraft((prev) => ({ ...prev, [key]: value }));
   };
 
+  const createServiceAutocompleteOptions = useMemo(() => {
+    const uniqueFromRows = <K extends keyof ServiceCatalogRow>(key: K) =>
+      Array.from(
+        new Set(
+          rows
+            .map((row) => row[key])
+            .map((value) => value.trim())
+            .filter((value) => value.length > 0)
+        )
+      ).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+
+    return {
+      ID_TABLA_NORMA: uniqueFromRows('ID_TABLA_NORMA'),
+      ID_MAT_ENSAYO: uniqueFromRows('ID_MAT_ENSAYO'),
+      UNIDAD_INTERNO: uniqueFromRows('UNIDAD_INTERNO'),
+      UNIDAD_NORMA: uniqueFromRows('UNIDAD_NORMA'),
+      ID_MATRIZ: uniqueFromRows('ID_MATRIZ'),
+      ID_TECNICA: uniqueFromRows('ID_TECNICA'),
+      ID_UBICACION: uniqueFromRows('ID_UBICACION')
+    } as const;
+  }, [rows]);
+
+  const getCreateServiceAutocompleteMatches = (
+    key: keyof CreateServiceDraft
+  ): string[] => {
+    if (!AUTOCOMPLETE_FIELD_KEYS.includes(key)) return [];
+    const queryValue = createServiceDraft[key].trim().toLowerCase();
+    if (!queryValue.length) return [];
+
+    const options =
+      createServiceAutocompleteOptions[
+        key as keyof typeof createServiceAutocompleteOptions
+      ] ?? [];
+    return options
+      .filter((option) => option.toLowerCase().startsWith(queryValue))
+      .slice(0, 5);
+  };
+
   const handleOpenCreateServiceDialog = () => {
     setCreateServiceDraft(INITIAL_CREATE_SERVICE_DRAFT);
+    setActiveAutocompleteField(null);
     setIsCreateServiceDialogOpen(true);
   };
 
@@ -593,6 +669,7 @@ export function ServicesCatalogPanel() {
   const handleConfirmDiscardCreateServiceDraft = () => {
     setIsDiscardCreateDialogOpen(false);
     setIsCreateServiceDialogOpen(false);
+    setActiveAutocompleteField(null);
     setCreateServiceDraft(INITIAL_CREATE_SERVICE_DRAFT);
   };
 
@@ -668,10 +745,26 @@ export function ServicesCatalogPanel() {
             <Table className='min-w-[170rem]'>
               <TableHeader>
                 <TableRow>
-                  <TableHead className='min-w-[11rem]'>ID Config</TableHead>
+                  <TableHead className='min-w-[11rem]'>
+                    <button
+                      type='button'
+                      className='inline-flex cursor-pointer items-center gap-1.5'
+                      onClick={() => handleSortBy('ID_CONFIG_PARAMETRO')}
+                    >
+                      ID Config
+                      {renderSortIcon('ID_CONFIG_PARAMETRO')}
+                    </button>
+                  </TableHead>
                   {EDITABLE_COLUMNS.map((column) => (
                     <TableHead key={column.key} className={column.minWidth}>
-                      {column.label}
+                      <button
+                        type='button'
+                        className='inline-flex cursor-pointer items-center gap-1.5'
+                        onClick={() => handleSortBy(column.key)}
+                      >
+                        {column.label}
+                        {renderSortIcon(column.key)}
+                      </button>
                     </TableHead>
                   ))}
                   <TableHead className='min-w-[10rem] text-right'>
@@ -857,18 +950,59 @@ export function ServicesCatalogPanel() {
                               </SelectContent>
                             </Select>
                           ) : (
-                            <Input
-                              id={`new-service-${field.key}`}
-                              value={createServiceDraft[field.key]}
-                              onChange={(event) =>
-                                handleCreateServiceFieldChange(
-                                  field.key,
-                                  event.target.value
-                                )
-                              }
-                              placeholder={field.placeholder}
-                              className='bg-background/90 h-9'
-                            />
+                            <div className='relative'>
+                              <Input
+                                id={`new-service-${field.key}`}
+                                value={createServiceDraft[field.key]}
+                                onChange={(event) =>
+                                  handleCreateServiceFieldChange(
+                                    field.key,
+                                    event.target.value
+                                  )
+                                }
+                                onFocus={() => {
+                                  if (AUTOCOMPLETE_FIELD_KEYS.includes(field.key)) {
+                                    setActiveAutocompleteField(field.key);
+                                  }
+                                }}
+                                onBlur={() => {
+                                  if (AUTOCOMPLETE_FIELD_KEYS.includes(field.key)) {
+                                    window.setTimeout(
+                                      () => setActiveAutocompleteField(null),
+                                      120
+                                    );
+                                  }
+                                }}
+                                placeholder={field.placeholder}
+                                className='bg-background/90 h-9'
+                              />
+                              {AUTOCOMPLETE_FIELD_KEYS.includes(field.key) &&
+                                activeAutocompleteField === field.key &&
+                                getCreateServiceAutocompleteMatches(field.key)
+                                  .length > 0 && (
+                                  <div className='bg-popover text-popover-foreground absolute z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-md border shadow-lg'>
+                                    {getCreateServiceAutocompleteMatches(
+                                      field.key
+                                    ).map((option) => (
+                                      <button
+                                        key={option}
+                                        type='button'
+                                        className='hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground w-full cursor-pointer px-3 py-2 text-left text-sm'
+                                        onMouseDown={(event) => {
+                                          event.preventDefault();
+                                          handleCreateServiceFieldChange(
+                                            field.key,
+                                            option
+                                          );
+                                          setActiveAutocompleteField(null);
+                                        }}
+                                      >
+                                        {option}
+                                      </button>
+                                    ))}
+                                  </div>
+                              )}
+                            </div>
                           )}
                         </div>
                       ))}
@@ -911,7 +1045,7 @@ export function ServicesCatalogPanel() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction
-              className='cursor-pointer bg-red-600 text-white hover:bg-red-700'
+              className='cursor-pointer bg-black text-white hover:bg-black/90 dark:bg-red-800 dark:text-white dark:hover:bg-red-700'
               onClick={handleConfirmDiscardCreateServiceDraft}
             >
               Descartar y cerrar
