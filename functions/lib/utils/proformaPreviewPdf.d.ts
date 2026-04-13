@@ -18,6 +18,10 @@ interface ProformaPreviewServiceLine {
     discountAmount: number | null;
     subtotal: number | null;
 }
+interface ProformaPreviewServiceGroup {
+    name: string;
+    items: ProformaPreviewServiceLine[];
+}
 export interface ProformaPreviewPayload {
     reference: string;
     matrixLabels: string[];
@@ -26,6 +30,7 @@ export interface ProformaPreviewPayload {
     validUntilLabel: string;
     client: ProformaPreviewClient;
     services: ProformaPreviewServiceLine[];
+    serviceGroups?: ProformaPreviewServiceGroup[];
     pricing: {
         subtotal: number;
         taxPercent: number;

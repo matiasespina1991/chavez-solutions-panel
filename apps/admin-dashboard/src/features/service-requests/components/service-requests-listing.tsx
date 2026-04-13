@@ -790,6 +790,25 @@ export default function ServiceRequestsListing() {
           subtotal: lineSubtotal
         };
       }),
+      serviceGroups: row.serviceGroups.map((group, groupIndex) => ({
+        name: group.name || `Combo ${groupIndex + 1}`,
+        items: group.items.map((item) => {
+          const lineSubtotal = Math.max(
+            0,
+            item.unitPrice * item.quantity - item.discountAmount
+          );
+          return {
+            label: item.parameterLabel || 'Servicio',
+            unit: 'Sin unidad',
+            method: 'Sin método',
+            rangeOffered: '—',
+            quantity: item.quantity ?? 0,
+            unitPrice: item.unitPrice ?? null,
+            discountAmount: item.discountAmount ?? null,
+            subtotal: lineSubtotal
+          };
+        })
+      })),
       pricing: {
         subtotal: row.subtotal ?? 0,
         taxPercent: row.taxPercent ?? 15,

@@ -595,6 +595,19 @@ export interface ProformaPreviewPdfPayload {
     discountAmount: number | null;
     subtotal: number | null;
   }>;
+  serviceGroups?: Array<{
+    name: string;
+    items: Array<{
+      label: string;
+      unit: string;
+      method: string;
+      rangeOffered: string;
+      quantity: number;
+      unitPrice: number | null;
+      discountAmount: number | null;
+      subtotal: number | null;
+    }>;
+  }>;
   pricing: {
     subtotal: number;
     taxPercent: number;

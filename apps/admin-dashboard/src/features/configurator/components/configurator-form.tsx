@@ -1726,6 +1726,39 @@ export default function ConfiguratorForm() {
           subtotal: lineSubtotal
         };
       }),
+      serviceGroups: summaryServiceGroups.map((group, groupIndex) => ({
+        name: group.name || `Combo ${groupIndex + 1}`,
+        items: group.items.map((service) => {
+          const quantity = service.quantity ?? 0;
+          const unitPrice = service.unitPrice ?? null;
+          const discountAmount = service.discountAmount ?? null;
+          const lineSubtotal =
+            unitPrice !== null
+              ? Math.max(0, quantity * unitPrice - (discountAmount ?? 0))
+              : null;
+
+          return {
+            label:
+              service.ID_PARAMETRO ||
+              service.ID_CONFIG_PARAMETRO ||
+              service.id ||
+              'Servicio',
+            unit: service.UNIDAD_NORMA || service.UNIDAD_INTERNO || 'Sin unidad',
+            method:
+              service.ID_TECNICA ||
+              service.ID_MET_REFERENCIA ||
+              service.ID_MET_INTERNO ||
+              'Sin método',
+            rangeOffered: `${service.LIM_INF_NORMA || service.LIM_INF_INTERNO || '—'} a ${
+              service.LIM_SUP_NORMA || service.LIM_SUP_INTERNO || '—'
+            }`,
+            quantity,
+            unitPrice,
+            discountAmount,
+            subtotal: lineSubtotal
+          };
+        })
+      })),
       pricing: {
         subtotal: summarySubtotal,
         taxPercent: summaryTaxPercent,

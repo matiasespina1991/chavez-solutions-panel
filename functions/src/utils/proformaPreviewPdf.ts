@@ -23,6 +23,11 @@ interface ProformaPreviewServiceLine {
   subtotal: number | null;
 }
 
+interface ProformaPreviewServiceGroup {
+  name: string;
+  items: ProformaPreviewServiceLine[];
+}
+
 export interface ProformaPreviewPayload {
   reference: string;
   matrixLabels: string[];
@@ -31,6 +36,7 @@ export interface ProformaPreviewPayload {
   validUntilLabel: string;
   client: ProformaPreviewClient;
   services: ProformaPreviewServiceLine[];
+  serviceGroups?: ProformaPreviewServiceGroup[];
   pricing: {
     subtotal: number;
     taxPercent: number;
@@ -93,6 +99,38 @@ export const sanitizeProformaPreviewPayload = (
               : null
         }))
       : [],
+    serviceGroups: Array.isArray(next.serviceGroups)
+      ? next.serviceGroups.slice(0, 20).map((group) => ({
+          name: String(group?.name || '').trim(),
+          items: Array.isArray(group?.items)
+            ? group.items.slice(0, 30).map((service) => ({
+                label: String(service.label || '').trim(),
+                unit: String(service.unit || '').trim(),
+                method: String(service.method || '').trim(),
+                rangeOffered: String(service.rangeOffered || '').trim(),
+                quantity: Math.max(
+                  0,
+                  Math.floor(sanitizeNumber(service.quantity))
+                ),
+                unitPrice:
+                  typeof service.unitPrice === 'number' &&
+                  Number.isFinite(service.unitPrice)
+                    ? service.unitPrice
+                    : null,
+                discountAmount:
+                  typeof service.discountAmount === 'number' &&
+                  Number.isFinite(service.discountAmount)
+                    ? service.discountAmount
+                    : null,
+                subtotal:
+                  typeof service.subtotal === 'number' &&
+                  Number.isFinite(service.subtotal)
+                    ? service.subtotal
+                    : null
+              }))
+            : []
+        }))
+      : [],
     pricing: {
       subtotal: sanitizeNumber(next.pricing?.subtotal),
       taxPercent: sanitizeNumber(next.pricing?.taxPercent),
@@ -123,9 +161,23 @@ const escapeHtml = (value: string): string =>
 
 const buildProformaPreviewHtml = (payload: ProformaPreviewPayload): string => {
   const taxAmount = (payload.pricing.subtotal * payload.pricing.taxPercent) / 100;
-  const serviceRows = payload.services
-    .map(
-      (service) => `
+  const hasGroups =
+    Array.isArray(payload.serviceGroups) &&
+    payload.serviceGroups.some((group) => Array.isArray(group.items) && group.items.length > 0);
+
+  const normalizedGroups = hasGroups
+    ? (payload.serviceGroups ?? []).filter(
+        (group) => Array.isArray(group.items) && group.items.length > 0
+      )
+    : payload.services.length > 0
+      ? [{ name: 'Servicios', items: payload.services }]
+      : [];
+
+  const serviceRows = normalizedGroups
+    .map((group, groupIndex) => {
+      const rows = group.items
+        .map(
+          (service) => `
       <tr>
         <td>${service.quantity || 0}</td>
         <td>${escapeHtml(service.label || 'Servicio')}</td>
@@ -136,7 +188,31 @@ const buildProformaPreviewHtml = (payload: ProformaPreviewPayload): string => {
         <td>${formatMoneyCompact(service.discountAmount)}</td>
         <td>${formatMoneyCompact(service.subtotal)}</td>
       </tr>`
-    )
+        )
+        .join('');
+
+      const groupSubtotal = group.items.reduce((acc, service) => {
+        if (typeof service.subtotal === 'number' && Number.isFinite(service.subtotal)) {
+          return acc + service.subtotal;
+        }
+        if (typeof service.unitPrice === 'number' && Number.isFinite(service.unitPrice)) {
+          return (
+            acc +
+            Math.max(
+              0,
+              service.unitPrice * (service.quantity || 0) - (service.discountAmount ?? 0)
+            )
+          );
+        }
+        return acc;
+      }, 0);
+
+      return `${rows}
+      <tr class="group-subtotal">
+        <td colspan="7">Subtotal ${escapeHtml(group.name || `Combo ${groupIndex + 1}`)}</td>
+        <td>${formatMoneyCompact(groupSubtotal)}</td>
+      </tr>`;
+    })
     .join('');
 
   return `<!doctype html>
@@ -185,6 +261,10 @@ const buildProformaPreviewHtml = (payload: ProformaPreviewPayload): string => {
     }
     th { font-weight: 700; }
     th.nowrap { white-space: nowrap; }
+    tr.group-subtotal td {
+      background: #edf2f7;
+      font-weight: 700;
+    }
     .totals { margin-top: 20px; width: 300px; }
     .totals h3 { margin: 0 0 8px; font-size: 18px; }
     .totals .row { display: flex; justify-content: space-between; font-size: 18px; margin: 2px 0; }
