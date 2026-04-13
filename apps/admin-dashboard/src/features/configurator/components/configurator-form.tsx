@@ -10,12 +10,13 @@ import {
   ArrowDownToLine,
   ChevronDown,
   Check,
+  Loader2,
   Mail,
+  ListFilterPlus,
   Pencil,
   Plus,
   Search,
   Send,
-  SlidersHorizontal,
   Trash2,
   X
 } from 'lucide-react';
@@ -290,11 +291,11 @@ export default function ConfiguratorForm() {
   const [dialogSelectedServiceIds, setDialogSelectedServiceIds] = useState<
     string[]
   >([]);
+  const [isAddFilterDropdownOpen, setIsAddFilterDropdownOpen] = useState(false);
   const [isAppliedFiltersExpanded, setIsAppliedFiltersExpanded] =
     useState(true);
-  const [groupToDelete, setGroupToDelete] = useState<SelectedServiceGroup | null>(
-    null
-  );
+  const [groupToDelete, setGroupToDelete] =
+    useState<SelectedServiceGroup | null>(null);
   const [serviceToDelete, setServiceToDelete] = useState<{
     groupId: string;
     serviceId: string;
@@ -306,6 +307,16 @@ export default function ConfiguratorForm() {
     () => serviceGroups.flatMap((group) => group.items),
     [serviceGroups]
   );
+  const dialogComboTitle = useMemo(() => {
+    if (editingGroupId) {
+      const editingGroup = serviceGroups.find(
+        (group) => group.id === editingGroupId
+      );
+      if (editingGroup?.name?.trim()) return editingGroup.name.trim();
+    }
+    if (activeComboMatrix?.trim()) return activeComboMatrix.trim();
+    return 'Combo';
+  }, [editingGroupId, serviceGroups, activeComboMatrix]);
   const requestedTab = searchParams.get('tab');
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -521,54 +532,65 @@ export default function ConfiguratorForm() {
       appliesToSampleCodes: null
     }));
 
-  const buildFilterOptions = useMemo(
-    () => (readLabel: (service: ImportedServiceDocument) => string) => {
-      const counts = new Map<string, number>();
-      availableServices.forEach((service) => {
-        const label = readLabel(service);
-        counts.set(label, (counts.get(label) || 0) + 1);
-      });
+  const matrixScopedAvailableServices = useMemo(() => {
+    if (!activeComboMatrix) return availableServices;
+    return availableServices.filter(
+      (service) => getMatrizLabel(service) === activeComboMatrix
+    );
+  }, [availableServices, activeComboMatrix]);
 
-      return Array.from(counts.entries())
-        .map(([value, count]) => ({ value, count }))
-        .sort((a, b) => a.value.localeCompare(b.value, 'es'));
-    },
-    [availableServices]
-  );
+  const serviceMatchesDialogFilters = (
+    service: ImportedServiceDocument,
+    excludeKey?: DialogFilterKey
+  ) => {
+    const matEnsayoLabel = getMatEnsayoLabel(service);
+    const normaLabel = getNormaLabel(service);
+    const tablaLabel = getTablaLabel(service);
+    const tecnicaLabel = getTecnicaLabel(service);
 
-  const matEnsayoFilterOptions = useMemo<ServiceFilterOption[]>(
-    () => buildFilterOptions(getMatEnsayoLabel),
-    [buildFilterOptions]
-  );
+    if (
+      excludeKey !== 'matEnsayo' &&
+      dialogFilters.matEnsayo.length > 0 &&
+      !dialogFilters.matEnsayo.includes(matEnsayoLabel)
+    ) {
+      return false;
+    }
 
-  const normaFilterOptions = useMemo<ServiceFilterOption[]>(
-    () => buildFilterOptions(getNormaLabel),
-    [buildFilterOptions]
-  );
+    if (
+      excludeKey !== 'norma' &&
+      dialogFilters.norma.length > 0 &&
+      !dialogFilters.norma.includes(normaLabel)
+    ) {
+      return false;
+    }
 
-  const tablaFilterOptions = useMemo<ServiceFilterOption[]>(
-    () => buildFilterOptions(getTablaLabel),
-    [buildFilterOptions]
-  );
+    if (
+      excludeKey !== 'tabla' &&
+      dialogFilters.tabla.length > 0 &&
+      !dialogFilters.tabla.includes(tablaLabel)
+    ) {
+      return false;
+    }
 
-  const tecnicaFilterOptions = useMemo<ServiceFilterOption[]>(
-    () => buildFilterOptions(getTecnicaLabel),
-    [buildFilterOptions]
-  );
+    if (
+      excludeKey !== 'tecnica' &&
+      dialogFilters.tecnica.length > 0 &&
+      !dialogFilters.tecnica.includes(tecnicaLabel)
+    ) {
+      return false;
+    }
+
+    return true;
+  };
 
   const filteredAvailableServices = useMemo(() => {
     const normalizedSearch = dialogSearchTerm.trim().toLowerCase();
 
-    return availableServices.filter((service) => {
-      const matrizLabel = getMatrizLabel(service);
+    const filtered = matrixScopedAvailableServices.filter((service) => {
       const matEnsayoLabel = getMatEnsayoLabel(service);
       const normaLabel = getNormaLabel(service);
       const tablaLabel = getTablaLabel(service);
       const tecnicaLabel = getTecnicaLabel(service);
-
-      if (activeComboMatrix && matrizLabel !== activeComboMatrix) {
-        return false;
-      }
 
       if (
         dialogFilters.matEnsayo.length > 0 &&
@@ -619,7 +641,33 @@ export default function ConfiguratorForm() {
 
       return searchHaystack.includes(normalizedSearch);
     });
-  }, [availableServices, dialogFilters, dialogSearchTerm, activeComboMatrix]);
+
+    return filtered.sort((a, b) => {
+      const aLabel = (
+        a.ID_PARAMETRO ||
+        a.ID_CONFIG_PARAMETRO ||
+        a.id ||
+        ''
+      ).trim();
+      const bLabel = (
+        b.ID_PARAMETRO ||
+        b.ID_CONFIG_PARAMETRO ||
+        b.id ||
+        ''
+      ).trim();
+      const primary = aLabel.localeCompare(bLabel, 'es', {
+        sensitivity: 'base',
+        numeric: true
+      });
+      if (primary !== 0) return primary;
+      const aId = (a.ID_CONFIG_PARAMETRO || a.id || '').trim();
+      const bId = (b.ID_CONFIG_PARAMETRO || b.id || '').trim();
+      return aId.localeCompare(bId, 'es', {
+        sensitivity: 'base',
+        numeric: true
+      });
+    });
+  }, [matrixScopedAvailableServices, dialogFilters, dialogSearchTerm]);
 
   const matrixOptionsForCombo = useMemo(() => {
     const counts = new Map<string, number>();
@@ -642,17 +690,61 @@ export default function ConfiguratorForm() {
   const dialogFilterOptionsByKey: Record<
     DialogFilterKey,
     ServiceFilterOption[]
-  > = {
-    matEnsayo: matEnsayoFilterOptions,
-    norma: normaFilterOptions,
-    tabla: tablaFilterOptions,
-    tecnica: tecnicaFilterOptions
-  };
+  > = useMemo(() => {
+    const readLabelByKey: Record<
+      DialogFilterKey,
+      (service: ImportedServiceDocument) => string
+    > = {
+      matEnsayo: getMatEnsayoLabel,
+      norma: getNormaLabel,
+      tabla: getTablaLabel,
+      tecnica: getTecnicaLabel
+    };
+
+    const next = {} as Record<DialogFilterKey, ServiceFilterOption[]>;
+
+    (Object.keys(DIALOG_FILTER_LABELS) as DialogFilterKey[]).forEach((key) => {
+      const labelReader = readLabelByKey[key];
+      const counts = new Map<string, number>();
+
+      // Keep all options visible for this matrix scope, even if current count is 0.
+      matrixScopedAvailableServices.forEach((service) => {
+        const label = labelReader(service);
+        if (!counts.has(label)) counts.set(label, 0);
+      });
+
+      // Count only options available with the currently applied filters (excluding this key).
+      matrixScopedAvailableServices.forEach((service) => {
+        if (!serviceMatchesDialogFilters(service, key)) return;
+        const label = labelReader(service);
+        counts.set(label, (counts.get(label) || 0) + 1);
+      });
+
+      next[key] = Array.from(counts.entries())
+        .map(([value, count]) => ({ value, count }))
+        .sort((a, b) => a.value.localeCompare(b.value, 'es'));
+    });
+
+    return next;
+  }, [matrixScopedAvailableServices, dialogFilters]);
 
   const visibleServiceIds = useMemo(
     () => filteredAvailableServices.map((service) => getServiceId(service)),
     [filteredAvailableServices]
   );
+
+  const selectedDialogServiceLabels = useMemo(() => {
+    const catalogById = new Map(
+      availableServices.map((service) => [
+        getServiceId(service),
+        `${service.ID_PARAMETRO || getServiceId(service)} (${getMatEnsayoLabel(service)})`
+      ])
+    );
+
+    return dialogSelectedServiceIds.map(
+      (serviceId) => catalogById.get(serviceId) || serviceId
+    );
+  }, [availableServices, dialogSelectedServiceIds]);
 
   const areAllVisibleSelected =
     visibleServiceIds.length > 0 &&
@@ -681,9 +773,7 @@ export default function ConfiguratorForm() {
       discountAmount: service.discountAmount
     }));
 
-  const mapServiceGroupsToDocument = (
-    groups: SelectedServiceGroup[]
-  ) => {
+  const mapServiceGroupsToDocument = (groups: SelectedServiceGroup[]) => {
     return groups
       .map((group) => {
         return {
@@ -944,37 +1034,39 @@ export default function ConfiguratorForm() {
       const parsed = JSON.parse(cached) as unknown;
       const merged = mergeWithCachedValues(createDefaultFormValues(), parsed);
       form.reset(merged);
-      const restoredServices =
-        merged.services?.items?.length
-          ? mapStoredServicesToSelected(merged.services.items)
-          : merged.analyses.items.map((item, index) =>
-              (() => {
-                const parsedRange = parseRangeOffered(item.rangeOffered);
-                return toSelectedService(
-                  {
-                    id: `${item.parameterId}-${index}`,
-                    ID_CONFIG_PARAMETRO: item.parameterId,
-                    ID_PARAMETRO: item.parameterLabelEs,
-                    UNIDAD_NORMA: item.unit,
-                    ID_TECNICA: item.method,
-                    LIM_INF_NORMA: undefined,
-                    LIM_SUP_NORMA: undefined,
-                    PRECIO: item.unitPrice ?? null
-                  },
-                  {
-                    quantity: 1,
-                    rangeMin: parsedRange.rangeMin,
-                    rangeMax: parsedRange.rangeMax,
-                    unitPrice: item.unitPrice ?? null,
-                    discountAmount:
-                      typeof item.discountAmount === 'number'
-                        ? item.discountAmount
-                        : null
-                  }
-                );
-              })()
-            );
-      if (Array.isArray(merged.services?.grouped) && merged.services.grouped.length) {
+      const restoredServices = merged.services?.items?.length
+        ? mapStoredServicesToSelected(merged.services.items)
+        : merged.analyses.items.map((item, index) =>
+            (() => {
+              const parsedRange = parseRangeOffered(item.rangeOffered);
+              return toSelectedService(
+                {
+                  id: `${item.parameterId}-${index}`,
+                  ID_CONFIG_PARAMETRO: item.parameterId,
+                  ID_PARAMETRO: item.parameterLabelEs,
+                  UNIDAD_NORMA: item.unit,
+                  ID_TECNICA: item.method,
+                  LIM_INF_NORMA: undefined,
+                  LIM_SUP_NORMA: undefined,
+                  PRECIO: item.unitPrice ?? null
+                },
+                {
+                  quantity: 1,
+                  rangeMin: parsedRange.rangeMin,
+                  rangeMax: parsedRange.rangeMax,
+                  unitPrice: item.unitPrice ?? null,
+                  discountAmount:
+                    typeof item.discountAmount === 'number'
+                      ? item.discountAmount
+                      : null
+                }
+              );
+            })()
+          );
+      if (
+        Array.isArray(merged.services?.grouped) &&
+        merged.services.grouped.length
+      ) {
         setServiceGroups(mapStoredServiceGroups(merged.services.grouped));
       } else if (restoredServices.length) {
         setServiceGroups([
@@ -1066,43 +1158,42 @@ export default function ConfiguratorForm() {
               const parsed = JSON.parse(cached) as unknown;
               const merged = mergeWithCachedValues(loadedValues, parsed);
               form.reset(merged);
-              const restoredServices =
-                merged.services?.items?.length
-                  ? mapStoredServicesToSelected(merged.services.items)
-                  : merged.analyses.items.map((item, index) =>
-                      (() => {
-                        const parsedRange = parseRangeOffered(
-                          item.rangeOffered
-                        );
-                        return toSelectedService(
-                          {
-                            id: `${item.parameterId}-${index}`,
-                            ID_CONFIG_PARAMETRO: item.parameterId,
-                            ID_PARAMETRO: item.parameterLabelEs,
-                            UNIDAD_NORMA: item.unit,
-                            ID_TECNICA: item.method,
-                            LIM_INF_NORMA: undefined,
-                            LIM_SUP_NORMA: undefined,
-                            PRECIO: item.unitPrice ?? null
-                          },
-                          {
-                            quantity: 1,
-                            rangeMin: parsedRange.rangeMin,
-                            rangeMax: parsedRange.rangeMax,
-                            unitPrice: item.unitPrice ?? null,
-                            discountAmount:
-                              typeof item.discountAmount === 'number'
-                                ? item.discountAmount
-                                : null
-                          }
-                        );
-                      })()
-                    );
+              const restoredServices = merged.services?.items?.length
+                ? mapStoredServicesToSelected(merged.services.items)
+                : merged.analyses.items.map((item, index) =>
+                    (() => {
+                      const parsedRange = parseRangeOffered(item.rangeOffered);
+                      return toSelectedService(
+                        {
+                          id: `${item.parameterId}-${index}`,
+                          ID_CONFIG_PARAMETRO: item.parameterId,
+                          ID_PARAMETRO: item.parameterLabelEs,
+                          UNIDAD_NORMA: item.unit,
+                          ID_TECNICA: item.method,
+                          LIM_INF_NORMA: undefined,
+                          LIM_SUP_NORMA: undefined,
+                          PRECIO: item.unitPrice ?? null
+                        },
+                        {
+                          quantity: 1,
+                          rangeMin: parsedRange.rangeMin,
+                          rangeMax: parsedRange.rangeMax,
+                          unitPrice: item.unitPrice ?? null,
+                          discountAmount:
+                            typeof item.discountAmount === 'number'
+                              ? item.discountAmount
+                              : null
+                        }
+                      );
+                    })()
+                  );
               if (
                 Array.isArray(merged.services?.grouped) &&
                 merged.services.grouped.length
               ) {
-                setServiceGroups(mapStoredServiceGroups(merged.services.grouped));
+                setServiceGroups(
+                  mapStoredServiceGroups(merged.services.grouped)
+                );
               } else if (restoredServices.length) {
                 setServiceGroups([
                   {
@@ -1122,41 +1213,42 @@ export default function ConfiguratorForm() {
         }
 
         form.reset(loadedValues);
-        const restoredServices =
-          loadedValues.services?.items?.length
-            ? mapStoredServicesToSelected(loadedValues.services.items)
-            : loadedValues.analyses.items.map((item, index) =>
-                (() => {
-                  const parsedRange = parseRangeOffered(item.rangeOffered);
-                  return toSelectedService(
-                    {
-                      id: `${item.parameterId}-${index}`,
-                      ID_CONFIG_PARAMETRO: item.parameterId,
-                      ID_PARAMETRO: item.parameterLabelEs,
-                      UNIDAD_NORMA: item.unit,
-                      ID_TECNICA: item.method,
-                      LIM_INF_NORMA: undefined,
-                      LIM_SUP_NORMA: undefined,
-                      PRECIO: item.unitPrice ?? null
-                    },
-                    {
-                      quantity: 1,
-                      rangeMin: parsedRange.rangeMin,
-                      rangeMax: parsedRange.rangeMax,
-                      unitPrice: item.unitPrice ?? null,
-                      discountAmount:
-                        typeof item.discountAmount === 'number'
-                          ? item.discountAmount
-                          : null
-                    }
-                  );
-                })()
-              );
+        const restoredServices = loadedValues.services?.items?.length
+          ? mapStoredServicesToSelected(loadedValues.services.items)
+          : loadedValues.analyses.items.map((item, index) =>
+              (() => {
+                const parsedRange = parseRangeOffered(item.rangeOffered);
+                return toSelectedService(
+                  {
+                    id: `${item.parameterId}-${index}`,
+                    ID_CONFIG_PARAMETRO: item.parameterId,
+                    ID_PARAMETRO: item.parameterLabelEs,
+                    UNIDAD_NORMA: item.unit,
+                    ID_TECNICA: item.method,
+                    LIM_INF_NORMA: undefined,
+                    LIM_SUP_NORMA: undefined,
+                    PRECIO: item.unitPrice ?? null
+                  },
+                  {
+                    quantity: 1,
+                    rangeMin: parsedRange.rangeMin,
+                    rangeMax: parsedRange.rangeMax,
+                    unitPrice: item.unitPrice ?? null,
+                    discountAmount:
+                      typeof item.discountAmount === 'number'
+                        ? item.discountAmount
+                        : null
+                  }
+                );
+              })()
+            );
         if (
           Array.isArray(loadedValues.services?.grouped) &&
           loadedValues.services.grouped.length
         ) {
-          setServiceGroups(mapStoredServiceGroups(loadedValues.services.grouped));
+          setServiceGroups(
+            mapStoredServiceGroups(loadedValues.services.grouped)
+          );
         } else if (restoredServices.length) {
           setServiceGroups([
             {
@@ -1387,7 +1479,9 @@ export default function ConfiguratorForm() {
   ) => {
     setEditingGroupId(group.id);
     setActiveComboMatrix(matrixLabel);
-    setDialogSelectedServiceIds(group.items.map((service) => getServiceId(service)));
+    setDialogSelectedServiceIds(
+      group.items.map((service) => getServiceId(service))
+    );
     setDialogFilters({
       matEnsayo: [],
       norma: [],
@@ -1404,10 +1498,10 @@ export default function ConfiguratorForm() {
   ) => {
     setDialogFilters((prev) => ({
       ...prev,
-      [key]: prev[key].includes(value)
-        ? prev[key].filter((entry) => entry !== value)
-        : [...prev[key], value]
+      [key]: prev[key].includes(value) ? [] : [value]
     }));
+    setIsAddFilterDropdownOpen(false);
+    setIsAppliedFiltersExpanded(false);
   };
 
   const handleSelectAllVisibleToggle = (checked: boolean) => {
@@ -1743,7 +1837,8 @@ export default function ConfiguratorForm() {
               service.ID_CONFIG_PARAMETRO ||
               service.id ||
               'Servicio',
-            unit: service.UNIDAD_NORMA || service.UNIDAD_INTERNO || 'Sin unidad',
+            unit:
+              service.UNIDAD_NORMA || service.UNIDAD_INTERNO || 'Sin unidad',
             method:
               service.ID_TECNICA ||
               service.ID_MET_REFERENCIA ||
@@ -1916,7 +2011,11 @@ export default function ConfiguratorForm() {
           aria-label='Descargar PDF'
           title='Descargar PDF'
         >
-          <ArrowDownToLine className='h-4 w-5' />
+          {isGeneratingPreviewPdf ? (
+            <Loader2 className='text-primary h-4 w-4 animate-spin' />
+          ) : (
+            <ArrowDownToLine className='h-4 w-5' />
+          )}
         </Button>
         <Button
           type='button'
@@ -1927,7 +2026,11 @@ export default function ConfiguratorForm() {
           aria-label='Enviar proforma por email'
           title='Enviar proforma por email'
         >
-          <Mail className='h-4 w-5' />
+          {isSendingPreviewEmail ? (
+            <Loader2 className='text-primary h-4 w-4 animate-spin' />
+          ) : (
+            <Mail className='h-4 w-5' />
+          )}
         </Button>
         {renderPrimarySubmitAction()}
         {!isLastTab ? (
@@ -2199,8 +2302,7 @@ export default function ConfiguratorForm() {
                         Combos de servicios
                       </h4>
                       <p className='text-muted-foreground text-xs'>
-                        Agregá uno o varios combos de servicios importados
-                        desde Administración.
+                        Agregá uno o varios combos de servicios.
                       </p>
                     </div>
                     <Button
@@ -2236,7 +2338,10 @@ export default function ConfiguratorForm() {
                                 <Input
                                   value={group.name}
                                   onChange={(event) =>
-                                    handleUpdateGroupName(group.id, event.target.value)
+                                    handleUpdateGroupName(
+                                      group.id,
+                                      event.target.value
+                                    )
                                   }
                                   className='bg-background w-[25rem] max-w-[85vw]'
                                   placeholder='Nombre del combo'
@@ -2270,7 +2375,9 @@ export default function ConfiguratorForm() {
                                   variant='ghost'
                                   size='icon'
                                   className='text-destructive hover:text-destructive h-7 w-7 cursor-pointer'
-                                  onClick={() => handleOpenRemoveGroupDialog(group)}
+                                  onClick={() =>
+                                    handleOpenRemoveGroupDialog(group)
+                                  }
                                   aria-label='Quitar combo'
                                 >
                                   <Trash2 className='h-4 w-4' />
@@ -2298,7 +2405,9 @@ export default function ConfiguratorForm() {
                                             'Sin material de ensayo'}
                                         </p>
                                         <p className='text-muted-foreground text-xs'>
-                                          {service.ID_TABLA_NORMA || 'Sin tabla'} •{' '}
+                                          {service.ID_TABLA_NORMA ||
+                                            'Sin tabla'}{' '}
+                                          •{' '}
                                           {service.UNIDAD_NORMA ||
                                             service.UNIDAD_INTERNO ||
                                             'Sin unidad'}
@@ -2391,7 +2500,8 @@ export default function ConfiguratorForm() {
                                                 min={0}
                                                 step='0.01'
                                                 value={
-                                                  typeof service.unitPrice === 'number'
+                                                  typeof service.unitPrice ===
+                                                  'number'
                                                     ? service.unitPrice
                                                     : ''
                                                 }
@@ -2451,7 +2561,10 @@ export default function ConfiguratorForm() {
                                         size='icon'
                                         className='h-7 w-7 cursor-pointer'
                                         onClick={() =>
-                                          handleOpenRemoveService(group.id, service)
+                                          handleOpenRemoveService(
+                                            group.id,
+                                            service
+                                          )
                                         }
                                         aria-label='Quitar servicio'
                                       >
@@ -2510,7 +2623,9 @@ export default function ConfiguratorForm() {
                       : '—'
                   }
                   reference={form.getValues('reference') || '—'}
-                  validDaysLabel={validDaysValue ? `${validDaysValue} días` : '—'}
+                  validDaysLabel={
+                    validDaysValue ? `${validDaysValue} días` : '—'
+                  }
                   validUntilLabel={validUntilLabel}
                   client={{
                     businessName: form.getValues('client.businessName') || '—',
@@ -2650,47 +2765,68 @@ export default function ConfiguratorForm() {
           }
         }}
       >
-      <AlertDialogContent className='flex h-[88vh] max-h-[88vh] w-[96vw] max-w-[1100px] flex-col overflow-x-hidden sm:max-w-[1100px]'>
-        <AlertDialogHeader>
-          <div className='flex items-center gap-2'>
-            <AlertDialogTitle className='shrink-0'>
-              Agregar servicios
-            </AlertDialogTitle>
-            {activeComboMatrix ? (
-              <span className='bg-muted text-muted-foreground inline-flex max-w-[70%] items-center rounded-full border px-2.5 py-1 text-sm'>
-                <span className='mr-1 font-medium'>Matriz:</span>
-                <span className='truncate' title={activeComboMatrix}>
-                  {activeComboMatrix}
+        <AlertDialogContent className='flex h-[88vh] max-h-[88vh] w-[96vw] max-w-[1100px] flex-col overflow-x-hidden sm:max-w-[1100px]'>
+          <AlertDialogHeader>
+            <div className='flex items-center gap-2'>
+              <AlertDialogTitle className='shrink-0'>
+                Combo de servicios
+              </AlertDialogTitle>
+              {activeComboMatrix ? (
+                <span className='bg-muted text-muted-foreground inline-flex max-w-[70%] items-center rounded-full border px-2.5 py-1 text-sm'>
+                  <span className='mr-1 font-medium'>Matriz:</span>
+                  <span className='truncate' title={activeComboMatrix}>
+                    {activeComboMatrix}
+                  </span>
                 </span>
-              </span>
-            ) : null}
-          </div>
-          <AlertDialogDescription className='m-0'>
-            Seleccioná uno o varios servicios para incluir en la proforma.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
+              ) : null}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    className={`inline-flex items-center rounded-full border px-2.5 py-1 text-sm ${
+                      dialogSelectedServiceIds.length > 0
+                        ? 'border-black bg-black text-white dark:border-white dark:bg-white dark:text-black'
+                        : 'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {dialogSelectedServiceIds.length} seleccionados
+                  </span>
+                </TooltipTrigger>
+                {dialogSelectedServiceIds.length > 0 ? (
+                  <TooltipContent className='max-w-[22rem]'>
+                    <div className='space-y-1'>
+                      <p className='text-xs font-medium'>
+                        Servicios seleccionados
+                      </p>
+                      <ul className='max-h-52 list-disc space-y-0.5 overflow-y-auto pl-4 text-xs'>
+                        {selectedDialogServiceLabels.map((label, index) => (
+                          <li key={`${label}-${index}`}>{label}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </TooltipContent>
+                ) : null}
+              </Tooltip>
+            </div>
+            <AlertDialogDescription className='m-0'>
+              Selecciona uno o varios servicios para incluir en el combo "
+              {dialogComboTitle}".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
 
           <div className='min-w-0 space-y-3'>
-            <div className='relative w-full min-w-0'>
-              <Search className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2' />
-              <Input
-                value={dialogSearchTerm}
-                onChange={(event) => setDialogSearchTerm(event.target.value)}
-                placeholder='Buscar por parámetro, método, norma, tabla, unidad o material...'
-                className='w-full pl-9'
-              />
-            </div>
-
             <div className='flex min-w-0 flex-wrap items-center gap-2'>
-              <DropdownMenu>
+              <DropdownMenu
+                open={isAddFilterDropdownOpen}
+                onOpenChange={setIsAddFilterDropdownOpen}
+              >
                 <DropdownMenuTrigger asChild>
                   <Button
                     type='button'
                     variant='outline'
                     size='sm'
-                    className='h-9 gap-1.5 border-transparent bg-muted/35 text-xs text-foreground shadow-none hover:bg-muted/55'
+                    className='bg-muted/35 text-foreground hover:bg-muted/55 h-9 gap-1.5 border-transparent text-xs shadow-none'
                   >
-                    <SlidersHorizontal className='h-3.5 w-3.5' />
+                    <ListFilterPlus className='h-3.5 w-3.5' />
                     Agregar filtro
                     <ChevronDown className='h-3.5 w-3.5' />
                   </Button>
@@ -2703,35 +2839,57 @@ export default function ConfiguratorForm() {
                           <span>{DIALOG_FILTER_LABELS[filterKey]}</span>
                         </DropdownMenuSubTrigger>
                         <DropdownMenuSubContent
-                          className={`max-h-72 max-w-[84vw] overflow-y-auto ${
+                          className={`max-h-[27rem] max-w-[84vw] overflow-y-auto ${
                             filterKey === 'tabla' ? 'w-[41rem]' : 'w-[36rem]'
                           }`}
                         >
-                          {dialogFilterOptionsByKey[filterKey].map((option) => (
-                            <DropdownMenuCheckboxItem
-                              key={`${filterKey}-${option.value}`}
-                              checked={dialogFilters[filterKey].includes(
-                                option.value
-                              )}
-                              onCheckedChange={() =>
-                                handleToggleDialogFilterValue(
-                                  filterKey,
-                                  option.value
-                                )
-                              }
-                              className='w-full pr-2'
-                            >
-                              <span
-                                className='min-w-0 flex-1 truncate'
-                                title={option.value}
+                          {dialogFilterOptionsByKey[filterKey].map((option) => {
+                            const isChecked = dialogFilters[filterKey].includes(
+                              option.value
+                            );
+                            const isUnavailable = option.count === 0;
+                            const isDisabled = isUnavailable && !isChecked;
+
+                            const item = (
+                              <DropdownMenuCheckboxItem
+                                key={`${filterKey}-${option.value}`}
+                                checked={isChecked}
+                                onCheckedChange={() =>
+                                  handleToggleDialogFilterValue(
+                                    filterKey,
+                                    option.value
+                                  )
+                                }
+                                className={`w-full pr-2 ${
+                                  isUnavailable ? 'text-muted-foreground' : ''
+                                }`}
+                                disabled={isDisabled}
                               >
-                                {option.value}
-                              </span>
-                              <span className='text-muted-foreground ml-2 shrink-0 text-xs'>
-                                {option.count}
-                              </span>
-                            </DropdownMenuCheckboxItem>
-                          ))}
+                                <span
+                                  className='min-w-0 flex-1 truncate'
+                                  title={option.value}
+                                >
+                                  {option.value}
+                                </span>
+                                <span className='text-muted-foreground ml-2 shrink-0 text-xs'>
+                                  {option.count}
+                                </span>
+                              </DropdownMenuCheckboxItem>
+                            );
+
+                            if (!isUnavailable) return item;
+
+                            return (
+                              <Tooltip key={`${filterKey}-${option.value}`}>
+                                <TooltipTrigger asChild>
+                                  <span className='block'>{item}</span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  No disponible con los filtros actuales
+                                </TooltipContent>
+                              </Tooltip>
+                            );
+                          })}
                         </DropdownMenuSubContent>
                       </DropdownMenuSub>
                     )
@@ -2739,26 +2897,26 @@ export default function ConfiguratorForm() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <Button
-                type='button'
-                variant='outline'
-                size='sm'
-                className='h-9 border-border bg-muted/40 text-xs text-foreground hover:bg-muted/55'
-                onClick={handleClearDialogFilters}
-                disabled={
-                  activeDialogFiltersCount === 0 &&
-                  dialogSearchTerm.trim().length === 0
-                }
-              >
-                Limpiar filtros
-              </Button>
+              {activeDialogFiltersCount > 0 ||
+              dialogSearchTerm.trim().length > 0 ? (
+                <Button
+                  type='button'
+                  variant='outline'
+                  size='sm'
+                  className='border-border bg-muted/40 text-foreground hover:bg-muted/55 h-9 gap-1.5 text-xs'
+                  onClick={handleClearDialogFilters}
+                >
+                  <X className='h-2.5 w-2.5' />
+                  Limpiar filtros
+                </Button>
+              ) : null}
             </div>
 
             {activeDialogFiltersCount > 0 ? (
               <div className='space-y-2'>
                 <button
                   type='button'
-                  className='inline-flex cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-1 text-left'
+                  className='inline-flex w-full cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 text-left'
                   onClick={() =>
                     setIsAppliedFiltersExpanded((previous) => !previous)
                   }
@@ -2766,9 +2924,10 @@ export default function ConfiguratorForm() {
                   <span className='text-foreground/85 text-sm font-medium'>
                     Filtros ({activeDialogFiltersCount})
                   </span>
+                  <span className='bg-border mx-1 h-px flex-1' />
                   <ChevronDown
                     className={`text-muted-foreground h-4 w-4 transition-transform ${
-                      isAppliedFiltersExpanded ? '' : '-rotate-90'
+                      isAppliedFiltersExpanded ? 'rotate-180' : ''
                     }`}
                   />
                 </button>
@@ -2817,29 +2976,37 @@ export default function ConfiguratorForm() {
                 ) : null}
               </div>
             ) : null}
-
-            <div className='flex items-center justify-end gap-2'>
-              <p className='text-muted-foreground shrink-0 text-xs sm:text-sm'>
-                {dialogSelectedServiceIds.length} seleccionados
-                <span className='px-1.5'>·</span>
-                {filteredAvailableServices.length} resultados
-              </p>
-              <span className='text-muted-foreground text-xs'>·</span>
-              <label className='text-muted-foreground flex shrink-0 cursor-pointer items-center gap-2 text-xs sm:text-sm'>
-                <Checkbox
-                  checked={areAllVisibleSelected}
-                  onCheckedChange={(checked) =>
-                    handleSelectAllVisibleToggle(checked === true)
-                  }
-                  disabled={filteredAvailableServices.length === 0}
-                  className='cursor-pointer'
-                />
-                Seleccionar todo
-              </label>
-            </div>
           </div>
 
-          <div className='min-h-0 flex-1 space-y-2 overflow-y-auto pr-1'>
+          <div className='mt-1 flex items-center gap-3'>
+            <div className='relative min-w-0 flex-1'>
+              <Search className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2' />
+              <Input
+                value={dialogSearchTerm}
+                onChange={(event) => setDialogSearchTerm(event.target.value)}
+                placeholder='Buscar por parámetro, método, norma, tabla, unidad o material...'
+                className='w-full pl-9'
+              />
+            </div>
+            {filteredAvailableServices.length > 1 &&
+            filteredAvailableServices.length <= 30 ? (
+              <div className='flex shrink-0 items-center gap-2'>
+                <label className='text-muted-foreground flex shrink-0 cursor-pointer items-center gap-2 text-xs sm:text-sm'>
+                  <Checkbox
+                    checked={areAllVisibleSelected}
+                    onCheckedChange={(checked) =>
+                      handleSelectAllVisibleToggle(checked === true)
+                    }
+                    disabled={filteredAvailableServices.length === 0}
+                    className='cursor-pointer'
+                  />
+                  Seleccionar todos
+                </label>
+              </div>
+            ) : null}
+          </div>
+
+          <div className='min-h-0 flex-1 overflow-y-auto pr-1'>
             {isLoadingAvailableServices ? (
               <p className='text-muted-foreground text-sm'>
                 Cargando servicios...
@@ -2853,58 +3020,64 @@ export default function ConfiguratorForm() {
                 No hay servicios para los filtros aplicados.
               </p>
             ) : (
-              filteredAvailableServices.map((service) => {
-                const serviceId = service.ID_CONFIG_PARAMETRO || service.id;
-                const isSelected = dialogSelectedServiceIds.includes(serviceId);
-                return (
-                  <button
-                    key={serviceId}
-                    type='button'
-                    className={`w-full rounded-md border p-3 text-left transition-colors ${
-                      isSelected
-                        ? 'border-black bg-black/5'
-                        : 'hover:bg-muted/50 border-border'
-                    }`}
-                    onClick={() => handleToggleServiceSelection(serviceId)}
-                  >
-                    <div className='flex items-start justify-between gap-2'>
-                      <div className='space-y-1'>
-                        <p className='text-sm font-medium'>
-                          {service.ID_PARAMETRO || serviceId}
-                        </p>
-                        <p className='text-muted-foreground text-xs'>
-                          {getMatEnsayoLabel(service)}
-                        </p>
-                        <p className='text-muted-foreground text-xs'>
-                          {service.ID_TABLA_NORMA || 'Sin tabla'} •{' '}
-                          {service.UNIDAD_NORMA ||
-                            service.UNIDAD_INTERNO ||
-                            'Sin unidad'}
-                        </p>
-                        <p className='text-muted-foreground text-xs'>
-                          Límite interno: {service.LIM_INF_INTERNO || '—'} a{' '}
-                          {service.LIM_SUP_INTERNO || '—'}
-                        </p>
-                        <p className='text-muted-foreground text-xs'>
-                          {service.ID_TECNICA ||
-                            service.ID_MET_REFERENCIA ||
-                            service.ID_MET_INTERNO ||
-                            'Sin método'}
-                        </p>
+              <div className='grid grid-cols-2 gap-2 max-[900px]:grid-cols-1'>
+                {filteredAvailableServices.map((service) => {
+                  const serviceId = service.ID_CONFIG_PARAMETRO || service.id;
+                  const isSelected =
+                    dialogSelectedServiceIds.includes(serviceId);
+                  return (
+                    <button
+                      key={serviceId}
+                      type='button'
+                      className={`w-full rounded-md border p-3 text-left transition-colors ${
+                        isSelected
+                          ? 'border-black bg-black/5'
+                          : 'hover:bg-muted/50 border-border'
+                      }`}
+                      onClick={() => handleToggleServiceSelection(serviceId)}
+                    >
+                      <div className='flex items-start justify-between gap-2'>
+                        <div className='space-y-1'>
+                          <p className='text-sm font-medium'>
+                            {service.ID_PARAMETRO || serviceId}
+                          </p>
+                          <p className='text-muted-foreground text-xs'>
+                            {getMatEnsayoLabel(service)}
+                          </p>
+                          <p className='text-muted-foreground text-xs'>
+                            {service.ID_TABLA_NORMA || 'Sin tabla'} •{' '}
+                            {service.UNIDAD_NORMA ||
+                              service.UNIDAD_INTERNO ||
+                              'Sin unidad'}
+                          </p>
+                          <p className='text-muted-foreground text-xs'>
+                            Límite interno: {service.LIM_INF_INTERNO || '—'} a{' '}
+                            {service.LIM_SUP_INTERNO || '—'}
+                          </p>
+                          <p className='text-muted-foreground text-xs'>
+                            {service.ID_TECNICA ||
+                              service.ID_MET_REFERENCIA ||
+                              service.ID_MET_INTERNO ||
+                              'Sin método'}
+                          </p>
+                        </div>
+                        {isSelected ? (
+                          <span className='inline-flex aspect-square size-[1.125rem] shrink-0 items-center justify-center self-start rounded-full bg-black leading-none text-white'>
+                            <Check className='h-2.5 w-2.5' strokeWidth={3} />
+                          </span>
+                        ) : null}
                       </div>
-                      {isSelected ? (
-                        <span className='inline-flex h-6 w-6 items-center justify-center rounded-full border border-black bg-black text-white'>
-                          <Check className='h-3.5 w-3.5' />
-                        </span>
-                      ) : null}
-                    </div>
-                  </button>
-                );
-              })
+                    </button>
+                  );
+                })}
+              </div>
             )}
           </div>
 
           <AlertDialogFooter>
+            <div className='text-muted-foreground mr-auto text-xs sm:text-sm'>
+              {filteredAvailableServices.length} resultados
+            </div>
             <AlertDialogCancel className='cursor-pointer'>
               Cancelar
             </AlertDialogCancel>

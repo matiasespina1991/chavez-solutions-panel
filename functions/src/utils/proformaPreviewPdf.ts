@@ -209,7 +209,8 @@ const buildProformaPreviewHtml = (payload: ProformaPreviewPayload): string => {
 
       return `${rows}
       <tr class="group-subtotal">
-        <td colspan="7">Subtotal ${escapeHtml(group.name || `Combo ${groupIndex + 1}`)}</td>
+        <td colspan="4">Subtotal ${escapeHtml(group.name || `Combo ${groupIndex + 1}`)}</td>
+        <td colspan="3"></td>
         <td>${formatMoneyCompact(groupSubtotal)}</td>
       </tr>`;
     })

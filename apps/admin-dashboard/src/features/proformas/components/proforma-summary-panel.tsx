@@ -175,9 +175,10 @@ export function ProformaSummaryPanel({
                           );
                         })}
                         <tr className='bg-muted/40 border-t font-medium'>
-                          <td className='p-2' colSpan={4}>
+                          <td className='p-2'>
                             Subtotal {group.name || `Combo ${groupIndex + 1}`}
                           </td>
+                          <td className='p-2' colSpan={3} />
                           <td className='p-2 text-right'>
                             ${groupSubtotal.toFixed(2)}
                           </td>
