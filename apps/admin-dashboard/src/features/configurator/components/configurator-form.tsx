@@ -3049,7 +3049,7 @@ export default function ConfiguratorForm() {
                     type='button'
                     variant='outline'
                     size='sm'
-                    className='bg-muted/35 text-foreground hover:bg-muted/55 h-9 gap-1.5 border-transparent text-xs shadow-none'
+                    className='bg-muted/35 text-foreground hover:bg-muted/55 h-9 gap-1.5 text-xs shadow-none'
                   >
                     <IconFilterPlus className='h-3.7 w-3.7' />
                     Agregar filtro
