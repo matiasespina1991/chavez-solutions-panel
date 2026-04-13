@@ -11,6 +11,7 @@ import {
   ChevronDown,
   Check,
   Mail,
+  Pencil,
   Plus,
   Search,
   Send,
@@ -50,6 +51,11 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@/components/ui/tooltip';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -261,7 +267,13 @@ export default function ConfiguratorForm() {
     'draft' | 'final' | 'paused' | null
   >(null);
   const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
+  const [isMatrixSelectorDialogOpen, setIsMatrixSelectorDialogOpen] =
+    useState(false);
   const [isServicesDialogOpen, setIsServicesDialogOpen] = useState(false);
+  const [activeComboMatrix, setActiveComboMatrix] = useState<string | null>(
+    null
+  );
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [availableServices, setAvailableServices] = useState<
     ImportedServiceDocument[]
   >([]);
@@ -279,6 +291,12 @@ export default function ConfiguratorForm() {
   >([]);
   const [isAppliedFiltersExpanded, setIsAppliedFiltersExpanded] =
     useState(true);
+  const [groupToDelete, setGroupToDelete] = useState<SelectedServiceGroup | null>(
+    null
+  );
+  const [serviceToDelete, setServiceToDelete] = useState<SelectedService | null>(
+    null
+  );
   const [serviceGroups, setServiceGroups] = useState<SelectedServiceGroup[]>(
     []
   );
@@ -383,6 +401,11 @@ export default function ConfiguratorForm() {
   const getMatEnsayoLabel = (service: ImportedServiceDocument) => {
     const value = service.ID_MAT_ENSAYO?.trim();
     return value && value.length > 0 ? value : 'Sin material de ensayo';
+  };
+
+  const getMatrizLabel = (service: ImportedServiceDocument) => {
+    const value = service.ID_MATRIZ?.trim();
+    return value && value.length > 0 ? value : 'Sin matriz';
   };
 
   const getNormaLabel = (service: ImportedServiceDocument) => {
@@ -534,10 +557,15 @@ export default function ConfiguratorForm() {
     const normalizedSearch = dialogSearchTerm.trim().toLowerCase();
 
     return availableServices.filter((service) => {
+      const matrizLabel = getMatrizLabel(service);
       const matEnsayoLabel = getMatEnsayoLabel(service);
       const normaLabel = getNormaLabel(service);
       const tablaLabel = getTablaLabel(service);
       const tecnicaLabel = getTecnicaLabel(service);
+
+      if (activeComboMatrix && matrizLabel !== activeComboMatrix) {
+        return false;
+      }
 
       if (
         dialogFilters.matEnsayo.length > 0 &&
@@ -571,6 +599,7 @@ export default function ConfiguratorForm() {
 
       const searchHaystack = [
         service.ID_PARAMETRO,
+        service.ID_MATRIZ,
         service.ID_MAT_ENSAYO,
         service.ID_NORMA,
         service.ID_TABLA_NORMA,
@@ -587,7 +616,19 @@ export default function ConfiguratorForm() {
 
       return searchHaystack.includes(normalizedSearch);
     });
-  }, [availableServices, dialogFilters, dialogSearchTerm]);
+  }, [availableServices, dialogFilters, dialogSearchTerm, activeComboMatrix]);
+
+  const matrixOptionsForCombo = useMemo(() => {
+    const counts = new Map<string, number>();
+    availableServices.forEach((service) => {
+      const label = getMatrizLabel(service);
+      counts.set(label, (counts.get(label) || 0) + 1);
+    });
+
+    return Array.from(counts.entries())
+      .map(([value, count]) => ({ value, count }))
+      .sort((a, b) => a.value.localeCompare(b.value, 'es'));
+  }, [availableServices]);
 
   const activeDialogFiltersCount =
     dialogFilters.matEnsayo.length +
@@ -1298,8 +1339,32 @@ export default function ConfiguratorForm() {
     form.handleSubmit((data) => onSubmit(data, 'final'))();
   };
 
-  const handleOpenServicesDialog = () => {
+  const handleOpenMatrixSelectorDialog = () => {
+    setIsMatrixSelectorDialogOpen(true);
+  };
+
+  const handleSelectComboMatrix = (matrixLabel: string) => {
+    setEditingGroupId(null);
+    setActiveComboMatrix(matrixLabel);
     setDialogSelectedServiceIds([]);
+    setDialogFilters({
+      matEnsayo: [],
+      norma: [],
+      tabla: [],
+      tecnica: []
+    });
+    setDialogSearchTerm('');
+    setIsMatrixSelectorDialogOpen(false);
+    setIsServicesDialogOpen(true);
+  };
+
+  const handleEditGroupServices = (
+    group: SelectedServiceGroup,
+    matrixLabel: string | null
+  ) => {
+    setEditingGroupId(group.id);
+    setActiveComboMatrix(matrixLabel);
+    setDialogSelectedServiceIds(group.serviceIds);
     setDialogFilters({
       matEnsayo: [],
       norma: [],
@@ -1386,27 +1451,59 @@ export default function ConfiguratorForm() {
       return;
     }
 
-    const newGroupId = `combo-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const nextGroupServiceIds = nextGroupServices.map((service) =>
       getServiceId(service)
     );
 
-    setSelectedServices((prev) => {
-      const mapById = new Map(prev.map((service) => [getServiceId(service), service]));
-      nextGroupServices.forEach((service) => {
-        mapById.set(getServiceId(service), service);
-      });
-      return Array.from(mapById.values());
-    });
+    if (editingGroupId) {
+      const updatedGroups = serviceGroups.map((group) =>
+        group.id === editingGroupId
+          ? { ...group, serviceIds: nextGroupServiceIds }
+          : group
+      );
+      const remainingServiceIds = new Set(
+        updatedGroups.flatMap((group) => group.serviceIds)
+      );
 
-    setServiceGroups((prev) => [
-      ...prev,
-      {
-        id: newGroupId,
-        name: `Combo ${prev.length + 1}`,
-        serviceIds: nextGroupServiceIds
-      }
-    ]);
+      setSelectedServices((prev) => {
+        const mapById = new Map(
+          prev.map((service) => [getServiceId(service), service])
+        );
+        nextGroupServices.forEach((service) => {
+          mapById.set(getServiceId(service), service);
+        });
+        return Array.from(mapById.values()).filter((service) =>
+          remainingServiceIds.has(getServiceId(service))
+        );
+      });
+      setServiceGroups(updatedGroups);
+      setEditingGroupId(null);
+    } else {
+      const newGroupId = `combo-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+      setSelectedServices((prev) => {
+        const mapById = new Map(
+          prev.map((service) => [getServiceId(service), service])
+        );
+        nextGroupServices.forEach((service) => {
+          mapById.set(getServiceId(service), service);
+        });
+        return Array.from(mapById.values());
+      });
+
+      setServiceGroups((prev) => [
+        ...prev,
+        {
+          id: newGroupId,
+          name:
+            typeof activeComboMatrix === 'string' && activeComboMatrix.trim()
+              ? activeComboMatrix
+              : `Combo ${prev.length + 1}`,
+          serviceIds: nextGroupServiceIds
+        }
+      ]);
+    }
+    setActiveComboMatrix(null);
     setIsServicesDialogOpen(false);
   };
 
@@ -1418,8 +1515,29 @@ export default function ConfiguratorForm() {
     );
   };
 
-  const handleRemoveGroup = (groupId: string) => {
-    setServiceGroups((prev) => prev.filter((group) => group.id !== groupId));
+  const handleOpenRemoveGroupDialog = (group: SelectedServiceGroup) => {
+    setGroupToDelete(group);
+  };
+
+  const handleConfirmRemoveGroup = () => {
+    if (!groupToDelete) return;
+    setServiceGroups((prev) => {
+      const remainingGroups = prev.filter(
+        (group) => group.id !== groupToDelete.id
+      );
+      const remainingServiceIds = new Set(
+        remainingGroups.flatMap((group) => group.serviceIds)
+      );
+
+      setSelectedServices((prevServices) =>
+        prevServices.filter((service) =>
+          remainingServiceIds.has(getServiceId(service))
+        )
+      );
+
+      return remainingGroups;
+    });
+    setGroupToDelete(null);
   };
 
   const handleRemoveService = (serviceId: string) => {
@@ -1434,6 +1552,27 @@ export default function ConfiguratorForm() {
         }))
         .filter((group) => group.serviceIds.length > 0)
     );
+  };
+
+  const handleOpenRemoveService = (service: SelectedService) => {
+    const rangeMin = (service.rangeMin ?? '').trim();
+    const rangeMax = (service.rangeMax ?? '').trim();
+    const discountIsFilled =
+      typeof service.discountAmount === 'number' &&
+      Number.isFinite(service.discountAmount);
+
+    if (!rangeMin && !rangeMax && !discountIsFilled) {
+      handleRemoveService(getServiceId(service));
+      return;
+    }
+
+    setServiceToDelete(service);
+  };
+
+  const handleConfirmRemoveService = () => {
+    if (!serviceToDelete) return;
+    handleRemoveService(getServiceId(serviceToDelete));
+    setServiceToDelete(null);
   };
 
   const handleUpdateServiceField = (
@@ -1503,17 +1642,6 @@ export default function ConfiguratorForm() {
           .filter((service): service is SelectedService => Boolean(service))
       }))
       .filter((group) => group.items.length > 0);
-
-    if (groups.length === 0 && selectedServices.length > 0) {
-      return [
-        {
-          id: 'combo-default',
-          name: 'Combo 1',
-          serviceIds: selectedServices.map((service) => getServiceId(service)),
-          items: selectedServices
-        }
-      ];
-    }
 
     return groups;
   }, [serviceGroups, selectedServices]);
@@ -2033,7 +2161,7 @@ export default function ConfiguratorForm() {
                       type='button'
                       variant='outline'
                       className='cursor-pointer'
-                      onClick={handleOpenServicesDialog}
+                      onClick={handleOpenMatrixSelectorDialog}
                       disabled={isLoadingAvailableServices}
                     >
                       <Plus className='h-4 w-4' />
@@ -2046,32 +2174,58 @@ export default function ConfiguratorForm() {
                       No hay combos de servicios agregados.
                     </p>
                   ) : (
-                    <div className='space-y-2'>
+                    <div className='space-y-4'>
                       {groupedServicesForRender.map((group) => {
                         return (
                           <div
                             key={group.id}
-                            className='bg-muted/10 space-y-3 rounded-md border p-3'
+                            className='bg-primary/10 border-primary/25 space-y-3 rounded-md border p-3'
                           >
                             <div className='flex items-center justify-between gap-3'>
-                              <Input
-                                value={group.name}
-                                onChange={(event) =>
-                                  handleUpdateGroupName(group.id, event.target.value)
-                                }
-                                className='max-w-sm'
-                                placeholder='Nombre del combo'
-                              />
-                              <Button
-                                type='button'
-                                variant='ghost'
-                                size='icon'
-                                className='h-7 w-7 cursor-pointer'
-                                onClick={() => handleRemoveGroup(group.id)}
-                                aria-label='Quitar combo'
-                              >
-                                <Trash2 className='h-4 w-4' />
-                              </Button>
+                              <div className='flex items-center gap-1'>
+                                <Input
+                                  value={group.name}
+                                  onChange={(event) =>
+                                    handleUpdateGroupName(group.id, event.target.value)
+                                  }
+                                  className='bg-background w-[25rem] max-w-[85vw]'
+                                  placeholder='Nombre del combo'
+                                />
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type='button'
+                                      className='text-muted-foreground hover:text-foreground inline-flex h-7 w-7 cursor-pointer items-center justify-center'
+                                      onClick={() =>
+                                        handleEditGroupServices(
+                                          group,
+                                          group.items[0]
+                                            ? getMatrizLabel(group.items[0])
+                                            : null
+                                        )
+                                      }
+                                      aria-label='Editar combo de servicios'
+                                    >
+                                      <Pencil className='h-4 w-4' />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    Editar combo de servicios
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                              <div className='flex items-center gap-1'>
+                                <Button
+                                  type='button'
+                                  variant='ghost'
+                                  size='icon'
+                                  className='h-7 w-7 cursor-pointer'
+                                  onClick={() => handleOpenRemoveGroupDialog(group)}
+                                  aria-label='Quitar combo'
+                                >
+                                  <Trash2 className='h-4 w-4' />
+                                </Button>
+                              </div>
                             </div>
 
                             <div className='space-y-2'>
@@ -2079,7 +2233,10 @@ export default function ConfiguratorForm() {
                                 const serviceId =
                                   service.ID_CONFIG_PARAMETRO || service.id;
                                 return (
-                                  <div key={serviceId} className='bg-muted/20 rounded-md border p-3'>
+                                  <div
+                                    key={serviceId}
+                                    className='bg-background rounded-md border p-3'
+                                  >
                                     <div className='flex items-start justify-between gap-2'>
                                       <div className='flex-1 space-y-3'>
                                         <p className='text-sm font-medium'>
@@ -2237,7 +2394,7 @@ export default function ConfiguratorForm() {
                                         variant='ghost'
                                         size='icon'
                                         className='h-7 w-7 cursor-pointer'
-                                        onClick={() => handleRemoveService(serviceId)}
+                                        onClick={() => handleOpenRemoveService(service)}
                                         aria-label='Quitar servicio'
                                       >
                                         <Trash2 className='h-4 w-4' />
@@ -2462,16 +2619,123 @@ export default function ConfiguratorForm() {
       </div>
 
       <AlertDialog
-        open={isServicesDialogOpen}
-        onOpenChange={setIsServicesDialogOpen}
+        open={isMatrixSelectorDialogOpen}
+        onOpenChange={setIsMatrixSelectorDialogOpen}
       >
-        <AlertDialogContent className='flex h-[88vh] max-h-[88vh] w-[96vw] max-w-[1100px] flex-col overflow-x-hidden sm:max-w-[1100px]'>
+        <AlertDialogContent className='w-[92vw] max-w-[520px]'>
           <AlertDialogHeader>
-            <AlertDialogTitle>Agregar servicios</AlertDialogTitle>
-            <AlertDialogDescription className='m-0'>
-              Seleccioná uno o varios servicios para incluir en la proforma.
+            <AlertDialogTitle>Seleccionar matriz del combo</AlertDialogTitle>
+            <AlertDialogDescription>
+              Elegí una matriz para crear el combo de servicios.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className='max-h-[52vh] space-y-2 overflow-y-auto'>
+            {matrixOptionsForCombo.map((option) => (
+              <Button
+                key={option.value}
+                type='button'
+                variant='outline'
+                className='w-full justify-between'
+                onClick={() => handleSelectComboMatrix(option.value)}
+              >
+                <span className='truncate text-left'>{option.value}</span>
+                <span className='text-muted-foreground ml-3 text-xs'>
+                  {option.count}
+                </span>
+              </Button>
+            ))}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel className='cursor-pointer'>
+              Cancelar
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={Boolean(groupToDelete)}
+        onOpenChange={(open) => {
+          if (!open) setGroupToDelete(null);
+        }}
+      >
+        <AlertDialogContent className='w-[92vw] max-w-[460px]'>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar combo</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Querés eliminar el combo "{groupToDelete?.name || 'Combo'}"?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className='cursor-pointer'>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className='cursor-pointer bg-black text-white hover:bg-black/90'
+              onClick={handleConfirmRemoveGroup}
+            >
+              Eliminar combo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={Boolean(serviceToDelete)}
+        onOpenChange={(open) => {
+          if (!open) setServiceToDelete(null);
+        }}
+      >
+        <AlertDialogContent className='w-[92vw] max-w-[460px]'>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar servicio</AlertDialogTitle>
+            <AlertDialogDescription>
+              Este servicio tiene datos cargados. ¿Querés eliminarlo?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className='cursor-pointer'>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className='cursor-pointer bg-black text-white hover:bg-black/90'
+              onClick={handleConfirmRemoveService}
+            >
+              Eliminar servicio
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={isServicesDialogOpen}
+        onOpenChange={(open) => {
+          setIsServicesDialogOpen(open);
+          if (!open) {
+            setActiveComboMatrix(null);
+            setEditingGroupId(null);
+          }
+        }}
+      >
+      <AlertDialogContent className='flex h-[88vh] max-h-[88vh] w-[96vw] max-w-[1100px] flex-col overflow-x-hidden sm:max-w-[1100px]'>
+        <AlertDialogHeader>
+          <div className='flex items-center gap-2'>
+            <AlertDialogTitle className='shrink-0'>
+              Agregar servicios
+            </AlertDialogTitle>
+            {activeComboMatrix ? (
+              <span className='bg-muted text-muted-foreground inline-flex max-w-[70%] items-center rounded-full border px-2.5 py-1 text-sm'>
+                <span className='mr-1 font-medium'>Matriz:</span>
+                <span className='truncate' title={activeComboMatrix}>
+                  {activeComboMatrix}
+                </span>
+              </span>
+            ) : null}
+          </div>
+          <AlertDialogDescription className='m-0'>
+            Seleccioná uno o varios servicios para incluir en la proforma.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
 
           <div className='min-w-0 space-y-3'>
             <div className='relative w-full min-w-0'>
@@ -2505,7 +2769,11 @@ export default function ConfiguratorForm() {
                         <DropdownMenuSubTrigger className='text-sm'>
                           <span>{DIALOG_FILTER_LABELS[filterKey]}</span>
                         </DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent className='max-h-72 w-[36rem] max-w-[78vw] overflow-y-auto'>
+                        <DropdownMenuSubContent
+                          className={`max-h-72 max-w-[84vw] overflow-y-auto ${
+                            filterKey === 'tabla' ? 'w-[41rem]' : 'w-[36rem]'
+                          }`}
+                        >
                           {dialogFilterOptionsByKey[filterKey].map((option) => (
                             <DropdownMenuCheckboxItem
                               key={`${filterKey}-${option.value}`}

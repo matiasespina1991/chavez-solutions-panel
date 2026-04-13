@@ -58,7 +58,7 @@ interface ServiceRequestData {
   notes?: string;
   client?: unknown;
   samples?: unknown;
-  analyses?: unknown;
+  services?: unknown;
   pricing?: unknown;
   linkedWorkOrderId?: string | null;
   approval?: ServiceRequestApprovalData | null;
@@ -133,7 +133,7 @@ export const createWorkOrder = onCall(async (req) => {
       notes: source.notes ?? '',
       client: source.client ?? null,
       samples: null,
-      analyses: null,
+      services: source.services ?? null,
       pricing: source.pricing ?? null,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),

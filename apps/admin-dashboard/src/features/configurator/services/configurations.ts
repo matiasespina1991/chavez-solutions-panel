@@ -118,6 +118,7 @@ export interface ConfigurationServices {
 export interface ImportedServiceDocument {
   id: string;
   ID_CONFIG_PARAMETRO?: string;
+  ID_MATRIZ?: string;
   ID_MAT_ENSAYO?: string;
   ID_NORMA?: string;
   ID_TABLA_NORMA?: string;
@@ -342,6 +343,8 @@ export const listImportedServices = async (): Promise<
         typeof data.ID_CONFIG_PARAMETRO === 'string'
           ? data.ID_CONFIG_PARAMETRO
           : undefined,
+      ID_MATRIZ:
+        typeof data.ID_MATRIZ === 'string' ? data.ID_MATRIZ : undefined,
       ID_MAT_ENSAYO:
         typeof data.ID_MAT_ENSAYO === 'string' ? data.ID_MAT_ENSAYO : undefined,
       ID_NORMA:
