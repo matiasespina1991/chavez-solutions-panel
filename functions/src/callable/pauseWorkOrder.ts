@@ -31,7 +31,7 @@ export const pauseWorkOrder = onCall(async (req) => {
   }
 
   const sourceRequestRef = db
-    .collection('service_requests')
+    .collection('requests')
     .doc(sourceRequestId);
 
   const result = await db.runTransaction(async (tx) => {

@@ -703,7 +703,7 @@ export default function ServiceRequestsListing() {
 
   useEffect(() => {
     const requestsQuery = query(
-      collection(db, 'service_requests'),
+      collection(db, 'requests'),
       orderBy('updatedAt', 'desc')
     );
 
@@ -770,7 +770,7 @@ export default function ServiceRequestsListing() {
                 )
               : 0;
 
-          const analysesCount =
+          const legacyAnalysesCount =
             typeof value.analyses === 'object' && value.analyses !== null
               ? Array.isArray((value.analyses as { items?: unknown[] }).items)
                 ? ((value.analyses as { items?: unknown[] }).items?.length ?? 0)
@@ -842,9 +842,18 @@ export default function ServiceRequestsListing() {
                 : []
               : [];
 
+          const rawServiceItems =
+            value.services &&
+            typeof value.services === 'object' &&
+            !Array.isArray(value.services)
+              ? (value.services as { items?: unknown[] }).items
+              : Array.isArray(value.services)
+                ? (value.services as unknown[])
+                : [];
+
           const serviceItems =
-            Array.isArray(value.services)
-              ? (value.services as unknown[]).map((item, index) => {
+            Array.isArray(rawServiceItems)
+              ? rawServiceItems.map((item, index) => {
                   const rowItem = item as {
                     serviceId?: string;
                     parameterId?: string;
@@ -928,7 +937,8 @@ export default function ServiceRequestsListing() {
             taxPercent: Number.isFinite(taxPercent) ? taxPercent : 15,
             clientBusinessName: clientBusinessName || '—',
             agreedCount,
-            analysesCount: normalizedServiceItems.length || analysesCount,
+            analysesCount:
+              normalizedServiceItems.length || legacyAnalysesCount,
             total: Number.isFinite(total) ? total : 0,
             subtotal: Number.isFinite(subtotal) ? subtotal : 0,
             updatedAtLabel: formatTimestamp(value.updatedAt),

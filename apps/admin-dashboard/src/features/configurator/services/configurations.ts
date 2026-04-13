@@ -105,6 +105,16 @@ export interface ConfigurationServiceItem {
   discountAmount: number | null;
 }
 
+export interface ConfigurationServiceGroup {
+  name: string;
+  items: ConfigurationServiceItem[];
+}
+
+export interface ConfigurationServices {
+  items: ConfigurationServiceItem[];
+  grouped: ConfigurationServiceGroup[];
+}
+
 export interface ImportedServiceDocument {
   id: string;
   ID_CONFIG_PARAMETRO?: string;
@@ -137,8 +147,8 @@ export interface ConfigurationDocument {
   notes: string;
   client: ConfigurationClient;
   samples: ConfigurationSamples;
-  services: ConfigurationServiceItem[];
-  analyses: ConfigurationAnalyses;
+  services: ConfigurationServices;
+  analyses?: ConfigurationAnalyses;
   pricing: ConfigurationPricing;
 }
 
@@ -150,7 +160,7 @@ export interface ServiceRequestDocument
   linkedWorkOrderId?: string | null;
 }
 
-const SERVICE_REQUEST_COLLECTION = 'service_requests';
+const SERVICE_REQUEST_COLLECTION = 'requests';
 const WORK_ORDER_COLLECTION = 'work_orders';
 const SERVICES_COLLECTION = 'services';
 
@@ -285,7 +295,32 @@ export const getConfigurationById = async (
     type: data.isWorkOrder ? 'both' : 'proforma',
     status: toConfigurationStatus(data.status),
     serviceRequestStatus: data.status,
-    approvalStatus: data.approval?.status
+    approvalStatus: data.approval?.status,
+    services:
+      typeof data.services === 'object' &&
+      data.services !== null &&
+      !Array.isArray(data.services)
+        ? {
+            items: Array.isArray(
+              (data.services as { items?: ConfigurationServiceItem[] }).items
+            )
+              ? ((data.services as { items?: ConfigurationServiceItem[] })
+                  .items ?? [])
+              : [],
+            grouped: Array.isArray(
+              (data.services as { grouped?: ConfigurationServiceGroup[] })
+                .grouped
+            )
+              ? ((data.services as { grouped?: ConfigurationServiceGroup[] })
+                  .grouped ?? [])
+              : []
+          }
+        : {
+            items: Array.isArray(data.services)
+              ? (data.services as unknown as ConfigurationServiceItem[])
+              : [],
+            grouped: []
+          }
   } as ConfigurationDocument;
 };
 

@@ -292,13 +292,21 @@ export default function WorkOrdersListing() {
   };
 
   useEffect(() => {
-    const requestsQuery = query(collection(db, 'service_requests'));
+    const requestsQuery = query(collection(db, 'requests'));
     const unsubscribe = onSnapshot(requestsQuery, (snapshot) => {
       const nextMap: Record<string, WorkOrderRow['serviceItems']> = {};
       snapshot.docs.forEach((docSnap) => {
         const value = docSnap.data() as Record<string, unknown>;
-        const serviceItems = Array.isArray(value.services)
-          ? (value.services as unknown[]).map((item, index) => {
+      const rawServiceItems =
+        value.services &&
+        typeof value.services === 'object' &&
+        !Array.isArray(value.services)
+          ? (value.services as { items?: unknown[] }).items
+          : Array.isArray(value.services)
+            ? (value.services as unknown[])
+            : [];
+      const serviceItems = Array.isArray(rawServiceItems)
+        ? rawServiceItems.map((item, index) => {
               const rowItem = item as {
                 serviceId?: string;
                 parameterId?: string;
@@ -467,8 +475,17 @@ export default function WorkOrdersListing() {
                 : []
               : [];
 
-          const directServiceItems = Array.isArray(value.services)
-            ? (value.services as unknown[]).map((item, index) => {
+          const rawDirectServices =
+            value.services &&
+            typeof value.services === 'object' &&
+            !Array.isArray(value.services)
+              ? (value.services as { items?: unknown[] }).items
+              : Array.isArray(value.services)
+                ? (value.services as unknown[])
+                : [];
+
+          const directServiceItems = Array.isArray(rawDirectServices)
+            ? rawDirectServices.map((item, index) => {
                 const rowItem = item as {
                   serviceId?: string;
                   parameterId?: string;

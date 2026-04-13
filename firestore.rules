@@ -14,14 +14,14 @@ service cloud.firestore {
     }
 
     // Service Requests (configurador)
-    match /service_requests/{requestId} {
+    match /requests/{requestId} {
       allow read: if true;
       allow create, update: if isAuthorized();
       allow delete: if false;
     }
 
     // Archived deleted service requests (written from backend callable)
-    match /deleted_service_requests/{requestId} {
+    match /deleted_requests/{requestId} {
       allow read: if true;
       allow create, update, delete: if false;
     }

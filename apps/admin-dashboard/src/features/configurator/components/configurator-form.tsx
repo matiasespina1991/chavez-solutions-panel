@@ -104,21 +104,43 @@ const formSchema = z.object({
       })
     )
   }),
-  services: z.array(
-    z.object({
-      serviceId: z.string(),
-      parameterId: z.string(),
-      parameterLabel: z.string(),
-      tableLabel: z.string().nullable(),
-      unit: z.string().nullable(),
-      method: z.string().nullable(),
-      rangeMin: z.string(),
-      rangeMax: z.string(),
-      quantity: z.number().min(1),
-      unitPrice: z.number().nullable(),
-      discountAmount: z.number().nullable()
-    })
-  ),
+  services: z.object({
+    items: z.array(
+      z.object({
+        serviceId: z.string(),
+        parameterId: z.string(),
+        parameterLabel: z.string(),
+        tableLabel: z.string().nullable(),
+        unit: z.string().nullable(),
+        method: z.string().nullable(),
+        rangeMin: z.string(),
+        rangeMax: z.string(),
+        quantity: z.number().min(1),
+        unitPrice: z.number().nullable(),
+        discountAmount: z.number().nullable()
+      })
+    ),
+    grouped: z.array(
+      z.object({
+        name: z.string(),
+        items: z.array(
+          z.object({
+            serviceId: z.string(),
+            parameterId: z.string(),
+            parameterLabel: z.string(),
+            tableLabel: z.string().nullable(),
+            unit: z.string().nullable(),
+            method: z.string().nullable(),
+            rangeMin: z.string(),
+            rangeMax: z.string(),
+            quantity: z.number().min(1),
+            unitPrice: z.number().nullable(),
+            discountAmount: z.number().nullable()
+          })
+        )
+      })
+    )
+  }),
   analyses: z.object({
     applyMode: z.enum(['all_samples', 'by_sample']),
     items: z.array(
@@ -176,6 +198,12 @@ type SelectedService = ImportedServiceDocument & {
   discountAmount: number | null;
 };
 
+type SelectedServiceGroup = {
+  id: string;
+  name: string;
+  serviceIds: string[];
+};
+
 const createDefaultFormValues = (): FormValues => ({
   type: 'proforma',
   matrix: ['water'],
@@ -199,7 +227,10 @@ const createDefaultFormValues = (): FormValues => ({
     executedCount: 1,
     items: []
   },
-  services: [],
+  services: {
+    items: [],
+    grouped: []
+  },
   analyses: {
     applyMode: 'all_samples',
     items: []
@@ -248,6 +279,9 @@ export default function ConfiguratorForm() {
   >([]);
   const [isAppliedFiltersExpanded, setIsAppliedFiltersExpanded] =
     useState(true);
+  const [serviceGroups, setServiceGroups] = useState<SelectedServiceGroup[]>(
+    []
+  );
   const [selectedServices, setSelectedServices] = useState<SelectedService[]>(
     []
   );
@@ -603,6 +637,28 @@ export default function ConfiguratorForm() {
       discountAmount: service.discountAmount
     }));
 
+  const mapServiceGroupsToDocument = (
+    groups: SelectedServiceGroup[],
+    services: SelectedService[]
+  ) => {
+    const servicesById = new Map(
+      services.map((service) => [getServiceId(service), service])
+    );
+
+    return groups
+      .map((group) => {
+        const items = group.serviceIds
+          .map((serviceId) => servicesById.get(serviceId))
+          .filter((service): service is SelectedService => Boolean(service));
+
+        return {
+          name: group.name,
+          items: mapSelectedServicesToDocument(items)
+        };
+      })
+      .filter((group) => group.items.length > 0);
+  };
+
   const mapStoredServicesToSelected = (
     services: ConfigurationServiceItem[]
   ): SelectedService[] =>
@@ -628,6 +684,39 @@ export default function ConfiguratorForm() {
         }
       )
     );
+
+  const mapStoredServiceGroups = (
+    grouped:
+      | {
+          name?: string;
+          items?: ConfigurationServiceItem[];
+        }[]
+      | undefined,
+    services: SelectedService[]
+  ): SelectedServiceGroup[] => {
+    if (!Array.isArray(grouped)) return [];
+
+    const validServiceIds = new Set(services.map((service) => getServiceId(service)));
+
+    return grouped
+      .map((group, index) => {
+        const itemIds = Array.isArray(group.items)
+          ? group.items
+              .map((item) => item.parameterId || item.serviceId)
+              .filter((id): id is string => typeof id === 'string' && validServiceIds.has(id))
+          : [];
+
+        return {
+          id: `group-${Date.now()}-${index}`,
+          name:
+            typeof group.name === 'string' && group.name.trim().length > 0
+              ? group.name.trim()
+              : `Combo ${index + 1}`,
+          serviceIds: Array.from(new Set(itemIds))
+        };
+      })
+      .filter((group) => group.serviceIds.length > 0);
+  };
 
   const toDateOrNull = (value: unknown): Date | null => {
     if (!value) return null;
@@ -658,6 +747,12 @@ export default function ConfiguratorForm() {
       analyses?:
         | (Partial<FormValues['analyses']> & {
             items?: FormValues['analyses']['items'];
+          })
+        | undefined;
+      services?:
+        | (Partial<FormValues['services']> & {
+            items?: FormValues['services']['items'];
+            grouped?: FormValues['services']['grouped'];
           })
         | undefined;
       pricing?: Partial<FormValues['pricing']>;
@@ -691,6 +786,24 @@ export default function ConfiguratorForm() {
         ...(cached.samples ?? {}),
         items: mergedSampleItems
       },
+      services: {
+        ...baseValues.services,
+        ...(cached.services && !Array.isArray(cached.services)
+          ? cached.services
+          : {}),
+        items:
+          cached.services &&
+          !Array.isArray(cached.services) &&
+          Array.isArray(cached.services.items)
+            ? cached.services.items
+            : baseValues.services.items,
+        grouped:
+          cached.services &&
+          !Array.isArray(cached.services) &&
+          Array.isArray(cached.services.grouped)
+            ? cached.services.grouped
+            : baseValues.services.grouped
+      },
       analyses: {
         ...baseValues.analyses,
         ...(cached.analyses ?? {}),
@@ -713,6 +826,7 @@ export default function ConfiguratorForm() {
   const handleConfirmClearCurrentData = () => {
     form.reset(createDefaultFormValues());
     setSelectedServices([]);
+    setServiceGroups([]);
     setActiveTab('type');
     removeCachedDraft();
     setIsClearDialogOpen(false);
@@ -796,9 +910,9 @@ export default function ConfiguratorForm() {
       const parsed = JSON.parse(cached) as unknown;
       const merged = mergeWithCachedValues(createDefaultFormValues(), parsed);
       form.reset(merged);
-      setSelectedServices(
-        merged.services?.length
-          ? mapStoredServicesToSelected(merged.services)
+      const restoredServices =
+        merged.services?.items?.length
+          ? mapStoredServicesToSelected(merged.services.items)
           : merged.analyses.items.map((item, index) =>
               (() => {
                 const parsedRange = parseRangeOffered(item.rangeOffered);
@@ -825,7 +939,10 @@ export default function ConfiguratorForm() {
                   }
                 );
               })()
-            )
+            );
+      setSelectedServices(restoredServices);
+      setServiceGroups(
+        mapStoredServiceGroups(merged.services?.grouped, restoredServices)
       );
     } catch (error) {
       console.error('Error restoring configurator cache:', error);
@@ -869,10 +986,20 @@ export default function ConfiguratorForm() {
             executedCount: existing.samples.executedCount,
             items: []
           },
-          services: Array.isArray(existing.services) ? existing.services : [],
+          services:
+            existing.services &&
+            typeof existing.services === 'object' &&
+            !Array.isArray(existing.services)
+              ? existing.services
+              : {
+                  items: Array.isArray(existing.services)
+                    ? existing.services
+                    : [],
+                  grouped: []
+                },
           analyses: {
-            applyMode: existing.analyses.applyMode,
-            items: existing.analyses.items
+            applyMode: existing.analyses?.applyMode ?? 'all_samples',
+            items: existing.analyses?.items ?? []
           },
           pricing: {
             currency: 'USD',
@@ -896,9 +1023,9 @@ export default function ConfiguratorForm() {
               const parsed = JSON.parse(cached) as unknown;
               const merged = mergeWithCachedValues(loadedValues, parsed);
               form.reset(merged);
-              setSelectedServices(
-                merged.services?.length
-                  ? mapStoredServicesToSelected(merged.services)
+              const restoredServices =
+                merged.services?.items?.length
+                  ? mapStoredServicesToSelected(merged.services.items)
                   : merged.analyses.items.map((item, index) =>
                       (() => {
                         const parsedRange = parseRangeOffered(
@@ -927,7 +1054,13 @@ export default function ConfiguratorForm() {
                           }
                         );
                       })()
-                    )
+                    );
+              setSelectedServices(restoredServices);
+              setServiceGroups(
+                mapStoredServiceGroups(
+                  merged.services?.grouped,
+                  restoredServices
+                )
               );
               return;
             }
@@ -937,9 +1070,9 @@ export default function ConfiguratorForm() {
         }
 
         form.reset(loadedValues);
-        setSelectedServices(
-          loadedValues.services?.length
-            ? mapStoredServicesToSelected(loadedValues.services)
+        const restoredServices =
+          loadedValues.services?.items?.length
+            ? mapStoredServicesToSelected(loadedValues.services.items)
             : loadedValues.analyses.items.map((item, index) =>
                 (() => {
                   const parsedRange = parseRangeOffered(item.rangeOffered);
@@ -966,7 +1099,10 @@ export default function ConfiguratorForm() {
                     }
                   );
                 })()
-              )
+              );
+        setSelectedServices(restoredServices);
+        setServiceGroups(
+          mapStoredServiceGroups(loadedValues.services?.grouped, restoredServices)
         );
       } catch (error) {
         console.error('Error loading request for edit:', error);
@@ -1014,8 +1150,11 @@ export default function ConfiguratorForm() {
 
   useEffect(() => {
     const mappedAnalyses = mapServicesToAnalyses(selectedServices);
-    const mappedServices = mapSelectedServicesToDocument(selectedServices);
-    form.setValue('services', mappedServices);
+    const mappedServiceItems = mapSelectedServicesToDocument(selectedServices);
+    form.setValue('services', {
+      items: mappedServiceItems,
+      grouped: mapServiceGroupsToDocument(serviceGroups, selectedServices)
+    });
     form.setValue('analyses.applyMode', 'all_samples');
     form.setValue('analyses.items', mappedAnalyses);
 
@@ -1029,7 +1168,7 @@ export default function ConfiguratorForm() {
     const total = subtotal + (subtotal * taxPercent) / 100;
     form.setValue('pricing.subtotal', subtotal);
     form.setValue('pricing.total', total);
-  }, [form, selectedServices]);
+  }, [form, selectedServices, serviceGroups]);
 
   // Keep executed count aligned with agreed count
   useEffect(() => {
@@ -1066,10 +1205,9 @@ export default function ConfiguratorForm() {
           ...values.samples,
           items: []
         },
-        services: mapSelectedServicesToDocument(selectedServices),
-        analyses: {
-          applyMode: values.analyses.applyMode,
-          items: values.analyses.items
+        services: {
+          items: mapSelectedServicesToDocument(selectedServices),
+          grouped: mapServiceGroupsToDocument(serviceGroups, selectedServices)
         },
         pricing: {
           ...values.pricing,
@@ -1133,10 +1271,9 @@ export default function ConfiguratorForm() {
           ...values.samples,
           items: []
         },
-        services: mapSelectedServicesToDocument(selectedServices),
-        analyses: {
-          applyMode: values.analyses.applyMode,
-          items: values.analyses.items
+        services: {
+          items: mapSelectedServicesToDocument(selectedServices),
+          grouped: mapServiceGroupsToDocument(serviceGroups, selectedServices)
         },
         pricing: {
           ...values.pricing,
@@ -1162,9 +1299,7 @@ export default function ConfiguratorForm() {
   };
 
   const handleOpenServicesDialog = () => {
-    setDialogSelectedServiceIds(
-      selectedServices.map((service) => getServiceId(service))
-    );
+    setDialogSelectedServiceIds([]);
     setDialogFilters({
       matEnsayo: [],
       norma: [],
@@ -1232,11 +1367,13 @@ export default function ConfiguratorForm() {
   };
 
   const handleAddServicesToForm = () => {
+    if (dialogSelectedServiceIds.length === 0) return;
+
     const selectedSet = new Set(dialogSelectedServiceIds);
     const existingById = new Map(
       selectedServices.map((service) => [getServiceId(service), service])
     );
-    const nextServices = availableServices
+    const nextGroupServices = availableServices
       .filter((service) => selectedSet.has(getServiceId(service)))
       .map((service) => {
         const serviceId = getServiceId(service);
@@ -1244,13 +1381,58 @@ export default function ConfiguratorForm() {
         return toSelectedService(service, existing);
       });
 
-    setSelectedServices(nextServices);
+    if (nextGroupServices.length === 0) {
+      setIsServicesDialogOpen(false);
+      return;
+    }
+
+    const newGroupId = `combo-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const nextGroupServiceIds = nextGroupServices.map((service) =>
+      getServiceId(service)
+    );
+
+    setSelectedServices((prev) => {
+      const mapById = new Map(prev.map((service) => [getServiceId(service), service]));
+      nextGroupServices.forEach((service) => {
+        mapById.set(getServiceId(service), service);
+      });
+      return Array.from(mapById.values());
+    });
+
+    setServiceGroups((prev) => [
+      ...prev,
+      {
+        id: newGroupId,
+        name: `Combo ${prev.length + 1}`,
+        serviceIds: nextGroupServiceIds
+      }
+    ]);
     setIsServicesDialogOpen(false);
+  };
+
+  const handleUpdateGroupName = (groupId: string, value: string) => {
+    setServiceGroups((prev) =>
+      prev.map((group) =>
+        group.id === groupId ? { ...group, name: value } : group
+      )
+    );
+  };
+
+  const handleRemoveGroup = (groupId: string) => {
+    setServiceGroups((prev) => prev.filter((group) => group.id !== groupId));
   };
 
   const handleRemoveService = (serviceId: string) => {
     setSelectedServices((prev) =>
       prev.filter((service) => getServiceId(service) !== serviceId)
+    );
+    setServiceGroups((prev) =>
+      prev
+        .map((group) => ({
+          ...group,
+          serviceIds: group.serviceIds.filter((id) => id !== serviceId)
+        }))
+        .filter((group) => group.serviceIds.length > 0)
     );
   };
 
@@ -1308,6 +1490,33 @@ export default function ConfiguratorForm() {
 
   const summaryNotes = (form.getValues('notes') || '').trim();
   const referenceLabel = reference?.trim() || '—';
+  const groupedServicesForRender = useMemo(() => {
+    const servicesById = new Map(
+      selectedServices.map((service) => [getServiceId(service), service])
+    );
+
+    const groups = serviceGroups
+      .map((group) => ({
+        ...group,
+        items: group.serviceIds
+          .map((serviceId) => servicesById.get(serviceId))
+          .filter((service): service is SelectedService => Boolean(service))
+      }))
+      .filter((group) => group.items.length > 0);
+
+    if (groups.length === 0 && selectedServices.length > 0) {
+      return [
+        {
+          id: 'combo-default',
+          name: 'Combo 1',
+          serviceIds: selectedServices.map((service) => getServiceId(service)),
+          items: selectedServices
+        }
+      ];
+    }
+
+    return groups;
+  }, [serviceGroups, selectedServices]);
   const validDaysValue = form.watch('validDays');
   const createdAtValue = form.watch('createdAt');
   const validUntilLabel = (() => {
@@ -1813,11 +2022,11 @@ export default function ConfiguratorForm() {
                   <div className='flex items-center justify-between gap-2'>
                     <div>
                       <h4 className='text-sm font-semibold'>
-                        Servicios seleccionados
+                        Combos de servicios
                       </h4>
                       <p className='text-muted-foreground text-xs'>
-                        Elegí uno o varios servicios importados desde
-                        Administración.
+                        Agregá uno o varios combos de servicios importados
+                        desde Administración.
                       </p>
                     </div>
                     <Button
@@ -1828,186 +2037,215 @@ export default function ConfiguratorForm() {
                       disabled={isLoadingAvailableServices}
                     >
                       <Plus className='h-4 w-4' />
-                      Agregar servicios
+                      Agregar combo de servicios
                     </Button>
                   </div>
 
-                  {selectedServices.length === 0 ? (
+                  {groupedServicesForRender.length === 0 ? (
                     <p className='text-muted-foreground text-sm'>
-                      No hay servicios seleccionados.
+                      No hay combos de servicios agregados.
                     </p>
                   ) : (
                     <div className='space-y-2'>
-                      {selectedServices.map((service) => {
-                        const serviceId =
-                          service.ID_CONFIG_PARAMETRO || service.id;
+                      {groupedServicesForRender.map((group) => {
                         return (
                           <div
-                            key={serviceId}
-                            className='bg-muted/20 rounded-md border p-3'
+                            key={group.id}
+                            className='bg-muted/10 space-y-3 rounded-md border p-3'
                           >
-                            <div className='flex items-start justify-between gap-2'>
-                              <div className='flex-1 space-y-3'>
-                                <p className='text-sm font-medium'>
-                                  {service.ID_PARAMETRO || serviceId}
-                                </p>
-                                <p className='text-muted-foreground text-xs'>
-                                  {service.ID_MAT_ENSAYO?.trim() ||
-                                    'Sin material de ensayo'}
-                                </p>
-                                <p className='text-muted-foreground text-xs'>
-                                  {service.ID_TABLA_NORMA || 'Sin tabla'} •{' '}
-                                  {service.UNIDAD_NORMA ||
-                                    service.UNIDAD_INTERNO ||
-                                    'Sin unidad'}
-                                </p>
-                                <p className='text-muted-foreground text-xs'>
-                                  {service.ID_TECNICA ||
-                                    service.ID_MET_REFERENCIA ||
-                                    service.ID_MET_INTERNO ||
-                                    'Sin método'}
-                                </p>
-                                <div className='grid grid-cols-1 gap-2 md:grid-cols-5'>
-                                  <div className='space-y-1'>
-                                    <label
-                                      htmlFor={`quantity-${serviceId}`}
-                                      className='text-muted-foreground text-xs'
-                                    >
-                                      Cantidad
-                                    </label>
-                                    <Input
-                                      id={`quantity-${serviceId}`}
-                                      type='number'
-                                      min={1}
-                                      value={service.quantity ?? 1}
-                                      onChange={(event) =>
-                                        handleUpdateServiceField(
-                                          serviceId,
-                                          'quantity',
-                                          event.target.value
-                                        )
-                                      }
-                                    />
-                                  </div>
-                                  <div className='space-y-1'>
-                                    <label
-                                      htmlFor={`range-min-${serviceId}`}
-                                      className='text-muted-foreground text-xs'
-                                    >
-                                      Rango mínimo
-                                    </label>
-                                    <Input
-                                      id={`range-min-${serviceId}`}
-                                      value={service.rangeMin ?? ''}
-                                      onChange={(event) =>
-                                        handleUpdateServiceField(
-                                          serviceId,
-                                          'rangeMin',
-                                          event.target.value
-                                        )
-                                      }
-                                      placeholder='Ej: 0.10'
-                                    />
-                                  </div>
-                                  <div className='space-y-1'>
-                                    <label
-                                      htmlFor={`range-max-${serviceId}`}
-                                      className='text-muted-foreground text-xs'
-                                    >
-                                      Rango máximo
-                                    </label>
-                                    <Input
-                                      id={`range-max-${serviceId}`}
-                                      value={service.rangeMax ?? ''}
-                                      onChange={(event) =>
-                                        handleUpdateServiceField(
-                                          serviceId,
-                                          'rangeMax',
-                                          event.target.value
-                                        )
-                                      }
-                                      placeholder='Ej: 10.00'
-                                    />
-                                  </div>
-                                  <div className='space-y-1'>
-                                    <label
-                                      htmlFor={`price-${serviceId}`}
-                                      className='text-muted-foreground text-xs'
-                                    >
-                                      Precio (USD)
-                                    </label>
-                                    <div className='relative'>
-                                      <span className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm'>
-                                        $
-                                      </span>
-                                      <Input
-                                        id={`price-${serviceId}`}
-                                        type='number'
-                                        min={0}
-                                        step='0.01'
-                                        value={
-                                          typeof service.unitPrice === 'number'
-                                            ? service.unitPrice
-                                            : ''
-                                        }
-                                        onChange={(event) =>
-                                          handleUpdateServiceField(
-                                            serviceId,
-                                            'unitPrice',
-                                            event.target.value
-                                          )
-                                        }
-                                        placeholder='Ej: 12.50'
-                                        className='pl-7'
-                                      />
-                                    </div>
-                                  </div>
-                                  <div className='space-y-1'>
-                                    <label
-                                      htmlFor={`discount-${serviceId}`}
-                                      className='text-muted-foreground text-xs'
-                                    >
-                                      Descuento (USD)
-                                    </label>
-                                    <div className='relative'>
-                                      <span className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm'>
-                                        $
-                                      </span>
-                                      <Input
-                                        id={`discount-${serviceId}`}
-                                        type='number'
-                                        min={0}
-                                        step='0.01'
-                                        value={
-                                          typeof service.discountAmount ===
-                                          'number'
-                                            ? service.discountAmount
-                                            : ''
-                                        }
-                                        onChange={(event) =>
-                                          handleUpdateServiceField(
-                                            serviceId,
-                                            'discountAmount',
-                                            event.target.value
-                                          )
-                                        }
-                                        placeholder='Ej: 2.50'
-                                        className='pl-7'
-                                      />
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
+                            <div className='flex items-center justify-between gap-3'>
+                              <Input
+                                value={group.name}
+                                onChange={(event) =>
+                                  handleUpdateGroupName(group.id, event.target.value)
+                                }
+                                className='max-w-sm'
+                                placeholder='Nombre del combo'
+                              />
                               <Button
                                 type='button'
                                 variant='ghost'
                                 size='icon'
                                 className='h-7 w-7 cursor-pointer'
-                                onClick={() => handleRemoveService(serviceId)}
-                                aria-label='Quitar servicio'
+                                onClick={() => handleRemoveGroup(group.id)}
+                                aria-label='Quitar combo'
                               >
                                 <Trash2 className='h-4 w-4' />
                               </Button>
+                            </div>
+
+                            <div className='space-y-2'>
+                              {group.items.map((service) => {
+                                const serviceId =
+                                  service.ID_CONFIG_PARAMETRO || service.id;
+                                return (
+                                  <div key={serviceId} className='bg-muted/20 rounded-md border p-3'>
+                                    <div className='flex items-start justify-between gap-2'>
+                                      <div className='flex-1 space-y-3'>
+                                        <p className='text-sm font-medium'>
+                                          {service.ID_PARAMETRO || serviceId}
+                                        </p>
+                                        <p className='text-muted-foreground text-xs'>
+                                          {service.ID_MAT_ENSAYO?.trim() ||
+                                            'Sin material de ensayo'}
+                                        </p>
+                                        <p className='text-muted-foreground text-xs'>
+                                          {service.ID_TABLA_NORMA || 'Sin tabla'} •{' '}
+                                          {service.UNIDAD_NORMA ||
+                                            service.UNIDAD_INTERNO ||
+                                            'Sin unidad'}
+                                        </p>
+                                        <p className='text-muted-foreground text-xs'>
+                                          {service.ID_TECNICA ||
+                                            service.ID_MET_REFERENCIA ||
+                                            service.ID_MET_INTERNO ||
+                                            'Sin método'}
+                                        </p>
+                                        <div className='grid grid-cols-1 gap-2 md:grid-cols-5'>
+                                          <div className='space-y-1'>
+                                            <label
+                                              htmlFor={`quantity-${serviceId}`}
+                                              className='text-muted-foreground text-xs'
+                                            >
+                                              Cantidad
+                                            </label>
+                                            <Input
+                                              id={`quantity-${serviceId}`}
+                                              type='number'
+                                              min={1}
+                                              value={service.quantity ?? 1}
+                                              onChange={(event) =>
+                                                handleUpdateServiceField(
+                                                  serviceId,
+                                                  'quantity',
+                                                  event.target.value
+                                                )
+                                              }
+                                            />
+                                          </div>
+                                          <div className='space-y-1'>
+                                            <label
+                                              htmlFor={`range-min-${serviceId}`}
+                                              className='text-muted-foreground text-xs'
+                                            >
+                                              Rango mínimo
+                                            </label>
+                                            <Input
+                                              id={`range-min-${serviceId}`}
+                                              value={service.rangeMin ?? ''}
+                                              onChange={(event) =>
+                                                handleUpdateServiceField(
+                                                  serviceId,
+                                                  'rangeMin',
+                                                  event.target.value
+                                                )
+                                              }
+                                              placeholder='Ej: 0.10'
+                                            />
+                                          </div>
+                                          <div className='space-y-1'>
+                                            <label
+                                              htmlFor={`range-max-${serviceId}`}
+                                              className='text-muted-foreground text-xs'
+                                            >
+                                              Rango máximo
+                                            </label>
+                                            <Input
+                                              id={`range-max-${serviceId}`}
+                                              value={service.rangeMax ?? ''}
+                                              onChange={(event) =>
+                                                handleUpdateServiceField(
+                                                  serviceId,
+                                                  'rangeMax',
+                                                  event.target.value
+                                                )
+                                              }
+                                              placeholder='Ej: 10.00'
+                                            />
+                                          </div>
+                                          <div className='space-y-1'>
+                                            <label
+                                              htmlFor={`price-${serviceId}`}
+                                              className='text-muted-foreground text-xs'
+                                            >
+                                              Precio (USD)
+                                            </label>
+                                            <div className='relative'>
+                                              <span className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm'>
+                                                $
+                                              </span>
+                                              <Input
+                                                id={`price-${serviceId}`}
+                                                type='number'
+                                                min={0}
+                                                step='0.01'
+                                                value={
+                                                  typeof service.unitPrice === 'number'
+                                                    ? service.unitPrice
+                                                    : ''
+                                                }
+                                                onChange={(event) =>
+                                                  handleUpdateServiceField(
+                                                    serviceId,
+                                                    'unitPrice',
+                                                    event.target.value
+                                                  )
+                                                }
+                                                placeholder='Ej: 12.50'
+                                                className='pl-7'
+                                              />
+                                            </div>
+                                          </div>
+                                          <div className='space-y-1'>
+                                            <label
+                                              htmlFor={`discount-${serviceId}`}
+                                              className='text-muted-foreground text-xs'
+                                            >
+                                              Descuento (USD)
+                                            </label>
+                                            <div className='relative'>
+                                              <span className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm'>
+                                                $
+                                              </span>
+                                              <Input
+                                                id={`discount-${serviceId}`}
+                                                type='number'
+                                                min={0}
+                                                step='0.01'
+                                                value={
+                                                  typeof service.discountAmount ===
+                                                  'number'
+                                                    ? service.discountAmount
+                                                    : ''
+                                                }
+                                                onChange={(event) =>
+                                                  handleUpdateServiceField(
+                                                    serviceId,
+                                                    'discountAmount',
+                                                    event.target.value
+                                                  )
+                                                }
+                                                placeholder='Ej: 2.50'
+                                                className='pl-7'
+                                              />
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                      <Button
+                                        type='button'
+                                        variant='ghost'
+                                        size='icon'
+                                        className='h-7 w-7 cursor-pointer'
+                                        onClick={() => handleRemoveService(serviceId)}
+                                        aria-label='Quitar servicio'
+                                      >
+                                        <Trash2 className='h-4 w-4' />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         );

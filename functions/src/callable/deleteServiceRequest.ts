@@ -19,9 +19,9 @@ export const deleteServiceRequest = onCall(async (req) => {
     throw new HttpsError('invalid-argument', 'sourceRequestId is required.');
   }
 
-  const sourceRef = db.collection('service_requests').doc(sourceRequestId);
+  const sourceRef = db.collection('requests').doc(sourceRequestId);
   const deletedRef = db
-    .collection('deleted_service_requests')
+    .collection('deleted_requests')
     .doc(sourceRequestId);
 
   await db.runTransaction(async (tx) => {

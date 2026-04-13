@@ -54,7 +54,7 @@ export const rejectServiceRequest = onCall(async (req) => {
     );
   }
 
-  const sourceRef = db.collection('service_requests').doc(sourceRequestId);
+  const sourceRef = db.collection('requests').doc(sourceRequestId);
 
   const result = await db.runTransaction<RejectServiceRequestResponse>(
     async (tx) => {

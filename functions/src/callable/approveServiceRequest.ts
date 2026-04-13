@@ -53,7 +53,7 @@ export const approveServiceRequest = onCall(async (req) => {
     throw new HttpsError('invalid-argument', 'sourceRequestId is required.');
   }
 
-  const sourceRef = db.collection('service_requests').doc(sourceRequestId);
+  const sourceRef = db.collection('requests').doc(sourceRequestId);
 
   const result = await db.runTransaction<ApproveServiceRequestResponse>(
     async (tx) => {

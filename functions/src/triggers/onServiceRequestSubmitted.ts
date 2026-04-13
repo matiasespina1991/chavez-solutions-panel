@@ -50,7 +50,7 @@ const toMatrixLabel = (matrix: string[]) =>
 
 export const onServiceRequestSubmitted = onDocumentWritten(
   {
-    document: 'service_requests/{requestId}',
+    document: 'requests/{requestId}',
     region: 'europe-west3',
     retry: false,
     maxInstances: 10,

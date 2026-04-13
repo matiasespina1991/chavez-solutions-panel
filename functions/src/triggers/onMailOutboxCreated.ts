@@ -196,7 +196,7 @@ export const onMailOutboxCreated = onDocumentCreated(
 
     try {
       const requestSnap = await db
-        .collection('service_requests')
+        .collection('requests')
         .doc(outbox.sourceRequestId)
         .get();
       if (!requestSnap.exists) {

@@ -99,7 +99,7 @@ export const completeWorkOrder = onCall(async (req) => {
     }
 
     const sourceRequestRef = db
-      .collection('service_requests')
+      .collection('requests')
       .doc(sourceRequestId);
     const sourceRequestSnap = await tx.get(sourceRequestRef);
 
