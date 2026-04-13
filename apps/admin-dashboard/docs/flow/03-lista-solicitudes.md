@@ -61,7 +61,7 @@ Se marca como vencida cuando:
 
 ### Editar solicitud
 
-- Navega a: `/dashboard/configurator?requestId=<id>&tab=summary`
+- Navega a: `/dashboard/configurator?requestId=<id>&tab=services`
 - Bloqueado cuando OT ya fue emitida y no está pausada.
 - Permitido para borradores y para casos pausados.
 

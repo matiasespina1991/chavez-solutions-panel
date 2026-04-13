@@ -24,7 +24,7 @@ El configurador crea o actualiza solicitudes de servicio (proforma y/o OT) en 4 
 
 ### 2) Edición de solicitud existente
 
-- Con `?requestId=<id>` (opcional `&tab=summary`).
+- Con `?requestId=<id>` (opcional `&tab=services`).
 - Carga datos vía `getConfigurationById`.
 - Comportamiento especial por estado cargado:
   - `draft`: permite ejecutar desde edición.

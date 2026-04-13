@@ -435,40 +435,40 @@ export const createWorkOrderFromRequest = async (
   }
 };
 
-interface ApproveServiceRequestResponse {
-  sourceRequestId: string;
+interface ApproveProformaResponse {
+  requestId: string;
   approvalStatus: 'approved';
   alreadyApproved: boolean;
 }
 
-export const approveServiceRequest = async (
-  sourceRequestId: string,
+export const approveProforma = async (
+  requestId: string,
   feedback?: string
-): Promise<ApproveServiceRequestResponse> => {
+): Promise<ApproveProformaResponse> => {
   const functions = getFunctions();
   const callable = httpsCallable<
-    { sourceRequestId: string; feedback?: string },
-    ApproveServiceRequestResponse
-  >(functions, 'approveServiceRequest');
-  const result = await callable({ sourceRequestId, feedback });
+    { requestId: string; feedback?: string },
+    ApproveProformaResponse
+  >(functions, 'approveProforma');
+  const result = await callable({ requestId, feedback });
   return result.data;
 };
 
-interface RejectServiceRequestResponse {
-  sourceRequestId: string;
+interface RejectProformaResponse {
+  requestId: string;
   approvalStatus: 'rejected';
 }
 
-export const rejectServiceRequest = async (
-  sourceRequestId: string,
+export const rejectProforma = async (
+  requestId: string,
   feedback: string
-): Promise<RejectServiceRequestResponse> => {
+): Promise<RejectProformaResponse> => {
   const functions = getFunctions();
   const callable = httpsCallable<
-    { sourceRequestId: string; feedback: string },
-    RejectServiceRequestResponse
-  >(functions, 'rejectServiceRequest');
-  const result = await callable({ sourceRequestId, feedback });
+    { requestId: string; feedback: string },
+    RejectProformaResponse
+  >(functions, 'rejectProforma');
+  const result = await callable({ requestId, feedback });
   return result.data;
 };
 
@@ -553,19 +553,19 @@ export const completeWorkOrder = async (
   }
 };
 
-interface DeleteServiceRequestResponse {
+interface DeleteProformaResponse {
   deletedRequestId: string;
 }
 
-export const deleteServiceRequest = async (
-  sourceRequestId: string
-): Promise<DeleteServiceRequestResponse> => {
+export const deleteProforma = async (
+  requestId: string
+): Promise<DeleteProformaResponse> => {
   const functions = getFunctions();
   const callable = httpsCallable<
-    { sourceRequestId: string },
-    DeleteServiceRequestResponse
-  >(functions, 'deleteServiceRequest');
-  const result = await callable({ sourceRequestId });
+    { requestId: string },
+    DeleteProformaResponse
+  >(functions, 'deleteProforma');
+  const result = await callable({ requestId });
   return result.data;
 };
 

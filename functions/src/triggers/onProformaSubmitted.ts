@@ -4,26 +4,26 @@ import admin from 'firebase-admin';
 const db = admin.firestore();
 const MAIL_OUTBOX_COLLECTION = 'mail_outbox';
 
-interface ServiceRequestClient {
+interface ProformaClient {
   businessName?: string | null;
   email?: string | null;
 }
 
-interface ServiceRequestData {
+interface ProformaData {
   status?: string;
   reference?: string;
   matrix?: string[];
   pricing?: {
     total?: number | null;
   } | null;
-  client?: ServiceRequestClient | null;
+  client?: ProformaClient | null;
 }
 
 const MATRIX_LABELS: Record<string, string> = {
   water: 'Agua',
   soil: 'Suelo',
   noise: 'Ruido',
-  gases: 'Gases',
+  gases: 'Gases'
 };
 const ALLOWED_MATRICES = new Set(Object.keys(MATRIX_LABELS));
 
@@ -43,26 +43,24 @@ const normalizeMatrixArray = (value: unknown): string[] => {
 
 const toMatrixLabel = (matrix: string[]) =>
   matrix.length
-    ? matrix
-        .map((entry) => MATRIX_LABELS[entry] ?? entry)
-        .join(', ')
+    ? matrix.map((entry) => MATRIX_LABELS[entry] ?? entry).join(', ')
     : '—';
 
-export const onServiceRequestSubmitted = onDocumentWritten(
+export const onProformaSubmitted = onDocumentWritten(
   {
     document: 'requests/{requestId}',
     region: 'europe-west3',
     retry: false,
-    maxInstances: 10,
+    maxInstances: 10
   },
   async (event) => {
     const after = event.data?.after;
     if (!after?.exists) return;
 
     const beforeData = event.data?.before?.exists
-      ? (event.data.before.data() as ServiceRequestData)
+      ? (event.data.before.data() as ProformaData)
       : null;
-    const afterData = after.data() as ServiceRequestData;
+    const afterData = after.data() as ProformaData;
 
     const afterStatus = afterData.status;
     const beforeStatus = beforeData?.status;
@@ -71,8 +69,8 @@ export const onServiceRequestSubmitted = onDocumentWritten(
 
     const recipient = (afterData.client?.email || '').trim();
     if (!recipient) {
-      console.warn('[onServiceRequestSubmitted] missing recipient email', {
-        requestId: after.id,
+      console.warn('[onProformaSubmitted] missing recipient email', {
+        requestId: after.id
       });
       return;
     }
@@ -85,7 +83,7 @@ export const onServiceRequestSubmitted = onDocumentWritten(
       await outboxRef.create({
         type: 'proforma_submitted',
         status: 'pending',
-        sourceRequestId: after.id,
+        requestId: after.id,
         to: recipient,
         subject: `Proforma ${afterData.reference || after.id}`,
         payload: {
@@ -93,11 +91,11 @@ export const onServiceRequestSubmitted = onDocumentWritten(
           matrix,
           matrixLabel: toMatrixLabel(matrix),
           clientBusinessName: afterData.client?.businessName || '',
-          total: Number(afterData.pricing?.total || 0),
+          total: Number(afterData.pricing?.total || 0)
         },
         attempts: 0,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
       });
     } catch (error) {
       // Idempotency: document already exists for this event.

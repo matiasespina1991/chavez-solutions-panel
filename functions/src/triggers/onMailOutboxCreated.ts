@@ -12,13 +12,14 @@ const MAIL_OUTBOX_COLLECTION = 'mail_outbox';
 interface MailOutboxData {
   type?: string;
   status?: string;
+  requestId?: string;
   sourceRequestId?: string;
   to?: string;
   subject?: string;
   attempts?: number;
 }
 
-interface ServiceRequestSource {
+interface ProformaSource {
   reference?: string | null;
   matrix?: string[] | null;
   createdAt?: admin.firestore.Timestamp | Date | null;
@@ -76,7 +77,7 @@ const toDate = (value: unknown): Date | null => {
 
 const toPreviewPayload = (
   requestId: string,
-  source: ServiceRequestSource
+  source: ProformaSource
 ): ProformaPreviewPayload => {
   const createdAt = toDate(source.createdAt) ?? new Date();
   const validDays = Number(source.pricing?.validDays ?? 30);
@@ -174,7 +175,8 @@ export const onMailOutboxCreated = onDocumentCreated(
 
     if (outbox.status && outbox.status !== 'pending') return;
     if (outbox.type !== 'proforma_submitted') return;
-    if (!outbox.sourceRequestId || !outbox.to) {
+    const requestId = outbox.requestId || outbox.sourceRequestId;
+    if (!requestId || !outbox.to) {
       await outboxRef.set(
         {
           status: 'failed',
@@ -197,13 +199,13 @@ export const onMailOutboxCreated = onDocumentCreated(
     try {
       const requestSnap = await db
         .collection('requests')
-        .doc(outbox.sourceRequestId)
+        .doc(requestId)
         .get();
       if (!requestSnap.exists) {
         throw new Error('source-request-not-found');
       }
 
-      const source = requestSnap.data() as ServiceRequestSource;
+      const source = requestSnap.data() as ProformaSource;
       const pdf = await generateAndStoreProformaPreviewPdf({
         uid: 'mail-outbox',
         payload: toPreviewPayload(requestSnap.id, source)

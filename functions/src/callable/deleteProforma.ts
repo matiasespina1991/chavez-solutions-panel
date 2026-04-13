@@ -3,32 +3,30 @@ import admin from 'firebase-admin';
 
 const db = admin.firestore();
 
-interface DeleteServiceRequestPayload {
-  sourceRequestId?: string;
+interface DeleteProformaPayload {
+  requestId?: string;
 }
 
-export const deleteServiceRequest = onCall(async (req) => {
+export const deleteProforma = onCall(async (req) => {
   if (!req.auth) {
     throw new HttpsError('unauthenticated', 'Authentication is required.');
   }
 
-  const data = (req.data || {}) as DeleteServiceRequestPayload;
-  const sourceRequestId = data.sourceRequestId?.trim();
+  const data = (req.data || {}) as DeleteProformaPayload;
+  const requestId = data.requestId?.trim();
 
-  if (!sourceRequestId) {
-    throw new HttpsError('invalid-argument', 'sourceRequestId is required.');
+  if (!requestId) {
+    throw new HttpsError('invalid-argument', 'requestId is required.');
   }
 
-  const sourceRef = db.collection('requests').doc(sourceRequestId);
-  const deletedRef = db
-    .collection('deleted_requests')
-    .doc(sourceRequestId);
+  const sourceRef = db.collection('requests').doc(requestId);
+  const deletedRef = db.collection('deleted_requests').doc(requestId);
 
   await db.runTransaction(async (tx) => {
     const sourceSnap = await tx.get(sourceRef);
 
     if (!sourceSnap.exists) {
-      throw new HttpsError('not-found', 'Service request not found.');
+      throw new HttpsError('not-found', 'Proforma not found.');
     }
 
     const sourceData = sourceSnap.data() ?? {};
@@ -51,7 +49,7 @@ export const deleteServiceRequest = onCall(async (req) => {
     if (!workOrderRef) {
       const workOrderBySourceQuery = db
         .collection('work_orders')
-        .where('sourceRequestId', '==', sourceRequestId)
+        .where('sourceRequestId', '==', requestId)
         .limit(1);
       const workOrderBySourceSnap = await tx.get(workOrderBySourceQuery);
       if (!workOrderBySourceSnap.empty) {
@@ -65,9 +63,9 @@ export const deleteServiceRequest = onCall(async (req) => {
         {
           status: 'cancelled',
           cancellationReason: 'request_deleted_by_admin',
-          notes: 'Solicitud eliminada por administrador',
+          notes: 'Proforma eliminada por administrador',
           cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
         },
         { merge: true }
       );
@@ -75,18 +73,18 @@ export const deleteServiceRequest = onCall(async (req) => {
 
     tx.set(deletedRef, {
       ...sourceData,
-      originalRequestId: sourceRequestId,
+      originalRequestId: requestId,
       deletedAt: admin.firestore.FieldValue.serverTimestamp(),
       deletedBy: {
         uid: req.auth?.uid ?? null,
-        email: req.auth?.token?.email ?? null,
-      },
+        email: req.auth?.token?.email ?? null
+      }
     });
 
     tx.delete(sourceRef);
   });
 
   return {
-    deletedRequestId: sourceRequestId,
+    deletedRequestId: requestId
   };
 });

@@ -33,15 +33,15 @@ import {
   TooltipTrigger
 } from '@/components/ui/tooltip';
 import {
-  deleteServiceRequest,
-  approveServiceRequest,
-  rejectServiceRequest,
+  deleteProforma,
+  approveProforma,
+  rejectProforma,
   createWorkOrderFromRequest,
   pauseWorkOrderFromRequest,
   resumeWorkOrderFromRequest,
   generateProformaPreviewPdf
 } from '@/features/configurator/services/configurations';
-import { db } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import {
   collection,
   onSnapshot,
@@ -56,7 +56,6 @@ import {
   IconPencil,
   IconPlayerPauseFilled,
   IconPlayerPlayFilled,
-  IconPrinter,
   IconSearch,
   IconTrash
 } from '@tabler/icons-react';
@@ -145,7 +144,12 @@ const normalizeMatrixArray = (value: unknown): ServiceRequestMatrix[] => {
 
   const unique = new Set<ServiceRequestMatrix>();
   value.forEach((entry) => {
-    if (entry === 'water' || entry === 'soil' || entry === 'noise' || entry === 'gases') {
+    if (
+      entry === 'water' ||
+      entry === 'soil' ||
+      entry === 'noise' ||
+      entry === 'gases'
+    ) {
       unique.add(entry);
     }
   });
@@ -259,8 +263,13 @@ export default function ServiceRequestsListing() {
   const [rowToReject, setRowToReject] = useState<ServiceRequestRow | null>(
     null
   );
+  const [isExecuteWorkOrderDialogOpen, setIsExecuteWorkOrderDialogOpen] =
+    useState(false);
+  const [rowToExecuteWorkOrder, setRowToExecuteWorkOrder] =
+    useState<ServiceRequestRow | null>(null);
   const [rejectFeedback, setRejectFeedback] = useState('');
   const [isRejecting, setIsRejecting] = useState(false);
+  const [isDialogDownloading, setIsDialogDownloading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('updatedAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -338,7 +347,7 @@ export default function ServiceRequestsListing() {
     if (row.status === 'submitted') {
       return row.approvalStatus === 'approved'
         ? 'Proforma aprobada'
-        : 'Proforma pendiente de aprobación';
+        : 'Proforma lista';
     }
     if (row.status === 'draft' && row.approvalStatus === 'rejected') {
       return 'Proforma rechazada';
@@ -351,7 +360,7 @@ export default function ServiceRequestsListing() {
     if (row.status === 'submitted') {
       return row.approvalStatus === 'approved'
         ? 'Proforma aprobada'
-        : '🟡 Proforma pendiente';
+        : '🟡 Proforma lista';
     }
     if (row.status === 'draft' && row.approvalStatus === 'rejected') {
       return '❌ Proforma rechazada';
@@ -402,7 +411,7 @@ export default function ServiceRequestsListing() {
       return {
         className:
           'rounded-md border border-amber-500/40 bg-amber-400/15 px-3 py-2 text-sm text-amber-800 dark:text-amber-300',
-        text: 'Proforma pendiente de aprobación.'
+        text: 'Proforma lista. Preparada para ejecutar orden de trabajo.'
       };
     }
 
@@ -557,21 +566,19 @@ export default function ServiceRequestsListing() {
   const handleApproveRequest = async (row: ServiceRequestRow) => {
     try {
       setPendingActionId(row.id);
-      const result = await approveServiceRequest(row.id);
+      await approveProforma(row.id);
+      await createWorkOrderFromRequest(row.id);
 
-      toast.success(
-        result.alreadyApproved
-          ? `La proforma ${row.reference} ya estaba aprobada`
-          : `Proforma ${row.reference} aprobada`
-      );
+      toast.success(`Orden de trabajo ejecutada (${row.reference})`);
 
       setRows((prev) =>
         prev.map((entry) =>
           entry.id === row.id
             ? {
                 ...entry,
-                status: 'submitted',
-                approvalStatus: 'approved'
+                status: 'converted_to_work_order',
+                approvalStatus: 'approved',
+                isWorkOrder: true
               }
             : entry
         )
@@ -581,19 +588,35 @@ export default function ServiceRequestsListing() {
         prev && prev.id === row.id
           ? {
               ...prev,
-              status: 'submitted',
-              approvalStatus: 'approved'
+              status: 'converted_to_work_order',
+              approvalStatus: 'approved',
+              isWorkOrder: true
             }
           : prev
       );
     } catch (error) {
       console.error('[ServiceRequests] approve error', error);
       toast.error(
-        getFriendlyErrorMessage(error, 'No se pudo aprobar la proforma')
+        getFriendlyErrorMessage(
+          error,
+          'No se pudo ejecutar la orden de trabajo'
+        )
       );
     } finally {
       setPendingActionId(null);
     }
+  };
+
+  const openExecuteWorkOrderDialog = (row: ServiceRequestRow) => {
+    setRowToExecuteWorkOrder(row);
+    setIsExecuteWorkOrderDialogOpen(true);
+  };
+
+  const handleConfirmExecuteWorkOrder = async () => {
+    if (!rowToExecuteWorkOrder) return;
+    await handleApproveRequest(rowToExecuteWorkOrder);
+    setIsExecuteWorkOrderDialogOpen(false);
+    setRowToExecuteWorkOrder(null);
   };
 
   const openRejectDialog = (row: ServiceRequestRow) => {
@@ -616,7 +639,7 @@ export default function ServiceRequestsListing() {
       setIsRejecting(true);
       setPendingActionId(rowToReject.id);
 
-      await rejectServiceRequest(rowToReject.id, feedback);
+      await rejectProforma(rowToReject.id, feedback);
 
       toast.success(`Proforma ${rowToReject.reference} rechazada`);
 
@@ -663,7 +686,7 @@ export default function ServiceRequestsListing() {
 
     try {
       setIsDeleting(true);
-      await deleteServiceRequest(rowToDelete.id);
+      await deleteProforma(rowToDelete.id);
       toast.success('Solicitud eliminada correctamente');
       setIsDeleteDialogOpen(false);
       setRowToDelete(null);
@@ -692,7 +715,7 @@ export default function ServiceRequestsListing() {
 
     setIsViewDialogOpen(false);
     router.push(
-      `/dashboard/configurator?requestId=${encodeURIComponent(selectedRow.id)}&tab=summary`
+      `/dashboard/configurator?requestId=${encodeURIComponent(selectedRow.id)}&tab=services`
     );
   };
 
@@ -701,6 +724,10 @@ export default function ServiceRequestsListing() {
     setRowToDelete(selectedRow);
     setIsDeleteDialogOpen(true);
   };
+
+  const canApproveSelectedRow =
+    selectedRow?.status === 'submitted' &&
+    selectedRow.approvalStatus !== 'approved';
 
   const handleDialogResumeWorkOrder = () => {
     if (!selectedRow || selectedRow.status !== 'work_order_paused') return;
@@ -763,6 +790,7 @@ export default function ServiceRequestsListing() {
     if (!selectedRow) return;
 
     try {
+      setIsDialogDownloading(true);
       const result = await generateProformaPreviewPdf(
         buildProformaPreviewPayloadFromRow(selectedRow)
       );
@@ -777,41 +805,8 @@ export default function ServiceRequestsListing() {
     } catch (error) {
       console.error('[ServiceRequests] download pdf error', error);
       toast.error('No se pudo descargar el PDF de la proforma.');
-    }
-  };
-
-  const handleDialogPrint = async () => {
-    if (!selectedRow) return;
-
-    try {
-      const result = await generateProformaPreviewPdf(
-        buildProformaPreviewPayloadFromRow(selectedRow)
-      );
-
-      const printWindow = window.open(
-        result.downloadURL,
-        '_blank',
-        'noopener,noreferrer'
-      );
-
-      if (!printWindow) {
-        toast.error('No se pudo abrir la vista de impresión.');
-        return;
-      }
-
-      setTimeout(() => {
-        try {
-          printWindow.focus();
-          printWindow.print();
-        } catch (error) {
-          console.warn('[ServiceRequests] print trigger warning', error);
-        }
-      }, 800);
-
-      toast.success('Abriendo PDF para impresión…');
-    } catch (error) {
-      console.error('[ServiceRequests] print pdf error', error);
-      toast.error('No se pudo generar el PDF para imprimir.');
+    } finally {
+      setIsDialogDownloading(false);
     }
   };
 
@@ -979,55 +974,53 @@ export default function ServiceRequestsListing() {
                 ? (value.services as unknown[])
                 : [];
 
-          const serviceItems =
-            Array.isArray(rawServiceItems)
-              ? rawServiceItems.map((item, index) => {
-                  const rowItem = item as {
-                    serviceId?: string;
-                    parameterId?: string;
-                    parameterLabel?: string;
-                    tableLabel?: string | null;
-                    unit?: string | null;
-                    method?: string | null;
-                    rangeMin?: string;
-                    rangeMax?: string;
-                    quantity?: number;
-                    unitPrice?: number | null;
-                    discountAmount?: number | null;
-                  };
-                  const unitPrice = Number(rowItem.unitPrice ?? 0);
-                  const discountAmount = Number(rowItem.discountAmount ?? 0);
-                  return {
-                    serviceId: String(
-                      rowItem.serviceId ??
-                        rowItem.parameterId ??
-                        `service-${index}`
-                    ),
-                    parameterId: String(
-                      rowItem.parameterId ?? rowItem.serviceId ?? `p-${index}`
-                    ),
-                    parameterLabel: String(
-                      rowItem.parameterLabel ?? rowItem.parameterId ?? 'Servicio'
-                    ),
-                    tableLabel:
-                      typeof rowItem.tableLabel === 'string'
-                        ? rowItem.tableLabel
-                        : null,
-                    unit:
-                      typeof rowItem.unit === 'string' ? rowItem.unit : null,
-                    method:
-                      typeof rowItem.method === 'string' ? rowItem.method : null,
-                    rangeMin: String(rowItem.rangeMin ?? ''),
-                    rangeMax: String(rowItem.rangeMax ?? ''),
-                    quantity: Math.max(1, Number(rowItem.quantity ?? 1)),
-                    unitPrice: Number.isFinite(unitPrice) ? unitPrice : 0,
-                    discountAmount:
-                      Number.isFinite(discountAmount) && discountAmount >= 0
-                        ? discountAmount
-                        : 0
-                  };
-                })
-              : [];
+          const serviceItems = Array.isArray(rawServiceItems)
+            ? rawServiceItems.map((item, index) => {
+                const rowItem = item as {
+                  serviceId?: string;
+                  parameterId?: string;
+                  parameterLabel?: string;
+                  tableLabel?: string | null;
+                  unit?: string | null;
+                  method?: string | null;
+                  rangeMin?: string;
+                  rangeMax?: string;
+                  quantity?: number;
+                  unitPrice?: number | null;
+                  discountAmount?: number | null;
+                };
+                const unitPrice = Number(rowItem.unitPrice ?? 0);
+                const discountAmount = Number(rowItem.discountAmount ?? 0);
+                return {
+                  serviceId: String(
+                    rowItem.serviceId ??
+                      rowItem.parameterId ??
+                      `service-${index}`
+                  ),
+                  parameterId: String(
+                    rowItem.parameterId ?? rowItem.serviceId ?? `p-${index}`
+                  ),
+                  parameterLabel: String(
+                    rowItem.parameterLabel ?? rowItem.parameterId ?? 'Servicio'
+                  ),
+                  tableLabel:
+                    typeof rowItem.tableLabel === 'string'
+                      ? rowItem.tableLabel
+                      : null,
+                  unit: typeof rowItem.unit === 'string' ? rowItem.unit : null,
+                  method:
+                    typeof rowItem.method === 'string' ? rowItem.method : null,
+                  rangeMin: String(rowItem.rangeMin ?? ''),
+                  rangeMax: String(rowItem.rangeMax ?? ''),
+                  quantity: Math.max(1, Number(rowItem.quantity ?? 1)),
+                  unitPrice: Number.isFinite(unitPrice) ? unitPrice : 0,
+                  discountAmount:
+                    Number.isFinite(discountAmount) && discountAmount >= 0
+                      ? discountAmount
+                      : 0
+                };
+              })
+            : [];
 
           const normalizedServiceItems =
             serviceItems.length > 0
@@ -1065,8 +1058,7 @@ export default function ServiceRequestsListing() {
             taxPercent: Number.isFinite(taxPercent) ? taxPercent : 15,
             clientBusinessName: clientBusinessName || '—',
             agreedCount,
-            analysesCount:
-              normalizedServiceItems.length || legacyAnalysesCount,
+            analysesCount: normalizedServiceItems.length || legacyAnalysesCount,
             total: Number.isFinite(total) ? total : 0,
             subtotal: Number.isFinite(subtotal) ? subtotal : 0,
             updatedAtLabel: formatTimestamp(value.updatedAt),
@@ -1264,7 +1256,7 @@ export default function ServiceRequestsListing() {
       </div>
 
       <div className='max-w-full overflow-x-hidden rounded-md border'>
-        <div className='max-h-[calc(100vh-240px)] overflow-y-auto overflow-x-hidden'>
+        <div className='max-h-[calc(100vh-240px)] overflow-x-hidden overflow-y-auto'>
           <table className='w-full table-fixed text-left text-sm'>
             <thead className='bg-muted text-muted-foreground sticky top-0 z-10'>
               <tr>
@@ -1494,7 +1486,7 @@ export default function ServiceRequestsListing() {
                                     onClick={(event) => {
                                       event.stopPropagation();
                                       router.push(
-                                        `/dashboard/configurator?requestId=${encodeURIComponent(row.id)}&tab=summary`
+                                        `/dashboard/configurator?requestId=${encodeURIComponent(row.id)}&tab=services`
                                       );
                                     }}
                                   >
@@ -1506,11 +1498,11 @@ export default function ServiceRequestsListing() {
                                     className='cursor-pointer justify-start text-emerald-600 transition-colors duration-150 focus:text-emerald-600'
                                     onClick={(event) => {
                                       event.stopPropagation();
-                                      handleApproveRequest(row);
+                                      openExecuteWorkOrderDialog(row);
                                     }}
                                     disabled={pendingActionId === row.id}
                                   >
-                                    Aprobar proforma
+                                    Ejecutar orden de trabajo
                                   </DropdownMenuItem>
                                 ) : null}
                                 {canRejectProforma ? (
@@ -1657,6 +1649,25 @@ export default function ServiceRequestsListing() {
                 </DialogDescription>
               </div>
               <div className='flex items-center gap-1'>
+                {selectedRow && canApproveSelectedRow ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type='button'
+                        variant='ghost'
+                        size='icon'
+                        className={`${dialogActionButtonClass} text-emerald-600 hover:text-emerald-600`}
+                        onClick={() => openExecuteWorkOrderDialog(selectedRow)}
+                        aria-label='Ejecutar orden de trabajo'
+                        disabled={pendingActionId === selectedRow.id}
+                      >
+                        <IconPlayerPlayFilled className='h-4 w-4' />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Ejecutar orden de trabajo</TooltipContent>
+                  </Tooltip>
+                ) : null}
+
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -1679,30 +1690,24 @@ export default function ServiceRequestsListing() {
                       type='button'
                       variant='ghost'
                       size='icon'
-                      className={dialogActionButtonClass}
+                      className={`${dialogActionButtonClass} ${
+                        isDialogDownloading ? 'text-muted-foreground' : ''
+                      }`}
                       onClick={handleDialogDownload}
                       aria-label='Descargar solicitud'
+                      disabled={isDialogDownloading}
                     >
-                      <IconDownload className='h-4 w-4' />
+                      <span className='relative inline-flex h-4 w-4 items-center justify-center'>
+                        <IconDownload className='h-4 w-4' />
+                        {isDialogDownloading ? (
+                          <span className='absolute inset-0 inline-flex items-center justify-center'>
+                            <span className='border-primary h-3 w-3 animate-spin rounded-full border-2 border-t-transparent' />
+                          </span>
+                        ) : null}
+                      </span>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Descargar solicitud</TooltipContent>
-                </Tooltip>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type='button'
-                      variant='ghost'
-                      size='icon'
-                      className={dialogActionButtonClass}
-                      onClick={handleDialogPrint}
-                      aria-label='Imprimir solicitud'
-                    >
-                      <IconPrinter className='h-4 w-4' />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Imprimir solicitud</TooltipContent>
                 </Tooltip>
 
                 <Tooltip>
@@ -1863,7 +1868,9 @@ export default function ServiceRequestsListing() {
                                   key={`${service.serviceId}-${index}`}
                                   className='border-t'
                                 >
-                                  <td className='p-2'>{service.parameterLabel}</td>
+                                  <td className='p-2'>
+                                    {service.parameterLabel}
+                                  </td>
                                   <td className='p-2 text-right'>
                                     {service.quantity}
                                   </td>
@@ -1925,6 +1932,87 @@ export default function ServiceRequestsListing() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={isExecuteWorkOrderDialogOpen}
+        onOpenChange={(open) => {
+          if (
+            rowToExecuteWorkOrder &&
+            pendingActionId === rowToExecuteWorkOrder.id
+          ) {
+            return;
+          }
+          setIsExecuteWorkOrderDialogOpen(open);
+          if (!open) {
+            setRowToExecuteWorkOrder(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Confirmar ejecución de orden de trabajo
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Desea aprobar esta proforma y dar ejecución a una orden de
+              trabajo?
+            </AlertDialogDescription>
+            <div className='bg-muted/30 mt-2 space-y-2 rounded-md border p-3 text-sm'>
+              <p>
+                <span className='text-muted-foreground'>Proforma:</span>{' '}
+                <span className='font-medium'>
+                  {rowToExecuteWorkOrder?.reference ?? '—'}
+                </span>
+              </p>
+              <p>
+                <span className='text-muted-foreground'>Aprobador:</span>{' '}
+                <span className='font-medium'>
+                  {auth.currentUser?.displayName ||
+                    auth.currentUser?.email ||
+                    'Usuario autenticado'}
+                </span>
+              </p>
+              <p>
+                <span className='text-muted-foreground'>Fecha:</span>{' '}
+                <span className='font-medium'>
+                  {new Date().toLocaleString('es-EC', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                  })}
+                </span>
+              </p>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              className='cursor-pointer'
+              disabled={
+                !!rowToExecuteWorkOrder &&
+                pendingActionId === rowToExecuteWorkOrder.id
+              }
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className='cursor-pointer bg-emerald-600 text-white hover:bg-emerald-600/90 disabled:bg-emerald-600 disabled:text-white'
+              onClick={handleConfirmExecuteWorkOrder}
+              disabled={
+                !rowToExecuteWorkOrder ||
+                pendingActionId === rowToExecuteWorkOrder.id
+              }
+            >
+              {rowToExecuteWorkOrder &&
+              pendingActionId === rowToExecuteWorkOrder.id
+                ? 'Ejecutando…'
+                : 'Aprobar y ejecutar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={isWorkOrderToggleDialogOpen}

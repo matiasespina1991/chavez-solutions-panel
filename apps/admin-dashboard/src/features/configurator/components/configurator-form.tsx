@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, Fragment } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -207,7 +207,7 @@ type SelectedService = ImportedServiceDocument & {
 type SelectedServiceGroup = {
   id: string;
   name: string;
-  serviceIds: string[];
+  items: SelectedService[];
 };
 
 const createDefaultFormValues = (): FormValues => ({
@@ -294,14 +294,16 @@ export default function ConfiguratorForm() {
   const [groupToDelete, setGroupToDelete] = useState<SelectedServiceGroup | null>(
     null
   );
-  const [serviceToDelete, setServiceToDelete] = useState<SelectedService | null>(
-    null
-  );
+  const [serviceToDelete, setServiceToDelete] = useState<{
+    groupId: string;
+    serviceId: string;
+  } | null>(null);
   const [serviceGroups, setServiceGroups] = useState<SelectedServiceGroup[]>(
     []
   );
-  const [selectedServices, setSelectedServices] = useState<SelectedService[]>(
-    []
+  const selectedServices = useMemo(
+    () => serviceGroups.flatMap((group) => group.items),
+    [serviceGroups]
   );
   const requestedTab = searchParams.get('tab');
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -679,22 +681,13 @@ export default function ConfiguratorForm() {
     }));
 
   const mapServiceGroupsToDocument = (
-    groups: SelectedServiceGroup[],
-    services: SelectedService[]
+    groups: SelectedServiceGroup[]
   ) => {
-    const servicesById = new Map(
-      services.map((service) => [getServiceId(service), service])
-    );
-
     return groups
       .map((group) => {
-        const items = group.serviceIds
-          .map((serviceId) => servicesById.get(serviceId))
-          .filter((service): service is SelectedService => Boolean(service));
-
         return {
           name: group.name,
-          items: mapSelectedServicesToDocument(items)
+          items: mapSelectedServicesToDocument(group.items)
         };
       })
       .filter((group) => group.items.length > 0);
@@ -732,19 +725,14 @@ export default function ConfiguratorForm() {
           name?: string;
           items?: ConfigurationServiceItem[];
         }[]
-      | undefined,
-    services: SelectedService[]
+      | undefined
   ): SelectedServiceGroup[] => {
     if (!Array.isArray(grouped)) return [];
 
-    const validServiceIds = new Set(services.map((service) => getServiceId(service)));
-
     return grouped
       .map((group, index) => {
-        const itemIds = Array.isArray(group.items)
-          ? group.items
-              .map((item) => item.parameterId || item.serviceId)
-              .filter((id): id is string => typeof id === 'string' && validServiceIds.has(id))
+        const items = Array.isArray(group.items)
+          ? mapStoredServicesToSelected(group.items)
           : [];
 
         return {
@@ -753,10 +741,10 @@ export default function ConfiguratorForm() {
             typeof group.name === 'string' && group.name.trim().length > 0
               ? group.name.trim()
               : `Combo ${index + 1}`,
-          serviceIds: Array.from(new Set(itemIds))
+          items
         };
       })
-      .filter((group) => group.serviceIds.length > 0);
+      .filter((group) => group.items.length > 0);
   };
 
   const toDateOrNull = (value: unknown): Date | null => {
@@ -866,7 +854,6 @@ export default function ConfiguratorForm() {
 
   const handleConfirmClearCurrentData = () => {
     form.reset(createDefaultFormValues());
-    setSelectedServices([]);
     setServiceGroups([]);
     setActiveTab('type');
     removeCachedDraft();
@@ -907,39 +894,44 @@ export default function ConfiguratorForm() {
   }, []);
 
   useEffect(() => {
-    if (!availableServices.length || !selectedServices.length) return;
+    if (!availableServices.length || !serviceGroups.length) return;
 
-    setSelectedServices((prev) => {
+    setServiceGroups((prev) => {
       let hasChanges = false;
-      const next = prev.map((service) => {
-        const serviceId = getServiceId(service);
-        const canonical = availableServices.find(
-          (candidate) => getServiceId(candidate) === serviceId
-        );
 
-        if (!canonical) return service;
+      const next = prev.map((group) => {
+        const nextItems = group.items.map((service) => {
+          const serviceId = getServiceId(service);
+          const canonical = availableServices.find(
+            (candidate) => getServiceId(candidate) === serviceId
+          );
 
-        // Rehydrate display metadata (tabla, método, unidad, etc.)
-        // while preserving user-edited fields.
-        const hydrated = toSelectedService(canonical, service);
+          if (!canonical) return service;
 
-        if (
-          hydrated.ID_TABLA_NORMA !== service.ID_TABLA_NORMA ||
-          hydrated.UNIDAD_NORMA !== service.UNIDAD_NORMA ||
-          hydrated.UNIDAD_INTERNO !== service.UNIDAD_INTERNO ||
-          hydrated.ID_TECNICA !== service.ID_TECNICA ||
-          hydrated.ID_MET_REFERENCIA !== service.ID_MET_REFERENCIA ||
-          hydrated.ID_MET_INTERNO !== service.ID_MET_INTERNO
-        ) {
-          hasChanges = true;
-        }
+          // Rehydrate display metadata (tabla, método, unidad, etc.)
+          // while preserving user-edited fields.
+          const hydrated = toSelectedService(canonical, service);
 
-        return hydrated;
+          if (
+            hydrated.ID_TABLA_NORMA !== service.ID_TABLA_NORMA ||
+            hydrated.UNIDAD_NORMA !== service.UNIDAD_NORMA ||
+            hydrated.UNIDAD_INTERNO !== service.UNIDAD_INTERNO ||
+            hydrated.ID_TECNICA !== service.ID_TECNICA ||
+            hydrated.ID_MET_REFERENCIA !== service.ID_MET_REFERENCIA ||
+            hydrated.ID_MET_INTERNO !== service.ID_MET_INTERNO
+          ) {
+            hasChanges = true;
+          }
+
+          return hydrated;
+        });
+
+        return { ...group, items: nextItems };
       });
 
       return hasChanges ? next : prev;
     });
-  }, [availableServices, selectedServices]);
+  }, [availableServices, serviceGroups]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || editRequestId) return;
@@ -981,10 +973,19 @@ export default function ConfiguratorForm() {
                 );
               })()
             );
-      setSelectedServices(restoredServices);
-      setServiceGroups(
-        mapStoredServiceGroups(merged.services?.grouped, restoredServices)
-      );
+      if (Array.isArray(merged.services?.grouped) && merged.services.grouped.length) {
+        setServiceGroups(mapStoredServiceGroups(merged.services.grouped));
+      } else if (restoredServices.length) {
+        setServiceGroups([
+          {
+            id: `group-${Date.now()}-0`,
+            name: 'Combo 1',
+            items: restoredServices
+          }
+        ]);
+      } else {
+        setServiceGroups([]);
+      }
     } catch (error) {
       console.error('Error restoring configurator cache:', error);
     }
@@ -1096,13 +1097,22 @@ export default function ConfiguratorForm() {
                         );
                       })()
                     );
-              setSelectedServices(restoredServices);
-              setServiceGroups(
-                mapStoredServiceGroups(
-                  merged.services?.grouped,
-                  restoredServices
-                )
-              );
+              if (
+                Array.isArray(merged.services?.grouped) &&
+                merged.services.grouped.length
+              ) {
+                setServiceGroups(mapStoredServiceGroups(merged.services.grouped));
+              } else if (restoredServices.length) {
+                setServiceGroups([
+                  {
+                    id: `group-${Date.now()}-0`,
+                    name: 'Combo 1',
+                    items: restoredServices
+                  }
+                ]);
+              } else {
+                setServiceGroups([]);
+              }
               return;
             }
           } catch (error) {
@@ -1141,10 +1151,22 @@ export default function ConfiguratorForm() {
                   );
                 })()
               );
-        setSelectedServices(restoredServices);
-        setServiceGroups(
-          mapStoredServiceGroups(loadedValues.services?.grouped, restoredServices)
-        );
+        if (
+          Array.isArray(loadedValues.services?.grouped) &&
+          loadedValues.services.grouped.length
+        ) {
+          setServiceGroups(mapStoredServiceGroups(loadedValues.services.grouped));
+        } else if (restoredServices.length) {
+          setServiceGroups([
+            {
+              id: `group-${Date.now()}-0`,
+              name: 'Combo 1',
+              items: restoredServices
+            }
+          ]);
+        } else {
+          setServiceGroups([]);
+        }
       } catch (error) {
         console.error('Error loading request for edit:', error);
         toast.error('No se pudo cargar la solicitud para editar');
@@ -1194,7 +1216,7 @@ export default function ConfiguratorForm() {
     const mappedServiceItems = mapSelectedServicesToDocument(selectedServices);
     form.setValue('services', {
       items: mappedServiceItems,
-      grouped: mapServiceGroupsToDocument(serviceGroups, selectedServices)
+      grouped: mapServiceGroupsToDocument(serviceGroups)
     });
     form.setValue('analyses.applyMode', 'all_samples');
     form.setValue('analyses.items', mappedAnalyses);
@@ -1248,7 +1270,7 @@ export default function ConfiguratorForm() {
         },
         services: {
           items: mapSelectedServicesToDocument(selectedServices),
-          grouped: mapServiceGroupsToDocument(serviceGroups, selectedServices)
+          grouped: mapServiceGroupsToDocument(serviceGroups)
         },
         pricing: {
           ...values.pricing,
@@ -1314,7 +1336,7 @@ export default function ConfiguratorForm() {
         },
         services: {
           items: mapSelectedServicesToDocument(selectedServices),
-          grouped: mapServiceGroupsToDocument(serviceGroups, selectedServices)
+          grouped: mapServiceGroupsToDocument(serviceGroups)
         },
         pricing: {
           ...values.pricing,
@@ -1364,7 +1386,7 @@ export default function ConfiguratorForm() {
   ) => {
     setEditingGroupId(group.id);
     setActiveComboMatrix(matrixLabel);
-    setDialogSelectedServiceIds(group.serviceIds);
+    setDialogSelectedServiceIds(group.items.map((service) => getServiceId(service)));
     setDialogFilters({
       matEnsayo: [],
       norma: [],
@@ -1435,61 +1457,35 @@ export default function ConfiguratorForm() {
     if (dialogSelectedServiceIds.length === 0) return;
 
     const selectedSet = new Set(dialogSelectedServiceIds);
-    const existingById = new Map(
-      selectedServices.map((service) => [getServiceId(service), service])
-    );
-    const nextGroupServices = availableServices
+    const nextGroupServicesFromCatalog = availableServices
       .filter((service) => selectedSet.has(getServiceId(service)))
-      .map((service) => {
-        const serviceId = getServiceId(service);
-        const existing = existingById.get(serviceId);
-        return toSelectedService(service, existing);
-      });
+      .map((service) => toSelectedService(service));
 
-    if (nextGroupServices.length === 0) {
+    if (nextGroupServicesFromCatalog.length === 0) {
       setIsServicesDialogOpen(false);
       return;
     }
 
-    const nextGroupServiceIds = nextGroupServices.map((service) =>
-      getServiceId(service)
-    );
-
     if (editingGroupId) {
-      const updatedGroups = serviceGroups.map((group) =>
-        group.id === editingGroupId
-          ? { ...group, serviceIds: nextGroupServiceIds }
-          : group
-      );
-      const remainingServiceIds = new Set(
-        updatedGroups.flatMap((group) => group.serviceIds)
-      );
+      setServiceGroups((prev) =>
+        prev.map((group) => {
+          if (group.id !== editingGroupId) return group;
 
-      setSelectedServices((prev) => {
-        const mapById = new Map(
-          prev.map((service) => [getServiceId(service), service])
-        );
-        nextGroupServices.forEach((service) => {
-          mapById.set(getServiceId(service), service);
-        });
-        return Array.from(mapById.values()).filter((service) =>
-          remainingServiceIds.has(getServiceId(service))
-        );
-      });
-      setServiceGroups(updatedGroups);
+          const currentById = new Map(
+            group.items.map((service) => [getServiceId(service), service])
+          );
+          const nextItems = nextGroupServicesFromCatalog.map((service) => {
+            const serviceId = getServiceId(service);
+            const currentItem = currentById.get(serviceId);
+            return currentItem ? { ...currentItem } : service;
+          });
+
+          return { ...group, items: nextItems };
+        })
+      );
       setEditingGroupId(null);
     } else {
       const newGroupId = `combo-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-
-      setSelectedServices((prev) => {
-        const mapById = new Map(
-          prev.map((service) => [getServiceId(service), service])
-        );
-        nextGroupServices.forEach((service) => {
-          mapById.set(getServiceId(service), service);
-        });
-        return Array.from(mapById.values());
-      });
 
       setServiceGroups((prev) => [
         ...prev,
@@ -1499,7 +1495,7 @@ export default function ConfiguratorForm() {
             typeof activeComboMatrix === 'string' && activeComboMatrix.trim()
               ? activeComboMatrix
               : `Combo ${prev.length + 1}`,
-          serviceIds: nextGroupServiceIds
+          items: nextGroupServicesFromCatalog
         }
       ]);
     }
@@ -1521,40 +1517,32 @@ export default function ConfiguratorForm() {
 
   const handleConfirmRemoveGroup = () => {
     if (!groupToDelete) return;
-    setServiceGroups((prev) => {
-      const remainingGroups = prev.filter(
-        (group) => group.id !== groupToDelete.id
-      );
-      const remainingServiceIds = new Set(
-        remainingGroups.flatMap((group) => group.serviceIds)
-      );
-
-      setSelectedServices((prevServices) =>
-        prevServices.filter((service) =>
-          remainingServiceIds.has(getServiceId(service))
-        )
-      );
-
-      return remainingGroups;
-    });
+    setServiceGroups((prev) =>
+      prev.filter((group) => group.id !== groupToDelete.id)
+    );
     setGroupToDelete(null);
   };
 
-  const handleRemoveService = (serviceId: string) => {
-    setSelectedServices((prev) =>
-      prev.filter((service) => getServiceId(service) !== serviceId)
-    );
+  const handleRemoveService = (groupId: string, serviceId: string) => {
     setServiceGroups((prev) =>
       prev
-        .map((group) => ({
-          ...group,
-          serviceIds: group.serviceIds.filter((id) => id !== serviceId)
-        }))
-        .filter((group) => group.serviceIds.length > 0)
+        .map((group) => {
+          if (group.id !== groupId) return group;
+          return {
+            ...group,
+            items: group.items.filter(
+              (service) => getServiceId(service) !== serviceId
+            )
+          };
+        })
+        .filter((group) => group.items.length > 0)
     );
   };
 
-  const handleOpenRemoveService = (service: SelectedService) => {
+  const handleOpenRemoveService = (
+    groupId: string,
+    service: SelectedService
+  ) => {
     const rangeMin = (service.rangeMin ?? '').trim();
     const rangeMax = (service.rangeMax ?? '').trim();
     const discountIsFilled =
@@ -1562,20 +1550,24 @@ export default function ConfiguratorForm() {
       Number.isFinite(service.discountAmount);
 
     if (!rangeMin && !rangeMax && !discountIsFilled) {
-      handleRemoveService(getServiceId(service));
+      handleRemoveService(groupId, getServiceId(service));
       return;
     }
 
-    setServiceToDelete(service);
+    setServiceToDelete({
+      groupId,
+      serviceId: getServiceId(service)
+    });
   };
 
   const handleConfirmRemoveService = () => {
     if (!serviceToDelete) return;
-    handleRemoveService(getServiceId(serviceToDelete));
+    handleRemoveService(serviceToDelete.groupId, serviceToDelete.serviceId);
     setServiceToDelete(null);
   };
 
   const handleUpdateServiceField = (
+    groupId: string,
     serviceId: string,
     field:
       | 'quantity'
@@ -1585,44 +1577,50 @@ export default function ConfiguratorForm() {
       | 'discountAmount',
     value: string
   ) => {
-    setSelectedServices((prev) =>
-      prev.map((service) => {
-        if (getServiceId(service) !== serviceId) return service;
+    setServiceGroups((prev) =>
+      prev.map((group) => {
+        if (group.id !== groupId) return group;
 
-        if (field === 'quantity') {
-          const parsed = Number(value);
-          return {
-            ...service,
-            quantity:
-              Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 1
-          };
-        }
+        const updatedItems = group.items.map((service) => {
+          if (getServiceId(service) !== serviceId) return service;
 
-        if (field === 'unitPrice') {
-          if (!value.trim()) {
-            return { ...service, unitPrice: null };
+          if (field === 'quantity') {
+            const parsed = Number(value);
+            return {
+              ...service,
+              quantity:
+                Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 1
+            };
           }
-          const parsed = Number(value);
-          return {
-            ...service,
-            unitPrice: Number.isFinite(parsed) ? parsed : service.unitPrice
-          };
-        }
 
-        if (field === 'discountAmount') {
-          if (!value.trim()) {
-            return { ...service, discountAmount: null };
+          if (field === 'unitPrice') {
+            if (!value.trim()) {
+              return { ...service, unitPrice: null };
+            }
+            const parsed = Number(value);
+            return {
+              ...service,
+              unitPrice: Number.isFinite(parsed) ? parsed : service.unitPrice
+            };
           }
-          const parsed = Number(value);
-          return {
-            ...service,
-            discountAmount: Number.isFinite(parsed)
-              ? parsed
-              : service.discountAmount
-          };
-        }
 
-        return { ...service, [field]: value };
+          if (field === 'discountAmount') {
+            if (!value.trim()) {
+              return { ...service, discountAmount: null };
+            }
+            const parsed = Number(value);
+            return {
+              ...service,
+              discountAmount: Number.isFinite(parsed)
+                ? parsed
+                : service.discountAmount
+            };
+          }
+
+          return { ...service, [field]: value };
+        });
+
+        return { ...group, items: updatedItems };
       })
     );
   };
@@ -1630,21 +1628,8 @@ export default function ConfiguratorForm() {
   const summaryNotes = (form.getValues('notes') || '').trim();
   const referenceLabel = reference?.trim() || '—';
   const groupedServicesForRender = useMemo(() => {
-    const servicesById = new Map(
-      selectedServices.map((service) => [getServiceId(service), service])
-    );
-
-    const groups = serviceGroups
-      .map((group) => ({
-        ...group,
-        items: group.serviceIds
-          .map((serviceId) => servicesById.get(serviceId))
-          .filter((service): service is SelectedService => Boolean(service))
-      }))
-      .filter((group) => group.items.length > 0);
-
-    return groups;
-  }, [serviceGroups, selectedServices]);
+    return serviceGroups.filter((group) => group.items.length > 0);
+  }, [serviceGroups]);
   const validDaysValue = form.watch('validDays');
   const createdAtValue = form.watch('createdAt');
   const validUntilLabel = (() => {
@@ -1672,6 +1657,21 @@ export default function ConfiguratorForm() {
   const summaryTaxAmount = (summarySubtotal * summaryTaxPercent) / 100;
   const summaryTotal =
     form.watch('pricing.total') ?? summarySubtotal + summaryTaxAmount;
+  const summaryServiceGroups = useMemo(() => {
+    if (groupedServicesForRender.length > 0) {
+      return groupedServicesForRender;
+    }
+
+    if (selectedServices.length === 0) return [];
+
+    return [
+      {
+        id: 'fallback-services-group',
+        name: 'Servicios',
+        items: selectedServices
+      }
+    ];
+  }, [groupedServicesForRender, selectedServices]);
 
   const buildProformaPreviewPayload = () => {
     return {
@@ -2236,9 +2236,10 @@ export default function ConfiguratorForm() {
                               {group.items.map((service) => {
                                 const serviceId =
                                   service.ID_CONFIG_PARAMETRO || service.id;
+                                const scopedServiceId = `${group.id}-${serviceId}`;
                                 return (
                                   <div
-                                    key={serviceId}
+                                    key={`${group.id}-${serviceId}`}
                                     className='bg-background rounded-xl border p-3'
                                   >
                                     <div className='flex items-start justify-between gap-2'>
@@ -2265,18 +2266,19 @@ export default function ConfiguratorForm() {
                                         <div className='grid grid-cols-1 gap-2 md:grid-cols-5'>
                                           <div className='space-y-1'>
                                             <label
-                                              htmlFor={`quantity-${serviceId}`}
+                                              htmlFor={`quantity-${scopedServiceId}`}
                                               className='text-muted-foreground text-xs'
                                             >
                                               Cantidad
                                             </label>
                                             <Input
-                                              id={`quantity-${serviceId}`}
+                                              id={`quantity-${scopedServiceId}`}
                                               type='number'
                                               min={1}
                                               value={service.quantity ?? 1}
                                               onChange={(event) =>
                                                 handleUpdateServiceField(
+                                                  group.id,
                                                   serviceId,
                                                   'quantity',
                                                   event.target.value
@@ -2286,16 +2288,17 @@ export default function ConfiguratorForm() {
                                           </div>
                                           <div className='space-y-1'>
                                             <label
-                                              htmlFor={`range-min-${serviceId}`}
+                                              htmlFor={`range-min-${scopedServiceId}`}
                                               className='text-muted-foreground text-xs'
                                             >
                                               Rango mínimo
                                             </label>
                                             <Input
-                                              id={`range-min-${serviceId}`}
+                                              id={`range-min-${scopedServiceId}`}
                                               value={service.rangeMin ?? ''}
                                               onChange={(event) =>
                                                 handleUpdateServiceField(
+                                                  group.id,
                                                   serviceId,
                                                   'rangeMin',
                                                   event.target.value
@@ -2306,16 +2309,17 @@ export default function ConfiguratorForm() {
                                           </div>
                                           <div className='space-y-1'>
                                             <label
-                                              htmlFor={`range-max-${serviceId}`}
+                                              htmlFor={`range-max-${scopedServiceId}`}
                                               className='text-muted-foreground text-xs'
                                             >
                                               Rango máximo
                                             </label>
                                             <Input
-                                              id={`range-max-${serviceId}`}
+                                              id={`range-max-${scopedServiceId}`}
                                               value={service.rangeMax ?? ''}
                                               onChange={(event) =>
                                                 handleUpdateServiceField(
+                                                  group.id,
                                                   serviceId,
                                                   'rangeMax',
                                                   event.target.value
@@ -2326,7 +2330,7 @@ export default function ConfiguratorForm() {
                                           </div>
                                           <div className='space-y-1'>
                                             <label
-                                              htmlFor={`price-${serviceId}`}
+                                              htmlFor={`price-${scopedServiceId}`}
                                               className='text-muted-foreground text-xs'
                                             >
                                               Precio (USD)
@@ -2336,7 +2340,7 @@ export default function ConfiguratorForm() {
                                                 $
                                               </span>
                                               <Input
-                                                id={`price-${serviceId}`}
+                                                id={`price-${scopedServiceId}`}
                                                 type='number'
                                                 min={0}
                                                 step='0.01'
@@ -2347,6 +2351,7 @@ export default function ConfiguratorForm() {
                                                 }
                                                 onChange={(event) =>
                                                   handleUpdateServiceField(
+                                                    group.id,
                                                     serviceId,
                                                     'unitPrice',
                                                     event.target.value
@@ -2359,7 +2364,7 @@ export default function ConfiguratorForm() {
                                           </div>
                                           <div className='space-y-1'>
                                             <label
-                                              htmlFor={`discount-${serviceId}`}
+                                              htmlFor={`discount-${scopedServiceId}`}
                                               className='text-muted-foreground text-xs'
                                             >
                                               Descuento (USD)
@@ -2369,7 +2374,7 @@ export default function ConfiguratorForm() {
                                                 $
                                               </span>
                                               <Input
-                                                id={`discount-${serviceId}`}
+                                                id={`discount-${scopedServiceId}`}
                                                 type='number'
                                                 min={0}
                                                 step='0.01'
@@ -2381,6 +2386,7 @@ export default function ConfiguratorForm() {
                                                 }
                                                 onChange={(event) =>
                                                   handleUpdateServiceField(
+                                                    group.id,
                                                     serviceId,
                                                     'discountAmount',
                                                     event.target.value
@@ -2398,7 +2404,9 @@ export default function ConfiguratorForm() {
                                         variant='ghost'
                                         size='icon'
                                         className='h-7 w-7 cursor-pointer'
-                                        onClick={() => handleOpenRemoveService(service)}
+                                        onClick={() =>
+                                          handleOpenRemoveService(group.id, service)
+                                        }
                                         aria-label='Quitar servicio'
                                       >
                                         <Trash2 className='h-4 w-4' />
@@ -2517,7 +2525,7 @@ export default function ConfiguratorForm() {
                 </div>
 
                 <div className='space-y-4 rounded-md border p-4'>
-                  {selectedServices.length > 0 ? (
+                  {summaryServiceGroups.length > 0 ? (
                     <div className='space-y-2'>
                       <h4 className='text-muted-foreground font-semibold'>
                         Detalle de costos por análisis
@@ -2534,49 +2542,93 @@ export default function ConfiguratorForm() {
                             </tr>
                           </thead>
                           <tbody>
-                            {selectedServices.map((service) => {
-                              const serviceId =
-                                service.ID_CONFIG_PARAMETRO || service.id;
-                              const quantity = service.quantity ?? 1;
-                              const unitPrice = service.unitPrice ?? null;
-                              const discountAmount =
-                                service.discountAmount ?? null;
-                              const lineBase =
-                                unitPrice !== null
-                                  ? unitPrice * quantity
-                                  : null;
-                              const lineTotal =
-                                lineBase !== null
-                                  ? Math.max(
+                            {summaryServiceGroups.map((group, groupIndex) => {
+                              const groupSubtotal = group.items.reduce(
+                                (acc, service) => {
+                                  const quantity = service.quantity ?? 1;
+                                  const unitPrice = service.unitPrice ?? null;
+                                  const discountAmount =
+                                    service.discountAmount ?? null;
+                                  if (unitPrice === null) return acc;
+                                  return (
+                                    acc +
+                                    Math.max(
                                       0,
-                                      lineBase - (discountAmount ?? 0)
+                                      unitPrice * quantity - (discountAmount ?? 0)
                                     )
-                                  : null;
+                                  );
+                                },
+                                0
+                              );
+
                               return (
-                                <tr
-                                  key={`summary-cost-${serviceId}`}
-                                  className='border-t'
+                                <Fragment
+                                  key={`summary-group-${group.id}-${groupIndex}`}
                                 >
-                                  <td className='p-2'>
-                                    {service.ID_PARAMETRO || serviceId}
-                                  </td>
-                                  <td className='p-2 text-right'>{quantity}</td>
-                                  <td className='p-2 text-right'>
-                                    {unitPrice !== null
-                                      ? `$${unitPrice.toFixed(2)}`
-                                      : '—'}
-                                  </td>
-                                  <td className='p-2 text-right'>
-                                    {discountAmount !== null
-                                      ? `$${discountAmount.toFixed(2)}`
-                                      : '—'}
-                                  </td>
-                                  <td className='p-2 text-right'>
-                                    {lineTotal !== null
-                                      ? `$${lineTotal.toFixed(2)}`
-                                      : '—'}
-                                  </td>
-                                </tr>
+                                  {group.items.map((service, itemIndex) => {
+                                    const serviceId =
+                                      service.ID_CONFIG_PARAMETRO || service.id;
+                                    const quantity = service.quantity ?? 1;
+                                    const unitPrice = service.unitPrice ?? null;
+                                    const discountAmount =
+                                      service.discountAmount ?? null;
+                                    const lineBase =
+                                      unitPrice !== null
+                                        ? unitPrice * quantity
+                                        : null;
+                                    const lineTotal =
+                                      lineBase !== null
+                                        ? Math.max(
+                                            0,
+                                            lineBase - (discountAmount ?? 0)
+                                          )
+                                        : null;
+                                    return (
+                                      <tr
+                                        key={`summary-cost-${group.id}-${serviceId}-${itemIndex}`}
+                                        className='border-t'
+                                      >
+                                        <td className='p-2'>
+                                          {service.ID_PARAMETRO || serviceId}
+                                        </td>
+                                        <td className='p-2 text-right'>
+                                          {quantity}
+                                        </td>
+                                        <td className='p-2 text-right'>
+                                          {unitPrice !== null
+                                            ? `$${unitPrice.toFixed(2)}`
+                                            : '—'}
+                                        </td>
+                                        <td className='p-2 text-right'>
+                                          {discountAmount !== null
+                                            ? `$${discountAmount.toFixed(2)}`
+                                            : '—'}
+                                        </td>
+                                        <td className='p-2 text-right'>
+                                          {lineTotal !== null
+                                            ? `$${lineTotal.toFixed(2)}`
+                                            : '—'}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                  <tr
+                                    key={`summary-group-subtotal-${group.id}-${groupIndex}`}
+                                    className='bg-muted/40 border-t font-medium'
+                                  >
+                                    <td className='p-2' colSpan={5}>
+                                      <div className='flex items-center justify-between gap-2'>
+                                        <span>
+                                          Subtotal{' '}
+                                          {group.name || `Combo ${groupIndex + 1}`}
+                                        </span>
+                                        <span className='text-right'>
+                                          ${groupSubtotal.toFixed(2)}
+                                        </span>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                </Fragment>
                               );
                             })}
                           </tbody>
