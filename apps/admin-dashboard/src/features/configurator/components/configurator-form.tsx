@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -12,8 +13,12 @@ import {
   Check,
   Loader2,
   Mail,
+  FilterX,
+  Filter,
+  FilterIcon,
+  LucideFilter,
   ListFilterPlus,
-  Pencil,
+  ListPlus,
   Plus,
   Search,
   Send,
@@ -58,6 +63,11 @@ import {
   TooltipTrigger
 } from '@/components/ui/tooltip';
 import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger
+} from '@/components/ui/hover-card';
+import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
@@ -79,6 +89,7 @@ import {
   listImportedServices
 } from '../services/configurations';
 import { ProformaSummaryPanel } from '@/features/proformas/components/proforma-summary-panel';
+import { IconFilterPlus } from '@tabler/icons-react';
 
 const formSchema = z.object({
   type: z.literal('proforma'),
@@ -291,6 +302,14 @@ export default function ConfiguratorForm() {
   const [dialogSelectedServiceIds, setDialogSelectedServiceIds] = useState<
     string[]
   >([]);
+  const [dialogLockedServiceIds, setDialogLockedServiceIds] = useState<
+    string[]
+  >([]);
+  const [lockedServiceCursorHint, setLockedServiceCursorHint] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+  }>({ visible: false, x: 0, y: 0 });
   const [isAddFilterDropdownOpen, setIsAddFilterDropdownOpen] = useState(false);
   const [isAppliedFiltersExpanded, setIsAppliedFiltersExpanded] =
     useState(true);
@@ -319,6 +338,8 @@ export default function ConfiguratorForm() {
   }, [editingGroupId, serviceGroups, activeComboMatrix]);
   const requestedTab = searchParams.get('tab');
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const estimatedCostsSectionRef = useRef<HTMLDivElement | null>(null);
+  const [isEstimatedCostsInView, setIsEstimatedCostsInView] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema) as any,
@@ -1330,13 +1351,7 @@ export default function ConfiguratorForm() {
         );
       }
     }, 250);
-  }, [
-    cacheKey,
-    form,
-    isLoadingRequest,
-    selectedServices,
-    serviceGroups
-  ]);
+  }, [cacheKey, form, isLoadingRequest, selectedServices, serviceGroups]);
 
   useEffect(() => {
     const mappedAnalyses = mapServicesToAnalyses(selectedServices);
@@ -1496,6 +1511,7 @@ export default function ConfiguratorForm() {
     setEditingGroupId(null);
     setActiveComboMatrix(matrixLabel);
     setDialogSelectedServiceIds([]);
+    setDialogLockedServiceIds([]);
     setDialogFilters({
       matEnsayo: [],
       norma: [],
@@ -1511,11 +1527,13 @@ export default function ConfiguratorForm() {
     group: SelectedServiceGroup,
     matrixLabel: string | null
   ) => {
+    const currentServiceIds = group.items.map((service) =>
+      getServiceId(service)
+    );
     setEditingGroupId(group.id);
     setActiveComboMatrix(matrixLabel);
-    setDialogSelectedServiceIds(
-      group.items.map((service) => getServiceId(service))
-    );
+    setDialogSelectedServiceIds(currentServiceIds);
+    setDialogLockedServiceIds(currentServiceIds);
     setDialogFilters({
       matEnsayo: [],
       norma: [],
@@ -1540,6 +1558,7 @@ export default function ConfiguratorForm() {
 
   const handleSelectAllVisibleToggle = (checked: boolean) => {
     if (visibleServiceIds.length === 0) return;
+    const lockedSet = new Set(dialogLockedServiceIds);
 
     if (checked) {
       setDialogSelectedServiceIds((prev) =>
@@ -1550,7 +1569,9 @@ export default function ConfiguratorForm() {
 
     const visibleSet = new Set(visibleServiceIds);
     setDialogSelectedServiceIds((prev) =>
-      prev.filter((serviceId) => !visibleSet.has(serviceId))
+      prev.filter(
+        (serviceId) => !visibleSet.has(serviceId) || lockedSet.has(serviceId)
+      )
     );
   };
 
@@ -1575,6 +1596,7 @@ export default function ConfiguratorForm() {
   };
 
   const handleToggleServiceSelection = (serviceId: string) => {
+    if (dialogLockedServiceIds.includes(serviceId)) return;
     setDialogSelectedServiceIds((prev) =>
       prev.includes(serviceId)
         ? prev.filter((id) => id !== serviceId)
@@ -1613,6 +1635,7 @@ export default function ConfiguratorForm() {
         })
       );
       setEditingGroupId(null);
+      setDialogLockedServiceIds([]);
     } else {
       const newGroupId = `combo-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
@@ -1786,6 +1809,113 @@ export default function ConfiguratorForm() {
   const summaryTaxAmount = (summarySubtotal * summaryTaxPercent) / 100;
   const summaryTotal =
     form.watch('pricing.total') ?? summarySubtotal + summaryTaxAmount;
+
+  useEffect(() => {
+    if (activeTab !== 'samples') {
+      setIsEstimatedCostsInView(false);
+      return;
+    }
+
+    let frameId: number | null = null;
+    let scrollContainer: Element | Window = window;
+
+    const resolveScrollContainer = (start: HTMLElement): Element | Window => {
+      let node: HTMLElement | null = start.parentElement;
+      while (node && node !== document.body) {
+        const style = window.getComputedStyle(node);
+        const overflowY = style.overflowY;
+        const isScrollableY =
+          (overflowY === 'auto' || overflowY === 'scroll') &&
+          node.scrollHeight > node.clientHeight;
+        if (isScrollableY) return node;
+        node = node.parentElement;
+      }
+      return window;
+    };
+
+    const updateVisibility = (reason: string) => {
+      if (frameId !== null) return;
+      frameId = window.requestAnimationFrame(() => {
+        frameId = null;
+        const target = estimatedCostsSectionRef.current;
+        if (!target) {
+          setIsEstimatedCostsInView(false);
+          return;
+        }
+        const targetTop = target.getBoundingClientRect().top + 130;
+        const viewportBottom =
+          scrollContainer === window
+            ? window.innerHeight
+            : (scrollContainer as Element).getBoundingClientRect().bottom;
+        const nextIsInView = targetTop <= viewportBottom;
+        setIsEstimatedCostsInView(nextIsInView);
+      });
+    };
+
+    const updateVisibilityImmediate = () => {
+      const target = estimatedCostsSectionRef.current;
+      if (!target) {
+        setIsEstimatedCostsInView(false);
+        return;
+      }
+      scrollContainer = resolveScrollContainer(target);
+      const targetTop = target.getBoundingClientRect().top;
+      const viewportBottom =
+        scrollContainer === window
+          ? window.innerHeight
+          : (scrollContainer as Element).getBoundingClientRect().bottom;
+      const nextIsInView = targetTop <= viewportBottom;
+      setIsEstimatedCostsInView(nextIsInView);
+    };
+
+    updateVisibilityImmediate();
+    const handleWindowScroll = () => updateVisibility('window-scroll');
+    const handleWindowResize = () => updateVisibility('window-resize');
+    const handleContainerScroll = () => updateVisibility('container-scroll');
+    const handleDocumentScroll = () =>
+      updateVisibility('document-capture-scroll');
+
+    window.addEventListener('scroll', handleWindowScroll, { passive: true });
+    window.addEventListener('resize', handleWindowResize);
+    document.addEventListener('scroll', handleDocumentScroll, true);
+    if (scrollContainer !== window) {
+      scrollContainer.addEventListener('scroll', handleContainerScroll);
+    }
+    return () => {
+      window.removeEventListener('scroll', handleWindowScroll);
+      window.removeEventListener('resize', handleWindowResize);
+      document.removeEventListener('scroll', handleDocumentScroll, true);
+      if (scrollContainer !== window) {
+        scrollContainer.removeEventListener('scroll', handleContainerScroll);
+      }
+      if (frameId !== null) {
+        window.cancelAnimationFrame(frameId);
+      }
+    };
+  }, [activeTab, groupedServicesForRender.length]);
+
+  const renderEstimatedCostsPanel = () => (
+    <div className='space-y-2 rounded-md border p-4'>
+      <h4 className='text-muted-foreground font-semibold'>Costos estimados</h4>
+      <div className='w-full max-w-xs space-y-1'>
+        <div className='flex justify-between'>
+          <span className='text-muted-foreground'>Subtotal:</span>
+          <span>${summarySubtotal.toFixed(2)}</span>
+        </div>
+        <div className='flex justify-between'>
+          <span className='text-muted-foreground'>
+            IVA ({summaryTaxPercent}%):
+          </span>
+          <span>${summaryTaxAmount.toFixed(2)}</span>
+        </div>
+        <div className='mt-1 flex justify-between border-t pt-1 text-lg font-bold'>
+          <span>Total:</span>
+          <span>${summaryTotal.toFixed(2)} USD</span>
+        </div>
+      </div>
+    </div>
+  );
+
   const summaryServiceGroups = useMemo(() => {
     if (groupedServicesForRender.length > 0) {
       return groupedServicesForRender;
@@ -1901,7 +2031,7 @@ export default function ConfiguratorForm() {
   const handleDownloadPreviewPdf = async () => {
     try {
       setIsGeneratingPreviewPdf(true);
-      toast('Generando PDF de proforma');
+      toast('Descargando PDF de proforma');
       const result = await generateProformaPreviewPdf(
         buildProformaPreviewPayload()
       );
@@ -2094,7 +2224,9 @@ export default function ConfiguratorForm() {
   );
 
   const serviceUnderlineInputClass =
-    'rounded-none border-0 border-b border-border bg-muted/20 px-0 shadow-none dark:border-border/85 dark:bg-transparent focus-visible:ring-0 focus-visible:border-b focus-visible:border-foreground/75 dark:focus-visible:border-foreground/70';
+    'rounded-none border-0 border-b !border-b-[#969696]  px-0 shadow-none dark:!border-b-[#666666] focus-visible:ring-0 focus-visible:border-b focus-visible:!border-b-[#5A5A5A] dark:focus-visible:!border-b-[#B0B0B0]';
+  const comboEditServicesButtonClass =
+    '!bg-[#f7f7f7] dark:!bg-[#303030] dark:hover:!bg-[#3A3A3A] !border-[#C8C8C8] dark:!border-[#4D4D4D]';
 
   return (
     <Form form={form} onSubmit={(e) => e.preventDefault()}>
@@ -2344,333 +2476,353 @@ export default function ConfiguratorForm() {
               <CardHeader>
                 <CardTitle>Servicios</CardTitle>
               </CardHeader>
-              <CardContent className='space-y-4'>
-                <div className='space-y-3 rounded-md border p-4'>
-                  <div className='flex items-center justify-between gap-2'>
-                    <div>
-                      <h4 className='text-sm font-semibold'>
-                        Combos de servicios
-                      </h4>
-                      <p className='text-muted-foreground text-xs'>
-                        Agregá uno o varios combos de servicios.
-                      </p>
-                    </div>
-                    <Button
-                      type='button'
-                      variant='outline'
-                      className='cursor-pointer'
-                      onClick={handleOpenMatrixSelectorDialog}
-                      disabled={isLoadingAvailableServices}
-                    >
-                      <Plus className='h-4 w-4' />
-                      Agregar combo de servicios
-                    </Button>
-                  </div>
+              <CardContent className='relative space-y-4 overflow-visible'>
+                <div>
+                  <div className='space-y-4'>
+                    <div className='space-y-3 rounded-md border p-4'>
+                      <div className='border-border flex items-center justify-between gap-2 border-b pb-4'>
+                        <div>
+                          <h4 className='text-sm font-semibold'>
+                            Combos de servicios
+                          </h4>
+                          <p className='text-muted-foreground text-xs'>
+                            Agregá uno o varios combos de servicios.
+                          </p>
+                        </div>
+                        <Button
+                          type='button'
+                          variant='outline'
+                          className='cursor-pointer'
+                          onClick={handleOpenMatrixSelectorDialog}
+                          disabled={isLoadingAvailableServices}
+                        >
+                          <Plus className='h-4 w-4' />
+                          Agregar combo
+                        </Button>
+                      </div>
 
-                  {groupedServicesForRender.length === 0 ? (
-                    <p className='text-muted-foreground text-sm'>
-                      No hay combos de servicios agregados.
-                    </p>
-                  ) : (
-                    <div className='space-y-4'>
-                      {groupedServicesForRender.map((group) => {
-                        return (
-                          <div
-                            key={group.id}
-                            className='bg-primary/15 border-primary/30 relative space-y-3 overflow-hidden rounded-xl border p-3'
-                          >
-                            <span
-                              aria-hidden='true'
-                              className='text-primary/35 absolute top-0 left-0 h-4 w-4 [background-image:radial-gradient(currentColor_1px,transparent_1px)] [background-size:3px_3px] [clip-path:polygon(0_0,100%_0,0_100%)]'
-                            />
-                            <div className='flex items-center justify-between gap-3'>
-                              <div className='flex items-center gap-1'>
-                                <div className='relative pt-2'>
-                                  <span className='text-foreground/90 pointer-events-none absolute -top-0.5 left-2 z-10 rounded-sm bg-transparent px-1.5 text-[10px] leading-none font-semibold'>
-                                    Título del combo
-                                  </span>
-                                  <Input
-                                    value={group.name}
-                                    onChange={(event) =>
-                                      handleUpdateGroupName(
-                                        group.id,
-                                        event.target.value
-                                      )
-                                    }
-                                    className='bg-background w-[25rem] max-w-[85vw]'
-                                    placeholder='Nombre del combo'
-                                  />
-                                </div>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <button
-                                      type='button'
-                                      className='text-foreground/70 hover:text-foreground inline-flex h-7 w-7 cursor-pointer items-center justify-center'
-                                      onClick={() =>
-                                        handleEditGroupServices(
-                                          group,
-                                          group.items[0]
-                                            ? getMatrizLabel(group.items[0])
-                                            : null
-                                        )
-                                      }
-                                      aria-label='Editar combo de servicios'
-                                    >
-                                      <Pencil className='h-4 w-4' />
-                                    </button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    Editar combo de servicios
-                                  </TooltipContent>
-                                </Tooltip>
-                              </div>
-                              <div className='flex items-center gap-1'>
-                                <Button
-                                  type='button'
-                                  variant='ghost'
-                                  size='icon'
-                                  className='text-destructive hover:text-destructive h-7 w-7 cursor-pointer'
-                                  onClick={() =>
-                                    handleOpenRemoveGroupDialog(group)
-                                  }
-                                  aria-label='Quitar combo'
-                                >
-                                  <Trash2 className='h-4 w-4' />
-                                </Button>
-                              </div>
-                            </div>
-
-                            <div className='space-y-2'>
-                              {group.items.map((service) => {
-                                const serviceId =
-                                  service.ID_CONFIG_PARAMETRO || service.id;
-                                const scopedServiceId = `${group.id}-${serviceId}`;
-                                return (
-                                  <div
-                                    key={`${group.id}-${serviceId}`}
-                                    className='bg-background rounded-xl border p-3'
-                                  >
-                                    <div className='flex items-start justify-between gap-2'>
-                                      <div className='flex-1 space-y-3'>
-                                        <p className='text-sm font-medium'>
-                                          {service.ID_PARAMETRO || serviceId}
-                                        </p>
-                                        <p className='text-muted-foreground text-xs'>
-                                          {service.ID_MAT_ENSAYO?.trim() ||
-                                            'Sin material de ensayo'}
-                                        </p>
-                                        <p className='text-muted-foreground text-xs'>
-                                          {service.ID_TABLA_NORMA ||
-                                            'Sin tabla'}{' '}
-                                          •{' '}
-                                          {service.UNIDAD_NORMA ||
-                                            service.UNIDAD_INTERNO ||
-                                            'Sin unidad'}
-                                        </p>
-                                        <p className='text-muted-foreground text-xs'>
-                                          {service.ID_TECNICA ||
-                                            service.ID_MET_REFERENCIA ||
-                                            service.ID_MET_INTERNO ||
-                                            'Sin método'}
-                                        </p>
-                                        <div className='grid grid-cols-1 gap-4 md:grid-cols-5 md:gap-5'>
-                                          <div className='space-y-1'>
-                                            <label
-                                              htmlFor={`quantity-${scopedServiceId}`}
-                                              className='text-muted-foreground text-xs'
-                                            >
-                                              Cantidad
-                                            </label>
-                                            <Input
-                                              id={`quantity-${scopedServiceId}`}
-                                              type='number'
-                                              min={1}
-                                              value={service.quantity ?? 1}
-                                              className={`${serviceUnderlineInputClass} pl-2`}
-                                              onChange={(event) =>
-                                                handleUpdateServiceField(
-                                                  group.id,
-                                                  serviceId,
-                                                  'quantity',
-                                                  event.target.value
-                                                )
-                                              }
-                                            />
-                                          </div>
-                                          <div className='space-y-1'>
-                                            <label
-                                              htmlFor={`range-min-${scopedServiceId}`}
-                                              className='text-muted-foreground text-xs'
-                                            >
-                                              Rango mín. (
-                                              {service.UNIDAD_NORMA?.trim() ||
-                                                service.UNIDAD_INTERNO?.trim() ||
-                                                '_'}
-                                              )
-                                            </label>
-                                            <Input
-                                              id={`range-min-${scopedServiceId}`}
-                                              value={service.rangeMin ?? ''}
-                                              className={`${serviceUnderlineInputClass} pl-2`}
-                                              onChange={(event) =>
-                                                handleUpdateServiceField(
-                                                  group.id,
-                                                  serviceId,
-                                                  'rangeMin',
-                                                  event.target.value
-                                                )
-                                              }
-                                              placeholder='Ej: 0.10'
-                                            />
-                                          </div>
-                                          <div className='space-y-1'>
-                                            <label
-                                              htmlFor={`range-max-${scopedServiceId}`}
-                                              className='text-muted-foreground text-xs'
-                                            >
-                                              Rango máx. (
-                                              {service.UNIDAD_NORMA?.trim() ||
-                                                service.UNIDAD_INTERNO?.trim() ||
-                                                '_'}
-                                              )
-                                            </label>
-                                            <Input
-                                              id={`range-max-${scopedServiceId}`}
-                                              value={service.rangeMax ?? ''}
-                                              className={`${serviceUnderlineInputClass} pl-2`}
-                                              onChange={(event) =>
-                                                handleUpdateServiceField(
-                                                  group.id,
-                                                  serviceId,
-                                                  'rangeMax',
-                                                  event.target.value
-                                                )
-                                              }
-                                              placeholder='Ej: 10.00'
-                                            />
-                                          </div>
-                                          <div className='space-y-1'>
-                                            <label
-                                              htmlFor={`price-${scopedServiceId}`}
-                                              className='text-muted-foreground text-xs'
-                                            >
-                                              Precio (USD)
-                                            </label>
-                                            <div className='relative'>
-                                              <span className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm'>
-                                                $
-                                              </span>
-                                              <Input
-                                                id={`price-${scopedServiceId}`}
-                                                type='number'
-                                                min={0}
-                                                step='0.01'
-                                                value={
-                                                  typeof service.unitPrice ===
-                                                  'number'
-                                                    ? service.unitPrice
-                                                    : ''
-                                                }
-                                                onChange={(event) =>
-                                                  handleUpdateServiceField(
-                                                    group.id,
-                                                    serviceId,
-                                                    'unitPrice',
-                                                    event.target.value
-                                                  )
-                                                }
-                                                placeholder='Ej: 12.50'
-                                                className={`${serviceUnderlineInputClass} pl-7`}
-                                              />
-                                            </div>
-                                          </div>
-                                          <div className='space-y-1'>
-                                            <label
-                                              htmlFor={`discount-${scopedServiceId}`}
-                                              className='text-muted-foreground text-xs'
-                                            >
-                                              Descuento (USD)
-                                            </label>
-                                            <div className='relative'>
-                                              <span className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm'>
-                                                $
-                                              </span>
-                                              <Input
-                                                id={`discount-${scopedServiceId}`}
-                                                type='number'
-                                                min={0}
-                                                step='0.01'
-                                                value={
-                                                  typeof service.discountAmount ===
-                                                  'number'
-                                                    ? service.discountAmount
-                                                    : ''
-                                                }
-                                                onChange={(event) =>
-                                                  handleUpdateServiceField(
-                                                    group.id,
-                                                    serviceId,
-                                                    'discountAmount',
-                                                    event.target.value
-                                                  )
-                                                }
-                                                placeholder='Ej: 2.50'
-                                                className={`${serviceUnderlineInputClass} pl-7`}
-                                              />
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </div>
-                                      <Button
-                                        type='button'
-                                        variant='ghost'
-                                        size='icon'
-                                        className='h-7 w-7 cursor-pointer'
-                                        onClick={() =>
-                                          handleOpenRemoveService(
+                      {groupedServicesForRender.length === 0 ? (
+                        <p className='text-muted-foreground text-sm'>
+                          No hay combos de servicios agregados.
+                        </p>
+                      ) : (
+                        <div className='space-y-4'>
+                          {groupedServicesForRender.map((group) => {
+                            return (
+                              <div
+                                key={group.id}
+                                className='bg-primary/15 border-primary/30 relative space-y-3 overflow-hidden rounded-xl border p-3'
+                              >
+                                <span
+                                  aria-hidden='true'
+                                  className='text-primary/35 absolute top-0 left-0 h-4 w-4 [background-image:radial-gradient(currentColor_1px,transparent_1px)] [background-size:3px_3px] [clip-path:polygon(0_0,100%_0,0_100%)]'
+                                />
+                                <div className='flex items-center justify-between gap-3'>
+                                  <div className='flex w-full items-center justify-between gap-1'>
+                                    <div className='relative pt-2'>
+                                      <span className='text-foreground/90 pointer-events-none absolute -top-0.5 left-2 z-10 rounded-sm bg-transparent px-1.5 text-[10px] leading-none font-semibold'>
+                                        Título del combo
+                                      </span>
+                                      <Input
+                                        value={group.name}
+                                        onChange={(event) =>
+                                          handleUpdateGroupName(
                                             group.id,
-                                            service
+                                            event.target.value
                                           )
                                         }
-                                        aria-label='Quitar servicio'
-                                      >
-                                        <Trash2 className='h-4 w-4' />
-                                      </Button>
+                                        className='bg-background w-[25rem] max-w-[85vw]'
+                                        placeholder='Nombre del combo'
+                                      />
                                     </div>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          type='button'
+                                          variant='outline'
+                                          size='sm'
+                                          className={`mt-2 ml-1 h-8 cursor-pointer border ${comboEditServicesButtonClass}`}
+                                          onClick={() =>
+                                            handleEditGroupServices(
+                                              group,
+                                              group.items[0]
+                                                ? getMatrizLabel(group.items[0])
+                                                : null
+                                            )
+                                          }
+                                          aria-label='Editar combo de servicios'
+                                        >
+                                          <Plus className='h-4 w-4' />
+                                          Agregar Servicios
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        Editar combo de servicios
+                                      </TooltipContent>
+                                    </Tooltip>
                                   </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
+                                  <div className='mx-1 mt-2 flex items-center gap-1'>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          type='button'
+                                          variant='ghost'
+                                          size='icon'
+                                          className='text-destructive hover:text-destructive h-7 w-7 cursor-pointer'
+                                          onClick={() =>
+                                            handleOpenRemoveGroupDialog(group)
+                                          }
+                                          aria-label='Eliminar combo'
+                                        >
+                                          <Trash2 className='h-4 w-4' />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        Eliminar combo
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </div>
+                                </div>
 
-                <div className='space-y-2 rounded-md border p-4'>
-                  <h4 className='text-muted-foreground font-semibold'>
-                    Costos estimados
-                  </h4>
-                  <div className='w-full max-w-xs space-y-1'>
-                    <div className='flex justify-between'>
-                      <span className='text-muted-foreground'>Subtotal:</span>
-                      <span>${summarySubtotal.toFixed(2)}</span>
+                                <div className='space-y-2'>
+                                  {group.items.map((service) => {
+                                    const serviceId =
+                                      service.ID_CONFIG_PARAMETRO || service.id;
+                                    const scopedServiceId = `${group.id}-${serviceId}`;
+                                    return (
+                                      <div
+                                        key={`${group.id}-${serviceId}`}
+                                        className='bg-background rounded-xl border p-3'
+                                      >
+                                        <div className='flex items-start justify-between gap-2'>
+                                          <div className='flex-1 space-y-3'>
+                                            <p className='text-sm font-medium'>
+                                              {service.ID_PARAMETRO ||
+                                                serviceId}
+                                            </p>
+                                            <p className='text-muted-foreground text-xs'>
+                                              {service.ID_MAT_ENSAYO?.trim() ||
+                                                'Sin material de ensayo'}
+                                            </p>
+                                            <p className='text-muted-foreground text-xs'>
+                                              {service.ID_TABLA_NORMA ||
+                                                'Sin tabla'}{' '}
+                                              •{' '}
+                                              {service.UNIDAD_NORMA ||
+                                                service.UNIDAD_INTERNO ||
+                                                'Sin unidad'}
+                                            </p>
+                                            <p className='text-muted-foreground text-xs'>
+                                              {service.ID_TECNICA ||
+                                                service.ID_MET_REFERENCIA ||
+                                                service.ID_MET_INTERNO ||
+                                                'Sin método'}
+                                            </p>
+                                            <div className='grid grid-cols-1 gap-5 md:grid-cols-5 md:gap-6'>
+                                              <div className='space-y-1'>
+                                                <label
+                                                  htmlFor={`quantity-${scopedServiceId}`}
+                                                  className='text-muted-foreground text-xs'
+                                                >
+                                                  Cantidad
+                                                </label>
+                                                <Input
+                                                  id={`quantity-${scopedServiceId}`}
+                                                  type='number'
+                                                  min={1}
+                                                  value={service.quantity ?? 1}
+                                                  className={`${serviceUnderlineInputClass} pl-2`}
+                                                  onChange={(event) =>
+                                                    handleUpdateServiceField(
+                                                      group.id,
+                                                      serviceId,
+                                                      'quantity',
+                                                      event.target.value
+                                                    )
+                                                  }
+                                                />
+                                              </div>
+                                              <div className='space-y-1'>
+                                                <label
+                                                  htmlFor={`range-min-${scopedServiceId}`}
+                                                  className='text-muted-foreground text-xs'
+                                                >
+                                                  Rango mín. (
+                                                  {service.UNIDAD_NORMA?.trim() ||
+                                                    service.UNIDAD_INTERNO?.trim() ||
+                                                    '_'}
+                                                  )
+                                                </label>
+                                                <Input
+                                                  id={`range-min-${scopedServiceId}`}
+                                                  value={service.rangeMin ?? ''}
+                                                  className={`${serviceUnderlineInputClass} pl-2`}
+                                                  onChange={(event) =>
+                                                    handleUpdateServiceField(
+                                                      group.id,
+                                                      serviceId,
+                                                      'rangeMin',
+                                                      event.target.value
+                                                    )
+                                                  }
+                                                  placeholder='0.00'
+                                                />
+                                              </div>
+                                              <div className='space-y-1'>
+                                                <label
+                                                  htmlFor={`range-max-${scopedServiceId}`}
+                                                  className='text-muted-foreground text-xs'
+                                                >
+                                                  Rango máx. (
+                                                  {service.UNIDAD_NORMA?.trim() ||
+                                                    service.UNIDAD_INTERNO?.trim() ||
+                                                    '_'}
+                                                  )
+                                                </label>
+                                                <Input
+                                                  id={`range-max-${scopedServiceId}`}
+                                                  value={service.rangeMax ?? ''}
+                                                  className={`${serviceUnderlineInputClass} pl-2`}
+                                                  onChange={(event) =>
+                                                    handleUpdateServiceField(
+                                                      group.id,
+                                                      serviceId,
+                                                      'rangeMax',
+                                                      event.target.value
+                                                    )
+                                                  }
+                                                  placeholder='0.00'
+                                                />
+                                              </div>
+                                              <div className='space-y-1'>
+                                                <label
+                                                  htmlFor={`price-${scopedServiceId}`}
+                                                  className='text-muted-foreground text-xs'
+                                                >
+                                                  Precio (USD)
+                                                </label>
+                                                <div className='relative'>
+                                                  <span className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm'>
+                                                    $
+                                                  </span>
+                                                  <Input
+                                                    id={`price-${scopedServiceId}`}
+                                                    type='number'
+                                                    min={0}
+                                                    step='0.01'
+                                                    value={
+                                                      typeof service.unitPrice ===
+                                                      'number'
+                                                        ? service.unitPrice
+                                                        : ''
+                                                    }
+                                                    onChange={(event) =>
+                                                      handleUpdateServiceField(
+                                                        group.id,
+                                                        serviceId,
+                                                        'unitPrice',
+                                                        event.target.value
+                                                      )
+                                                    }
+                                                    placeholder='0.00'
+                                                    className={`${serviceUnderlineInputClass} pl-7`}
+                                                  />
+                                                </div>
+                                              </div>
+                                              <div className='space-y-1'>
+                                                <label
+                                                  htmlFor={`discount-${scopedServiceId}`}
+                                                  className='text-muted-foreground text-xs'
+                                                >
+                                                  Descuento (USD)
+                                                </label>
+                                                <div className='relative'>
+                                                  <span className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm'>
+                                                    $
+                                                  </span>
+                                                  <Input
+                                                    id={`discount-${scopedServiceId}`}
+                                                    type='number'
+                                                    min={0}
+                                                    step='0.01'
+                                                    value={
+                                                      typeof service.discountAmount ===
+                                                      'number'
+                                                        ? service.discountAmount
+                                                        : ''
+                                                    }
+                                                    onChange={(event) =>
+                                                      handleUpdateServiceField(
+                                                        group.id,
+                                                        serviceId,
+                                                        'discountAmount',
+                                                        event.target.value
+                                                      )
+                                                    }
+                                                    placeholder='0.00'
+                                                    className={`${serviceUnderlineInputClass} pl-7`}
+                                                  />
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <Button
+                                                type='button'
+                                                variant='ghost'
+                                                size='icon'
+                                                className='h-7 w-7 cursor-pointer'
+                                                onClick={() =>
+                                                  handleOpenRemoveService(
+                                                    group.id,
+                                                    service
+                                                  )
+                                                }
+                                                aria-label='Eliminar servicio'
+                                              >
+                                                <Trash2 className='h-4 w-4' />
+                                              </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                              Eliminar servicio
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                    <div className='flex justify-between'>
-                      <span className='text-muted-foreground'>
-                        IVA ({summaryTaxPercent}%):
-                      </span>
-                      <span>${summaryTaxAmount.toFixed(2)}</span>
+
+                    <div ref={estimatedCostsSectionRef}>
+                      {renderEstimatedCostsPanel()}
                     </div>
-                    <div className='mt-1 flex justify-between border-t pt-1 text-lg font-bold'>
-                      <span>Total:</span>
-                      <span>${summaryTotal.toFixed(2)} USD</span>
-                    </div>
+
+                    {renderTabActions()}
                   </div>
                 </div>
-
-                {renderTabActions()}
+                <div className='pointer-events-none absolute top-38 bottom-0 left-[calc(100%+1rem)] hidden w-[320px] min-[1400px]:block'>
+                  <AnimatePresence initial={false}>
+                    {!isEstimatedCostsInView ? (
+                      <motion.div
+                        key='estimated-costs-floating'
+                        className='pointer-events-auto sticky top-16'
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.12, ease: 'easeOut' }}
+                      >
+                        {renderEstimatedCostsPanel()}
+                      </motion.div>
+                    ) : null}
+                  </AnimatePresence>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -2738,9 +2890,11 @@ export default function ConfiguratorForm() {
       >
         <AlertDialogContent className='w-[92vw] max-w-[520px]'>
           <AlertDialogHeader>
-            <AlertDialogTitle>Seleccionar matriz del combo</AlertDialogTitle>
+            <AlertDialogTitle>
+              Seleccionar matriz del nuevo combo
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Elegí una matriz para crear el combo de servicios.
+              Elegí una matriz para crear el nuevo combo de servicios.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className='max-h-[52vh] space-y-2 overflow-y-auto'>
@@ -2828,6 +2982,7 @@ export default function ConfiguratorForm() {
           if (!open) {
             setActiveComboMatrix(null);
             setEditingGroupId(null);
+            setDialogLockedServiceIds([]);
           }
         }}
       >
@@ -2845,33 +3000,37 @@ export default function ConfiguratorForm() {
                   </span>
                 </span>
               ) : null}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span
-                    className={`inline-flex items-center rounded-full border px-2.5 py-1 text-sm ${
-                      dialogSelectedServiceIds.length > 0
-                        ? 'border-black bg-black text-white dark:border-white dark:bg-white dark:text-black'
-                        : 'bg-muted text-muted-foreground'
-                    }`}
+              {dialogSelectedServiceIds.length > 0 ? (
+                <HoverCard openDelay={80} closeDelay={150}>
+                  <HoverCardTrigger asChild>
+                    <span className='inline-flex cursor-default items-center rounded-full border border-black bg-black px-2.5 py-1 text-sm text-white dark:border-white dark:bg-white dark:text-black'>
+                      {dialogSelectedServiceIds.length} seleccionados
+                    </span>
+                  </HoverCardTrigger>
+                  <HoverCardContent
+                    align='start'
+                    side='bottom'
+                    sideOffset={8}
+                    className='max-h-[19.2rem] w-[25.4rem] max-w-[25.4rem] overflow-y-auto p-3'
+                    onWheel={(event) => event.stopPropagation()}
                   >
-                    {dialogSelectedServiceIds.length} seleccionados
-                  </span>
-                </TooltipTrigger>
-                {dialogSelectedServiceIds.length > 0 ? (
-                  <TooltipContent className='max-w-[22rem]'>
                     <div className='space-y-1'>
                       <p className='text-xs font-medium'>
                         Servicios seleccionados
                       </p>
-                      <ul className='max-h-52 list-disc space-y-0.5 overflow-y-auto pl-4 text-xs'>
+                      <ul className='list-disc space-y-0.5 pl-4 text-xs'>
                         {selectedDialogServiceLabels.map((label, index) => (
                           <li key={`${label}-${index}`}>{label}</li>
                         ))}
                       </ul>
                     </div>
-                  </TooltipContent>
-                ) : null}
-              </Tooltip>
+                  </HoverCardContent>
+                </HoverCard>
+              ) : (
+                <span className='bg-muted text-muted-foreground inline-flex items-center rounded-full border px-2.5 py-1 text-sm'>
+                  {dialogSelectedServiceIds.length} seleccionados
+                </span>
+              )}
             </div>
             <AlertDialogDescription className='m-0'>
               Selecciona uno o varios servicios para incluir en el combo "
@@ -2892,7 +3051,7 @@ export default function ConfiguratorForm() {
                     size='sm'
                     className='bg-muted/35 text-foreground hover:bg-muted/55 h-9 gap-1.5 border-transparent text-xs shadow-none'
                   >
-                    <ListFilterPlus className='h-3.5 w-3.5' />
+                    <IconFilterPlus className='h-3.7 w-3.7' />
                     Agregar filtro
                     <ChevronDown className='h-3.5 w-3.5' />
                   </Button>
@@ -3091,16 +3250,21 @@ export default function ConfiguratorForm() {
                   const serviceId = service.ID_CONFIG_PARAMETRO || service.id;
                   const isSelected =
                     dialogSelectedServiceIds.includes(serviceId);
-                  return (
+                  const isLockedSelection =
+                    isSelected && dialogLockedServiceIds.includes(serviceId);
+                  const cardButton = (
                     <button
                       key={serviceId}
                       type='button'
                       className={`w-full rounded-md border p-3 text-left transition-colors ${
-                        isSelected
-                          ? 'border-black bg-black/5'
-                          : 'hover:bg-muted/50 border-border'
+                        isLockedSelection
+                          ? 'border-border bg-muted/35 cursor-not-allowed'
+                          : isSelected
+                            ? 'border-black bg-black/5'
+                            : 'hover:bg-muted/50 border-border'
                       }`}
                       onClick={() => handleToggleServiceSelection(serviceId)}
+                      disabled={isLockedSelection}
                     >
                       <div className='flex items-start justify-between gap-2'>
                         <div className='space-y-1'>
@@ -3128,17 +3292,68 @@ export default function ConfiguratorForm() {
                           </p>
                         </div>
                         {isSelected ? (
-                          <span className='inline-flex aspect-square size-[1.125rem] shrink-0 items-center justify-center self-start rounded-full bg-black leading-none text-white'>
+                          <span
+                            className={`inline-flex aspect-square size-[1.125rem] shrink-0 items-center justify-center self-start rounded-full leading-none ${
+                              isLockedSelection
+                                ? 'bg-muted-foreground/60 text-white'
+                                : 'bg-black text-white'
+                            }`}
+                          >
                             <Check className='h-2.5 w-2.5' strokeWidth={3} />
                           </span>
                         ) : null}
                       </div>
                     </button>
                   );
+
+                  if (isLockedSelection) {
+                    return (
+                      <span
+                        key={serviceId}
+                        className='block'
+                        onMouseEnter={(event) =>
+                          setLockedServiceCursorHint({
+                            visible: true,
+                            x: event.clientX,
+                            y: event.clientY
+                          })
+                        }
+                        onMouseMove={(event) =>
+                          setLockedServiceCursorHint({
+                            visible: true,
+                            x: event.clientX,
+                            y: event.clientY
+                          })
+                        }
+                        onMouseLeave={() =>
+                          setLockedServiceCursorHint((prev) => ({
+                            ...prev,
+                            visible: false
+                          }))
+                        }
+                      >
+                        {cardButton}
+                      </span>
+                    );
+                  }
+
+                  return <div key={serviceId}>{cardButton}</div>;
                 })}
               </div>
             )}
           </div>
+
+          {lockedServiceCursorHint.visible ? (
+            <div
+              className='bg-popover text-popover-foreground pointer-events-none fixed z-[120] rounded-md border px-2 py-1 text-xs shadow-md'
+              style={{
+                left: `${lockedServiceCursorHint.x + -230}px`,
+                top: `${lockedServiceCursorHint.y + 10}px`
+              }}
+            >
+              Servicio ya agregado al combo
+            </div>
+          ) : null}
 
           <AlertDialogFooter>
             <div className='text-muted-foreground mr-auto text-xs sm:text-sm'>
