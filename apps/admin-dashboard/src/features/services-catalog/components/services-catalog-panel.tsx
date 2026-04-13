@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { collection, getDocs, Timestamp } from 'firebase/firestore';
 import {
   ArrowDown,
@@ -327,7 +327,9 @@ const buildRowFromDoc = (
 });
 
 const AUTOCOMPLETE_FIELD_KEYS: Array<keyof CreateServiceDraft> = [
+  'ID_PARAMETRO',
   'ID_TABLA_NORMA',
+  'ID_NORMA',
   'ID_MAT_ENSAYO',
   'UNIDAD_INTERNO',
   'UNIDAD_NORMA',
@@ -377,6 +379,7 @@ export function ServicesCatalogPanel() {
     useState(false);
   const [activeAutocompleteField, setActiveAutocompleteField] =
     useState<keyof CreateServiceDraft | null>(null);
+  const autocompleteBlurTimeoutRef = useRef<number | null>(null);
   const [sortKey, setSortKey] = useState<SortableCatalogFieldKey | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [createServiceDraft, setCreateServiceDraft] =
@@ -614,7 +617,9 @@ export function ServicesCatalogPanel() {
       ).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
 
     return {
+      ID_PARAMETRO: uniqueFromRows('ID_PARAMETRO'),
       ID_TABLA_NORMA: uniqueFromRows('ID_TABLA_NORMA'),
+      ID_NORMA: uniqueFromRows('ID_NORMA'),
       ID_MAT_ENSAYO: uniqueFromRows('ID_MAT_ENSAYO'),
       UNIDAD_INTERNO: uniqueFromRows('UNIDAD_INTERNO'),
       UNIDAD_NORMA: uniqueFromRows('UNIDAD_NORMA'),
@@ -642,6 +647,10 @@ export function ServicesCatalogPanel() {
 
   const handleOpenCreateServiceDialog = () => {
     setCreateServiceDraft(INITIAL_CREATE_SERVICE_DRAFT);
+    if (autocompleteBlurTimeoutRef.current !== null) {
+      window.clearTimeout(autocompleteBlurTimeoutRef.current);
+      autocompleteBlurTimeoutRef.current = null;
+    }
     setActiveAutocompleteField(null);
     setIsCreateServiceDialogOpen(true);
   };
@@ -669,6 +678,10 @@ export function ServicesCatalogPanel() {
   const handleConfirmDiscardCreateServiceDraft = () => {
     setIsDiscardCreateDialogOpen(false);
     setIsCreateServiceDialogOpen(false);
+    if (autocompleteBlurTimeoutRef.current !== null) {
+      window.clearTimeout(autocompleteBlurTimeoutRef.current);
+      autocompleteBlurTimeoutRef.current = null;
+    }
     setActiveAutocompleteField(null);
     setCreateServiceDraft(INITIAL_CREATE_SERVICE_DRAFT);
   };
@@ -962,15 +975,27 @@ export function ServicesCatalogPanel() {
                                 }
                                 onFocus={() => {
                                   if (AUTOCOMPLETE_FIELD_KEYS.includes(field.key)) {
+                                    if (autocompleteBlurTimeoutRef.current !== null) {
+                                      window.clearTimeout(
+                                        autocompleteBlurTimeoutRef.current
+                                      );
+                                      autocompleteBlurTimeoutRef.current = null;
+                                    }
                                     setActiveAutocompleteField(field.key);
                                   }
                                 }}
                                 onBlur={() => {
                                   if (AUTOCOMPLETE_FIELD_KEYS.includes(field.key)) {
-                                    window.setTimeout(
-                                      () => setActiveAutocompleteField(null),
-                                      120
-                                    );
+                                    if (autocompleteBlurTimeoutRef.current !== null) {
+                                      window.clearTimeout(
+                                        autocompleteBlurTimeoutRef.current
+                                      );
+                                    }
+                                    autocompleteBlurTimeoutRef.current =
+                                      window.setTimeout(() => {
+                                        setActiveAutocompleteField(null);
+                                        autocompleteBlurTimeoutRef.current = null;
+                                      }, 120);
                                   }
                                 }}
                                 placeholder={field.placeholder}
