@@ -1799,17 +1799,38 @@ export default function ConfiguratorForm() {
   };
 
   const renderPrimarySubmitAction = () => {
-    if (isDraftEditMode) {
-      return (
-        <Button
-          type='button'
-          className='border border-black bg-black text-white hover:bg-black/90 disabled:border-black disabled:bg-black disabled:text-white dark:border-white'
-          disabled={isSubmitting || isLoadingRequest || !canSubmitFinal}
-          onClick={handleExecuteClick}
-        >
-          Ejecutar Proforma
-        </Button>
+    const executeButtonDisabled =
+      isSubmitting || isLoadingRequest || !canSubmitFinal;
+
+    const executeButton = (
+      <Button
+        type='button'
+        className='border border-black bg-black text-white hover:bg-black/90 disabled:border-black disabled:bg-black disabled:text-white dark:border-white'
+        disabled={executeButtonDisabled}
+        onClick={handleExecuteClick}
+      >
+        Ejecutar Proforma
+      </Button>
+    );
+
+    const executeButtonWithValidationTooltip =
+      !canSubmitFinal && !isSubmitting && !isLoadingRequest ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className='inline-flex cursor-not-allowed'>
+              {executeButton}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            Faltan completar casilleros del configurador.
+          </TooltipContent>
+        </Tooltip>
+      ) : (
+        executeButton
       );
+
+    if (isDraftEditMode) {
+      return executeButtonWithValidationTooltip;
     }
 
     if (isEditMode) {
@@ -1825,16 +1846,7 @@ export default function ConfiguratorForm() {
       );
     }
 
-    return (
-      <Button
-        type='button'
-        className='border border-black bg-black text-white hover:bg-black/90 disabled:border-black disabled:bg-black disabled:text-white dark:border-white'
-        disabled={isSubmitting || isLoadingRequest || !canSubmitFinal}
-        onClick={handleExecuteClick}
-      >
-        Ejecutar Proforma
-      </Button>
-    );
+    return executeButtonWithValidationTooltip;
   };
 
   const renderTabActions = (withTopBorder = false) => (
