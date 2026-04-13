@@ -3,7 +3,7 @@
 ## Ruta y propósito
 
 - Ruta: `/dashboard/service-requests`
-- Componente: `src/features/service-requests/components/service-requests-listing.tsx`
+- Componente: `src/features/requests/components/requests-listing.tsx`
 - Fuente de datos: colección `service_requests` (ordenada por `updatedAt desc`).
 
 Esta sección es el tablero operativo principal de solicitudes: consulta, edición condicionada, emisión de OT, pausa/reanudación y eliminación.

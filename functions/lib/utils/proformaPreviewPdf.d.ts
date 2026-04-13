@@ -9,6 +9,7 @@ interface ProformaPreviewClient {
     mobile?: string;
 }
 interface ProformaPreviewServiceLine {
+    table: string;
     label: string;
     unit: string;
     method: string;

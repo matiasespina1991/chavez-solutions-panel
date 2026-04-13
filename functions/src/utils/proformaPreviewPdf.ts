@@ -13,6 +13,7 @@ interface ProformaPreviewClient {
 }
 
 interface ProformaPreviewServiceLine {
+  table: string;
   label: string;
   unit: string;
   method: string;
@@ -79,6 +80,7 @@ export const sanitizeProformaPreviewPayload = (
     },
     services: Array.isArray(next.services)
       ? next.services.slice(0, 30).map((service) => ({
+          table: String(service.table || '').trim(),
           label: String(service.label || '').trim(),
           unit: String(service.unit || '').trim(),
           method: String(service.method || '').trim(),
@@ -104,6 +106,7 @@ export const sanitizeProformaPreviewPayload = (
           name: String(group?.name || '').trim(),
           items: Array.isArray(group?.items)
             ? group.items.slice(0, 30).map((service) => ({
+                table: String(service.table || '').trim(),
                 label: String(service.label || '').trim(),
                 unit: String(service.unit || '').trim(),
                 method: String(service.method || '').trim(),
@@ -179,11 +182,11 @@ const buildProformaPreviewHtml = (payload: ProformaPreviewPayload): string => {
         .map(
           (service) => `
       <tr>
-        <td>${service.quantity || 0}</td>
         <td>${escapeHtml(service.label || 'Servicio')}</td>
         <td>${escapeHtml(service.unit || '-')}</td>
-        <td>${escapeHtml(service.method || '-')}</td>
         <td>${escapeHtml(service.rangeOffered || '-')}</td>
+        <td>${escapeHtml(service.method || '-')}</td>
+        <td>${service.quantity || 0}</td>
         <td>${formatMoneyCompact(service.unitPrice)}</td>
         <td>${formatMoneyCompact(service.discountAmount)}</td>
         <td>${formatMoneyCompact(service.subtotal)}</td>
@@ -227,27 +230,36 @@ const buildProformaPreviewHtml = (payload: ProformaPreviewPayload): string => {
       padding: 24px 28px;
       font-family: Arial, Helvetica, sans-serif;
       color: #111;
-      line-height: 1.35;
+      line-height: 1.3;
     }
     h1 { margin: 0; font-size: 42px; }
-    h2 { margin: 0; font-size: 18px; }
+    h2 { margin: 0; font-size: 16px; }
     .doc-header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
       gap: 16px;
     }
-    .title { margin: 0; font-size: 32px; font-weight: 700; line-height: 1.1; }
-    .ref { margin-top: 6px; font-weight: 600; font-size: 14px; }
+    .title { margin: 0; font-size: 22px; font-weight: 700; line-height: 1.1; }
+    .ref { margin-top: 4px; font-weight: 600; font-size: 10px; }
     .brand-logo {
       max-height: 3rem;
       width: auto;
       object-fit: contain;
     }
-    .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
-    .card { border: 1px solid #111; padding: 10px 12px; }
-    .card h3 { margin: 0 0 8px; font-size: 16px; }
-    .card p { margin: 3px 0; font-size: 14px; }
+    .cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 16px;
+      border-top: 1px solid #111;
+      border-bottom: 1px solid #111;
+      padding: 10px 0;
+    }
+    .card { border: 0; padding: 0 12px; }
+    .card.client-card { padding-left: 0; }
+    .card h3 { margin: 0 0 6px; font-size: 12px; }
+    .card p { margin: 2px 0; font-size: 11px; }
     .section { margin-top: 16px; }
     table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 10px; }
     th, td {
@@ -258,7 +270,7 @@ const buildProformaPreviewHtml = (payload: ProformaPreviewPayload): string => {
       white-space: normal;
       word-break: break-word;
       overflow-wrap: anywhere;
-      font-size: 14px;
+      font-size: 11px;
     }
     th { font-weight: 700; }
     th.nowrap { white-space: nowrap; }
@@ -267,11 +279,11 @@ const buildProformaPreviewHtml = (payload: ProformaPreviewPayload): string => {
       font-weight: 700;
     }
     .totals { margin-top: 20px; width: 300px; }
-    .totals h3 { margin: 0 0 8px; font-size: 18px; }
-    .totals .row { display: flex; justify-content: space-between; font-size: 18px; margin: 2px 0; }
-    .totals .total { border-top: 1px solid #111; margin-top: 8px; padding-top: 6px; font-size: 24px; font-weight: 700; display: flex; justify-content: space-between; }
+    .totals h3 { margin: 0 0 6px; font-size: 13px; }
+    .totals .row { display: flex; justify-content: space-between; font-size: 13px; margin: 2px 0; }
+    .totals .total { border-top: 1px solid #111; margin-top: 6px; padding-top: 5px; font-size: 17px; font-weight: 700; display: flex; justify-content: space-between; }
     .break { break-before: page; page-break-before: always; }
-    .legal h2 { margin-bottom: 10px; }
+    .legal h2 { margin-bottom: 10px; font-size: 13px; }
     .legal h4 { margin: 14px 0 6px; font-size: 14px; }
     .legal p, .legal li { font-size: 12px; margin: 4px 0; }
     ul { margin: 8px 0 0 18px; padding: 0; }
@@ -291,23 +303,22 @@ const buildProformaPreviewHtml = (payload: ProformaPreviewPayload): string => {
   </div>
 
   <div class="cards">
-    <div class="card">
+    <div class="card client-card">
       <h3>Datos del cliente</h3>
-      <p>Razon social: ${escapeHtml(payload.client.businessName || '-')}</p>
-      <p>RUC: ${escapeHtml(payload.client.taxId || '-')}</p>
-      <p>Nombre de contacto: ${escapeHtml(payload.client.contactName || '-')}</p>
-      <p>Direccion: ${escapeHtml(payload.client.address || '-')}</p>
-      <p>Correo: ${escapeHtml(payload.client.email || '-')}</p>
-      <p>Telefono: ${escapeHtml(payload.client.phone || '-')}</p>
-      <p>Celular: ${escapeHtml(payload.client.mobile || payload.client.phone || '-')}</p>
+      <p><b>Razon social:</b> ${escapeHtml(payload.client.businessName || '-')}</p>
+      <p><b>RUC:</b> ${escapeHtml(payload.client.taxId || '-')}</p>
+      <p><b>Nombre de contacto:</b> ${escapeHtml(payload.client.contactName || '-')}</p>
+      <p><b>Direccion:</b> ${escapeHtml(payload.client.address || '-')}</p>
+      <p><b>Correo:</b> ${escapeHtml(payload.client.email || '-')}</p>
+      <p><b>Telefono:</b> ${escapeHtml(payload.client.phone || '-')}</p>
+      <p><b>Celular:</b> ${escapeHtml(payload.client.mobile || payload.client.phone || '-')}</p>
     </div>
     <div class="card">
       <h3>Datos de proforma</h3>
       <p><b>Referencia:</b> ${escapeHtml(payload.reference || '-')}</p>
-      <p>Fecha de emision: ${escapeHtml(payload.issuedAtLabel || '-')}</p>
-      <p>Validez de oferta: ${escapeHtml(String(payload.validDays ?? '-'))} dias</p>
-      <p>Valida hasta: ${escapeHtml(payload.validUntilLabel || '-')}</p>
-      <p>Matrices: ${escapeHtml(payload.matrixLabels.length ? payload.matrixLabels.join(', ') : '-')}</p>
+      <p><b>Fecha de emision:</b> ${escapeHtml(payload.issuedAtLabel || '-')}</p>
+      <p><b>Validez de oferta:</b> ${escapeHtml(String(payload.validDays ?? '-'))} dias</p>
+      <p><b>Valida hasta:</b> ${escapeHtml(payload.validUntilLabel || '-')}</p>
     </div>
   </div>
 
@@ -316,14 +327,14 @@ const buildProformaPreviewHtml = (payload: ProformaPreviewPayload): string => {
     <table>
       <thead>
         <tr>
-          <th class="nowrap" style="width:8%">Cant.</th>
-          <th style="width:20%">Parametro</th>
-          <th style="width:10%">Unidad</th>
-          <th style="width:18%">Metodo</th>
-          <th style="width:14%">Rango</th>
-          <th style="width:11%">C. unit.</th>
-          <th style="width:8%">Desc.</th>
-          <th class="nowrap" style="width:11%">Subtotal</th>
+          <th style="width:22%">Parámetros</th>
+          <th style="width:11%">Unidades</th>
+          <th style="width:16%">Rango ofertado</th>
+          <th style="width:19%">Método de ensayo o técnica</th>
+          <th class="nowrap" style="width:8%">Cantidad</th>
+          <th style="width:9%">Precio</th>
+          <th style="width:7%">Descuento</th>
+          <th class="nowrap" style="width:8%">Subtotal</th>
         </tr>
       </thead>
       <tbody>

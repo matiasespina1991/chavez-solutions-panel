@@ -248,7 +248,7 @@ const formatDateLabel = (valueMs: number | null) => {
   });
 };
 
-export default function ServiceRequestsListing() {
+export default function RequestsListing() {
   const router = useRouter();
   const [rows, setRows] = useState<ServiceRequestRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -780,6 +780,7 @@ export default function ServiceRequestsListing() {
             : null;
 
         return {
+          table: service.tableLabel || 'Sin tabla',
           label: service.parameterLabel || service.parameterId || 'Servicio',
           unit: service.unit || 'Sin unidad',
           method: service.method || 'Sin método',
@@ -798,6 +799,7 @@ export default function ServiceRequestsListing() {
             item.unitPrice * item.quantity - item.discountAmount
           );
           return {
+            table: 'Sin tabla',
             label: item.parameterLabel || 'Servicio',
             unit: 'Sin unidad',
             method: 'Sin método',

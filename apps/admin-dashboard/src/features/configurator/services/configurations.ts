@@ -586,6 +586,7 @@ export interface ProformaPreviewPdfPayload {
     mobile?: string;
   };
   services: Array<{
+    table: string;
     label: string;
     unit: string;
     method: string;
@@ -598,6 +599,7 @@ export interface ProformaPreviewPdfPayload {
   serviceGroups?: Array<{
     name: string;
     items: Array<{
+      table: string;
       label: string;
       unit: string;
       method: string;

@@ -1305,6 +1305,40 @@ export default function ConfiguratorForm() {
   }, [cacheKey, form, isLoadingRequest]);
 
   useEffect(() => {
+    if (typeof window === 'undefined' || isLoadingRequest) return;
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(() => {
+      try {
+        const currentValues = form.getValues();
+        const nextCachedValues: FormValues = {
+          ...currentValues,
+          services: {
+            ...currentValues.services,
+            items: mapSelectedServicesToDocument(selectedServices),
+            grouped: mapServiceGroupsToDocument(serviceGroups)
+          }
+        };
+        window.localStorage.setItem(cacheKey, JSON.stringify(nextCachedValues));
+      } catch (error) {
+        console.error(
+          'Error persisting configurator cache from service groups:',
+          error
+        );
+      }
+    }, 250);
+  }, [
+    cacheKey,
+    form,
+    isLoadingRequest,
+    selectedServices,
+    serviceGroups
+  ]);
+
+  useEffect(() => {
     const mappedAnalyses = mapServicesToAnalyses(selectedServices);
     const mappedServiceItems = mapSelectedServicesToDocument(selectedServices);
     form.setValue('services', {
@@ -1800,6 +1834,7 @@ export default function ConfiguratorForm() {
             ? Math.max(0, quantity * unitPrice - (discountAmount ?? 0))
             : null;
         return {
+          table: service.ID_TABLA_NORMA || 'Sin tabla',
           label:
             service.ID_PARAMETRO ||
             service.ID_CONFIG_PARAMETRO ||
@@ -1811,8 +1846,8 @@ export default function ConfiguratorForm() {
             service.ID_MET_REFERENCIA ||
             service.ID_MET_INTERNO ||
             'Sin método',
-          rangeOffered: `${service.LIM_INF_NORMA || service.LIM_INF_INTERNO || '—'} a ${
-            service.LIM_SUP_NORMA || service.LIM_SUP_INTERNO || '—'
+          rangeOffered: `${service.LIM_INF_INTERNO || '—'} a ${
+            service.LIM_SUP_INTERNO || '—'
           }`,
           quantity,
           unitPrice,
@@ -1832,6 +1867,7 @@ export default function ConfiguratorForm() {
               : null;
 
           return {
+            table: service.ID_TABLA_NORMA || 'Sin tabla',
             label:
               service.ID_PARAMETRO ||
               service.ID_CONFIG_PARAMETRO ||
@@ -1844,8 +1880,8 @@ export default function ConfiguratorForm() {
               service.ID_MET_REFERENCIA ||
               service.ID_MET_INTERNO ||
               'Sin método',
-            rangeOffered: `${service.LIM_INF_NORMA || service.LIM_INF_INTERNO || '—'} a ${
-              service.LIM_SUP_NORMA || service.LIM_SUP_INTERNO || '—'
+            rangeOffered: `${service.LIM_INF_INTERNO || '—'} a ${
+              service.LIM_SUP_INTERNO || '—'
             }`,
             quantity,
             unitPrice,
@@ -1865,6 +1901,7 @@ export default function ConfiguratorForm() {
   const handleDownloadPreviewPdf = async () => {
     try {
       setIsGeneratingPreviewPdf(true);
+      toast('Generando PDF de proforma');
       const result = await generateProformaPreviewPdf(
         buildProformaPreviewPayload()
       );
@@ -2011,11 +2048,16 @@ export default function ConfiguratorForm() {
           aria-label='Descargar PDF'
           title='Descargar PDF'
         >
-          {isGeneratingPreviewPdf ? (
-            <Loader2 className='text-primary h-4 w-4 animate-spin' />
-          ) : (
-            <ArrowDownToLine className='h-4 w-5' />
-          )}
+          <span className='relative inline-flex h-4 w-5 items-center justify-center'>
+            <ArrowDownToLine
+              className={`h-4 w-5 ${
+                isGeneratingPreviewPdf ? 'text-muted-foreground' : ''
+              }`}
+            />
+            {isGeneratingPreviewPdf ? (
+              <Loader2 className='text-primary absolute h-3.5 w-3.5 animate-spin' />
+            ) : null}
+          </span>
         </Button>
         <Button
           type='button'
@@ -2026,11 +2068,16 @@ export default function ConfiguratorForm() {
           aria-label='Enviar proforma por email'
           title='Enviar proforma por email'
         >
-          {isSendingPreviewEmail ? (
-            <Loader2 className='text-primary h-4 w-4 animate-spin' />
-          ) : (
-            <Mail className='h-4 w-5' />
-          )}
+          <span className='relative inline-flex h-4 w-5 items-center justify-center'>
+            <Mail
+              className={`h-4 w-5 ${
+                isSendingPreviewEmail ? 'text-muted-foreground' : ''
+              }`}
+            />
+            {isSendingPreviewEmail ? (
+              <Loader2 className='text-primary absolute h-3.5 w-3.5 animate-spin' />
+            ) : null}
+          </span>
         </Button>
         {renderPrimarySubmitAction()}
         {!isLastTab ? (
@@ -2045,6 +2092,9 @@ export default function ConfiguratorForm() {
       </div>
     </div>
   );
+
+  const serviceUnderlineInputClass =
+    'rounded-none border-0 border-b border-border bg-muted/20 px-0 shadow-none dark:border-border/85 dark:bg-transparent focus-visible:ring-0 focus-visible:border-b focus-visible:border-foreground/75 dark:focus-visible:border-foreground/70';
 
   return (
     <Form form={form} onSubmit={(e) => e.preventDefault()}>
@@ -2335,17 +2385,22 @@ export default function ConfiguratorForm() {
                             />
                             <div className='flex items-center justify-between gap-3'>
                               <div className='flex items-center gap-1'>
-                                <Input
-                                  value={group.name}
-                                  onChange={(event) =>
-                                    handleUpdateGroupName(
-                                      group.id,
-                                      event.target.value
-                                    )
-                                  }
-                                  className='bg-background w-[25rem] max-w-[85vw]'
-                                  placeholder='Nombre del combo'
-                                />
+                                <div className='relative pt-2'>
+                                  <span className='text-foreground/90 pointer-events-none absolute -top-0.5 left-2 z-10 rounded-sm bg-transparent px-1.5 text-[10px] leading-none font-semibold'>
+                                    Título del combo
+                                  </span>
+                                  <Input
+                                    value={group.name}
+                                    onChange={(event) =>
+                                      handleUpdateGroupName(
+                                        group.id,
+                                        event.target.value
+                                      )
+                                    }
+                                    className='bg-background w-[25rem] max-w-[85vw]'
+                                    placeholder='Nombre del combo'
+                                  />
+                                </div>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <button
@@ -2418,7 +2473,7 @@ export default function ConfiguratorForm() {
                                             service.ID_MET_INTERNO ||
                                             'Sin método'}
                                         </p>
-                                        <div className='grid grid-cols-1 gap-2 md:grid-cols-5'>
+                                        <div className='grid grid-cols-1 gap-4 md:grid-cols-5 md:gap-5'>
                                           <div className='space-y-1'>
                                             <label
                                               htmlFor={`quantity-${scopedServiceId}`}
@@ -2431,6 +2486,7 @@ export default function ConfiguratorForm() {
                                               type='number'
                                               min={1}
                                               value={service.quantity ?? 1}
+                                              className={`${serviceUnderlineInputClass} pl-2`}
                                               onChange={(event) =>
                                                 handleUpdateServiceField(
                                                   group.id,
@@ -2446,11 +2502,16 @@ export default function ConfiguratorForm() {
                                               htmlFor={`range-min-${scopedServiceId}`}
                                               className='text-muted-foreground text-xs'
                                             >
-                                              Rango mínimo
+                                              Rango mín. (
+                                              {service.UNIDAD_NORMA?.trim() ||
+                                                service.UNIDAD_INTERNO?.trim() ||
+                                                '_'}
+                                              )
                                             </label>
                                             <Input
                                               id={`range-min-${scopedServiceId}`}
                                               value={service.rangeMin ?? ''}
+                                              className={`${serviceUnderlineInputClass} pl-2`}
                                               onChange={(event) =>
                                                 handleUpdateServiceField(
                                                   group.id,
@@ -2467,11 +2528,16 @@ export default function ConfiguratorForm() {
                                               htmlFor={`range-max-${scopedServiceId}`}
                                               className='text-muted-foreground text-xs'
                                             >
-                                              Rango máximo
+                                              Rango máx. (
+                                              {service.UNIDAD_NORMA?.trim() ||
+                                                service.UNIDAD_INTERNO?.trim() ||
+                                                '_'}
+                                              )
                                             </label>
                                             <Input
                                               id={`range-max-${scopedServiceId}`}
                                               value={service.rangeMax ?? ''}
+                                              className={`${serviceUnderlineInputClass} pl-2`}
                                               onChange={(event) =>
                                                 handleUpdateServiceField(
                                                   group.id,
@@ -2514,7 +2580,7 @@ export default function ConfiguratorForm() {
                                                   )
                                                 }
                                                 placeholder='Ej: 12.50'
-                                                className='pl-7'
+                                                className={`${serviceUnderlineInputClass} pl-7`}
                                               />
                                             </div>
                                           </div>
@@ -2549,7 +2615,7 @@ export default function ConfiguratorForm() {
                                                   )
                                                 }
                                                 placeholder='Ej: 2.50'
-                                                className='pl-7'
+                                                className={`${serviceUnderlineInputClass} pl-7`}
                                               />
                                             </div>
                                           </div>

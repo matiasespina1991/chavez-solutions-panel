@@ -33,6 +33,7 @@ interface ProformaSource {
     phone?: string | null;
   } | null;
   services?: Array<{
+    tableLabel?: string | null;
     parameterLabel?: string | null;
     unit?: string | null;
     method?: string | null;
@@ -129,6 +130,7 @@ const toPreviewPayload = (
           : Math.max(0, safeQuantity * unitPrice - (discountAmount ?? 0));
 
       return {
+        table: service.tableLabel || 'Sin tabla',
         label: service.parameterLabel || 'Servicio',
         unit: service.unit || '',
         method: service.method || '',

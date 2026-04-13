@@ -35,7 +35,7 @@ La documentación está basada en el comportamiento implementado en:
 
 - `src/features/configurator/components/configurator-form.tsx`
 - `src/features/configurator/services/configurations.ts`
-- `src/features/service-requests/components/service-requests-listing.tsx`
+- `src/features/requests/components/requests-listing.tsx`
 - `src/features/work-orders/components/work-orders-listing.tsx`
 - rutas bajo `src/app/dashboard/*`
 

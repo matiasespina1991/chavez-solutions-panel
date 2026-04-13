@@ -1,6 +1,6 @@
 import PageContainer from '@/components/layout/page-container';
 import { DataTableSkeleton } from '@/components/ui/table/data-table-skeleton';
-import ServiceRequestsListing from '@/features/service-requests/components/service-requests-listing';
+import RequestsListing from '@/features/requests/components/requests-listing';
 import { Suspense } from 'react';
 
 export const metadata = {
@@ -37,7 +37,7 @@ export default function Page() {
           />
         }
       >
-        <ServiceRequestsListing />
+        <RequestsListing />
       </Suspense>
     </PageContainer>
   );
