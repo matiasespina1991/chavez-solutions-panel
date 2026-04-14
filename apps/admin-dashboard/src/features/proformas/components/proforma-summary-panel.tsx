@@ -52,50 +52,55 @@ export function ProformaSummaryPanel({
   showTotalUsdSuffix = true
 }: ProformaSummaryPanelProps) {
   const taxAmount = (pricing.subtotal * pricing.taxPercent) / 100;
+  const normalizedReference = reference?.trim();
+  const referenceLabel =
+    normalizedReference && normalizedReference.length > 0
+      ? normalizedReference
+      : '- (borrador)';
 
   return (
     <>
       <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
-        <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
+        <div className='bg-muted/20 space-y-1.5 rounded-md border p-4'>
           <h4 className='text-muted-foreground font-semibold'>Datos Generales</h4>
-          <p>
+          <p className='leading-snug'>
             <span className='font-medium'>Tipo:</span> {typeLabel}
           </p>
-          <p>
+          <p className='leading-snug'>
             <span className='font-medium'>Matrices:</span> {matrixLabel}
           </p>
-          <p>
-            <span className='font-medium'>Referencia:</span> {reference}
+          <p className='leading-snug'>
+            <span className='font-medium'>Referencia:</span> {referenceLabel}
           </p>
-          <p>
+          <p className='leading-snug'>
             <span className='font-medium'>Validez:</span> {validDaysLabel}
           </p>
-          <p>
+          <p className='leading-snug'>
             <span className='font-medium'>Válida hasta:</span> {validUntilLabel}
           </p>
           {approvalStatusLabel ? (
-            <p>
+            <p className='leading-snug'>
               <span className='font-medium'>Aprobación:</span>{' '}
               {approvalStatusLabel}
             </p>
           ) : null}
           {rejectionReason?.trim() ? (
-            <p>
+            <p className='leading-snug'>
               <span className='font-medium'>Motivo rechazo:</span>{' '}
               {rejectionReason}
             </p>
           ) : null}
         </div>
-        <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
+        <div className='bg-muted/20 space-y-1.5 rounded-md border p-4'>
           <h4 className='text-muted-foreground font-semibold'>Cliente</h4>
-          <p>
+          <p className='leading-snug'>
             <span className='font-medium'>Razón Social:</span>{' '}
             {client.businessName || '—'}
           </p>
-          <p>
+          <p className='leading-snug'>
             <span className='font-medium'>RUC:</span> {client.taxId || '—'}
           </p>
-          <p>
+          <p className='leading-snug'>
             <span className='font-medium'>Contacto:</span>{' '}
             {client.contactName || '—'}
           </p>

@@ -974,18 +974,24 @@ export default function ConfiguratorForm() {
   };
 
   const clearCurrentDataButton = (
-    <Button
-      type='button'
-      variant='outline'
-      size='icon'
-      className='cursor-pointer'
-      disabled={isSubmitting || isLoadingRequest}
-      onClick={() => setIsClearDialogOpen(true)}
-      aria-label='Vaciar datos en curso'
-      title='Vaciar datos en curso'
-    >
-      <Trash2 className='h-4 w-4' />
-    </Button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className='inline-flex'>
+          <Button
+            type='button'
+            variant='outline'
+            size='icon'
+            className='cursor-pointer'
+            disabled={isSubmitting || isLoadingRequest}
+            onClick={() => setIsClearDialogOpen(true)}
+            aria-label='Vaciar datos en curso'
+          >
+            <Trash2 className='h-4 w-4' />
+          </Button>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>Vaciar datos en curso</TooltipContent>
+    </Tooltip>
   );
 
   useEffect(() => {
@@ -1399,7 +1405,7 @@ export default function ConfiguratorForm() {
       > = {
         type: values.type,
         matrix: values.matrix,
-        reference: values.reference,
+        reference: status === 'draft' ? '' : values.reference,
         status,
         notes: values.notes || '',
         client: {
@@ -1439,8 +1445,8 @@ export default function ConfiguratorForm() {
       } else {
         toast.success(
           editRequestId
-            ? 'Solicitud actualizada y ejecutada correctamente'
-            : 'Proforma emitida correctamente'
+            ? 'Solicitud actualizada y proforma guardada correctamente'
+            : 'Proforma guardada correctamente'
         );
       }
       removeCachedDraft();
@@ -1842,7 +1848,7 @@ export default function ConfiguratorForm() {
           setIsEstimatedCostsInView(false);
           return;
         }
-        const targetTop = target.getBoundingClientRect().top + 130;
+        const targetTop = target.getBoundingClientRect().top + 30;
         const viewportBottom =
           scrollContainer === window
             ? window.innerHeight
@@ -2105,7 +2111,7 @@ export default function ConfiguratorForm() {
         disabled={executeButtonDisabled}
         onClick={handleExecuteClick}
       >
-        Ejecutar Proforma
+        Guardar Proforma
       </Button>
     );
 
@@ -2159,56 +2165,77 @@ export default function ConfiguratorForm() {
       <div className='flex items-center gap-2'>
         {showDraftActions ? clearCurrentDataButton : null}
         {showDraftActions ? (
-          <Button
-            type='button'
-            variant='secondary'
-            className='border-border dark:border-border border'
-            disabled={isDraftSaveDisabled}
-            onClick={() => onSubmit(form.getValues(), 'draft')}
-          >
-            Guardar como Borrador
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className='inline-flex'>
+                <Button
+                  type='button'
+                  variant='secondary'
+                  className='border-border dark:border-border border'
+                  disabled={isDraftSaveDisabled}
+                  onClick={() => onSubmit(form.getValues(), 'draft')}
+                >
+                  Guardar como Borrador
+                </Button>
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>
+              Guardar con datos faltantes para completar luego.
+            </TooltipContent>
+          </Tooltip>
         ) : null}
-        <Button
-          type='button'
-          variant='outline'
-          size='icon'
-          disabled={isGeneratingPreviewPdf || isLoadingRequest}
-          onClick={handleDownloadPreviewPdf}
-          aria-label='Descargar PDF'
-          title='Descargar PDF'
-        >
-          <span className='relative inline-flex h-4 w-5 items-center justify-center'>
-            <ArrowDownToLine
-              className={`h-4 w-5 ${
-                isGeneratingPreviewPdf ? 'text-muted-foreground' : ''
-              }`}
-            />
-            {isGeneratingPreviewPdf ? (
-              <Loader2 className='text-primary absolute h-3.5 w-3.5 animate-spin' />
-            ) : null}
-          </span>
-        </Button>
-        <Button
-          type='button'
-          variant='outline'
-          size='icon'
-          disabled={isSendingPreviewEmail || isLoadingRequest}
-          onClick={handleOpenSendEmailDialog}
-          aria-label='Enviar proforma por email'
-          title='Enviar proforma por email'
-        >
-          <span className='relative inline-flex h-4 w-5 items-center justify-center'>
-            <Mail
-              className={`h-4 w-5 ${
-                isSendingPreviewEmail ? 'text-muted-foreground' : ''
-              }`}
-            />
-            {isSendingPreviewEmail ? (
-              <Loader2 className='text-primary absolute h-3.5 w-3.5 animate-spin' />
-            ) : null}
-          </span>
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className='inline-flex'>
+              <Button
+                type='button'
+                variant='outline'
+                size='icon'
+                disabled={isGeneratingPreviewPdf || isLoadingRequest}
+                onClick={handleDownloadPreviewPdf}
+                aria-label='Descargar PDF'
+              >
+                <span className='relative inline-flex h-4 w-5 items-center justify-center'>
+                  <ArrowDownToLine
+                    className={`h-4 w-5 ${
+                      isGeneratingPreviewPdf ? 'text-muted-foreground' : ''
+                    }`}
+                  />
+                  {isGeneratingPreviewPdf ? (
+                    <Loader2 className='text-primary absolute h-3.5 w-3.5 animate-spin' />
+                  ) : null}
+                </span>
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>Descargar PDF</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className='inline-flex'>
+              <Button
+                type='button'
+                variant='outline'
+                size='icon'
+                disabled={isSendingPreviewEmail || isLoadingRequest}
+                onClick={handleOpenSendEmailDialog}
+                aria-label='Enviar proforma por email'
+              >
+                <span className='relative inline-flex h-4 w-5 items-center justify-center'>
+                  <Mail
+                    className={`h-4 w-5 ${
+                      isSendingPreviewEmail ? 'text-muted-foreground' : ''
+                    }`}
+                  />
+                  {isSendingPreviewEmail ? (
+                    <Loader2 className='text-primary absolute h-3.5 w-3.5 animate-spin' />
+                  ) : null}
+                </span>
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>Enviar proforma por email</TooltipContent>
+        </Tooltip>
         {renderPrimarySubmitAction()}
         {!isLastTab ? (
           <Button
@@ -2224,7 +2251,7 @@ export default function ConfiguratorForm() {
   );
 
   const serviceUnderlineInputClass =
-    'rounded-none border-0 border-b !border-b-[#969696]  px-0 shadow-none dark:!border-b-[#666666] focus-visible:ring-0 focus-visible:border-b focus-visible:!border-b-[#5A5A5A] dark:focus-visible:!border-b-[#B0B0B0]';
+    'rounded-none border-0 border-b !border-b-[#969696] bg-white px-0 shadow-none dark:!border-b-[#666666] focus-visible:ring-0 focus-visible:border-b focus-visible:!border-b-[#5A5A5A] dark:focus-visible:!border-b-[#B0B0B0]';
   const comboEditServicesButtonClass =
     '!bg-[#f7f7f7] dark:!bg-[#303030] dark:hover:!bg-[#3A3A3A] !border-[#C8C8C8] dark:!border-[#4D4D4D]';
 
@@ -2531,7 +2558,7 @@ export default function ConfiguratorForm() {
                                             event.target.value
                                           )
                                         }
-                                        className='bg-background w-[25rem] max-w-[85vw]'
+                                        className='dark:!bg-background w-[25rem] max-w-[85vw] !bg-white'
                                         placeholder='Nombre del combo'
                                       />
                                     </div>
@@ -2592,7 +2619,7 @@ export default function ConfiguratorForm() {
                                     return (
                                       <div
                                         key={`${group.id}-${serviceId}`}
-                                        className='bg-background rounded-xl border p-3'
+                                        className='dark:bg-background rounded-xl border bg-white p-4'
                                       >
                                         <div className='flex items-start justify-between gap-2'>
                                           <div className='flex-1 space-y-3'>
@@ -3246,7 +3273,7 @@ export default function ConfiguratorForm() {
                 No hay servicios para los filtros aplicados.
               </p>
             ) : (
-              <div className='grid grid-cols-2 gap-2 max-[900px]:grid-cols-1'>
+              <div className='grid auto-rows-fr grid-cols-2 gap-2 max-[900px]:grid-cols-1'>
                 {filteredAvailableServices.map((service) => {
                   const serviceId = service.ID_CONFIG_PARAMETRO || service.id;
                   const isSelected =
@@ -3257,7 +3284,7 @@ export default function ConfiguratorForm() {
                     <button
                       key={serviceId}
                       type='button'
-                      className={`w-full rounded-md border p-3 text-left transition-colors ${
+                      className={`flex h-full w-full items-start justify-start rounded-md border p-3 text-left transition-colors ${
                         isLockedSelection
                           ? 'border-border bg-muted/35 cursor-not-allowed'
                           : isSelected
@@ -3267,7 +3294,7 @@ export default function ConfiguratorForm() {
                       onClick={() => handleToggleServiceSelection(serviceId)}
                       disabled={isLockedSelection}
                     >
-                      <div className='flex items-start justify-between gap-2'>
+                      <div className='flex w-full items-start justify-between gap-2'>
                         <div className='space-y-1'>
                           <p className='text-sm font-medium'>
                             {service.ID_PARAMETRO || serviceId}
@@ -3311,7 +3338,7 @@ export default function ConfiguratorForm() {
                     return (
                       <span
                         key={serviceId}
-                        className='block'
+                        className='block h-full'
                         onMouseEnter={(event) =>
                           setLockedServiceCursorHint({
                             visible: true,
@@ -3338,7 +3365,11 @@ export default function ConfiguratorForm() {
                     );
                   }
 
-                  return <div key={serviceId}>{cardButton}</div>;
+                  return (
+                    <div key={serviceId} className='h-full'>
+                      {cardButton}
+                    </div>
+                  );
                 })}
               </div>
             )}

@@ -423,7 +423,7 @@ export default function RequestsListing() {
       return {
         className:
           'rounded-md border border-amber-500/40 bg-amber-400/15 px-3 py-2 text-sm text-amber-800 dark:text-amber-300',
-        text: 'Proforma lista. Preparada para ejecutar orden de trabajo.'
+        text: 'Proforma lista. Preparada para'
       };
     }
 
@@ -1847,7 +1847,22 @@ export default function RequestsListing() {
                   <div
                     className={`${getRequestDialogBanner(selectedRow)?.className} mx-0 mt-0 flex items-center justify-start gap-1`}
                   >
-                    <span>{getRequestDialogBanner(selectedRow)?.text}</span>
+                    {selectedRow.status === 'submitted' &&
+                    selectedRow.approvalStatus !== 'approved' ? (
+                      <span>
+                        Proforma lista. Preparada para ejecutar orden de
+                        trabajo.{' '}
+                        <button
+                          type='button'
+                          className='cursor-pointer text-blue-600 underline underline-offset-2 hover:text-blue-500'
+                          onClick={() => openExecuteWorkOrderDialog(selectedRow)}
+                        >
+                          Ejecutar
+                        </button>
+                      </span>
+                    ) : (
+                      <span>{getRequestDialogBanner(selectedRow)?.text}</span>
+                    )}
                     {selectedRow.status === 'draft' ? (
                       <button
                         type='button'
