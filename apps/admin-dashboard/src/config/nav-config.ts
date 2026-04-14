@@ -12,7 +12,7 @@ export const navItems: NavItem[] = [
   {
     title: 'Lista de solicitudes',
     url: '/dashboard/requests-list',
-    icon: 'list',
+    icon: 'checklist',
     shortcut: ['e', 'e'],
     isActive: false,
     items: []
@@ -20,7 +20,7 @@ export const navItems: NavItem[] = [
   {
     title: 'Lista de ordenes de trabajo',
     url: '/dashboard/work-orders',
-    icon: 'checklist',
+    icon: 'workOrders',
     shortcut: ['r', 'r'],
     isActive: false,
     items: []
@@ -36,7 +36,7 @@ export const navItems: NavItem[] = [
   {
     title: 'Admin',
     url: '/dashboard/admin',
-    icon: 'account',
+    icon: 'admin',
     shortcut: ['a', 'a'],
     isActive: false,
     items: []

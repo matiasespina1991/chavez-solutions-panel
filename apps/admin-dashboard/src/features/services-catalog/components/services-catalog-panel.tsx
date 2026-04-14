@@ -184,7 +184,7 @@ const CREATE_SERVICE_SECTIONS: Array<{
       {
         key: 'ID_TABLA_NORMA',
         label: 'Tabla normativa',
-        className: 'md:col-span-2',
+        className: 'md:col-span-2 xl:col-span-3',
         placeholder: 'TABLA No. A3. CRITERIOS DE CALIDAD...'
       }
     ]
@@ -251,7 +251,7 @@ const CREATE_SERVICE_SECTIONS: Array<{
   }
 ];
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 20;
 
 const EDITABLE_COLUMNS: Array<{
   key: EditableFieldKey;
@@ -339,6 +339,12 @@ const AUTOCOMPLETE_FIELD_KEYS: Array<keyof CreateServiceDraft> = [
 ];
 
 const normalizeForCompare = (value: string): string => value.trim();
+const normalizeForAutocomplete = (value: string): string =>
+  value
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .trim();
 
 const getChangedPatch = (
   current: ServiceCatalogRow,
@@ -633,16 +639,16 @@ export function ServicesCatalogPanel() {
     key: keyof CreateServiceDraft
   ): string[] => {
     if (!AUTOCOMPLETE_FIELD_KEYS.includes(key)) return [];
-    const queryValue = createServiceDraft[key].trim().toLowerCase();
+    const queryValue = normalizeForAutocomplete(createServiceDraft[key]);
     if (!queryValue.length) return [];
 
     const options =
       createServiceAutocompleteOptions[
         key as keyof typeof createServiceAutocompleteOptions
       ] ?? [];
-    return options
-      .filter((option) => option.toLowerCase().startsWith(queryValue))
-      .slice(0, 5);
+    return options.filter((option) =>
+      normalizeForAutocomplete(option).startsWith(queryValue)
+    );
   };
 
   const handleOpenCreateServiceDialog = () => {

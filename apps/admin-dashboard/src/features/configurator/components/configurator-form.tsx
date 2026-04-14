@@ -2931,7 +2931,7 @@ export default function ConfiguratorForm() {
           <AlertDialogHeader>
             <AlertDialogTitle>Eliminar combo</AlertDialogTitle>
             <AlertDialogDescription>
-              ¿Querés eliminar el combo "{groupToDelete?.name || 'Combo'}"?
+              ¿Deseas eliminar el combo "{groupToDelete?.name || 'Combo'}"?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -2958,7 +2958,8 @@ export default function ConfiguratorForm() {
           <AlertDialogHeader>
             <AlertDialogTitle>Eliminar servicio</AlertDialogTitle>
             <AlertDialogDescription>
-              Este servicio tiene datos cargados. ¿Querés eliminarlo?
+              Este servicio tiene datos cargados. ¿Estás seguro de que deseas
+              eliminarlo?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
