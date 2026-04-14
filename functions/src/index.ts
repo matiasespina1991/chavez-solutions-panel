@@ -26,6 +26,7 @@ export { deleteProforma } from './callable/deleteProforma.js';
 export { importServicesFromCsv } from './callable/importServicesFromCsv.js';
 export { saveServicesTechnicalChanges } from './callable/saveServicesTechnicalChanges.js';
 export { createTechnicalService } from './callable/createTechnicalService.js';
+export { deleteTechnicalService } from './callable/deleteTechnicalService.js';
 export { listServiceHistory } from './callable/listServiceHistory.js';
 export { restoreServiceHistory } from './callable/restoreServiceHistory.js';
 export { deleteServiceHistory } from './callable/deleteServiceHistory.js';

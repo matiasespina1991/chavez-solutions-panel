@@ -70,6 +70,10 @@ export interface CreateTechnicalServiceResponse {
   id: string;
 }
 
+export interface DeleteTechnicalServiceResponse {
+  deletedId: string;
+}
+
 export const importServicesFromCsv = async (
   csvContent: string,
   fileName?: string
@@ -146,5 +150,18 @@ export const createTechnicalService = async (
   >(functions, 'createTechnicalService');
 
   const result = await callable({ payload });
+  return result.data;
+};
+
+export const deleteTechnicalService = async (
+  id: string
+): Promise<DeleteTechnicalServiceResponse> => {
+  const functions = getFunctions();
+  const callable = httpsCallable<
+    { id: string },
+    DeleteTechnicalServiceResponse
+  >(functions, 'deleteTechnicalService');
+
+  const result = await callable({ id });
   return result.data;
 };

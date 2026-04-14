@@ -6,6 +6,7 @@ import {
   ArrowDown,
   ArrowUp,
   Loader2,
+  MoreVertical,
   Plus,
   Save,
   Search,
@@ -53,10 +54,18 @@ import {
 import {
   createTechnicalService,
   CreateTechnicalServicePayload,
+  deleteTechnicalService,
   saveServicesTechnicalChanges
 } from '@/features/admin/services/import-services';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 
 type EditableFieldKey =
+  | 'ID_CONDICION_PARAMETRO'
   | 'ID_PARAMETRO'
   | 'ID_MAT_ENSAYO'
   | 'ID_MATRIZ'
@@ -77,6 +86,7 @@ type ServiceCatalogRow = {
   id: string;
   updatedAtISO: string | null;
   ID_CONFIG_PARAMETRO: string;
+  ID_CONDICION_PARAMETRO: string;
   ID_PARAMETRO: string;
   ID_MAT_ENSAYO: string;
   ID_MATRIZ: string;
@@ -262,6 +272,7 @@ const EDITABLE_COLUMNS: Array<{
   label: string;
   minWidth: string;
 }> = [
+  { key: 'ID_CONDICION_PARAMETRO', label: 'Acreditado', minWidth: 'min-w-[9rem]' },
   { key: 'ID_PARAMETRO', label: 'Parámetro', minWidth: 'min-w-[14rem]' },
   { key: 'ID_MAT_ENSAYO', label: 'Material', minWidth: 'min-w-[12rem]' },
   { key: 'ID_MATRIZ', label: 'Matriz', minWidth: 'min-w-[13rem]' },
@@ -315,6 +326,8 @@ const buildRowFromDoc = (
   id,
   updatedAtISO: toTimestampIso(data.updatedAt),
   ID_CONFIG_PARAMETRO: toStringValue(data.ID_CONFIG_PARAMETRO) || id,
+  ID_CONDICION_PARAMETRO:
+    toStringValue(data.ID_CONDICION_PARAMETRO) || 'ACREDITADO',
   ID_PARAMETRO: toStringValue(data.ID_PARAMETRO),
   ID_MAT_ENSAYO: toStringValue(data.ID_MAT_ENSAYO),
   ID_MATRIZ: toStringValue(data.ID_MATRIZ),
@@ -384,6 +397,10 @@ export function ServicesCatalogPanel() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isCreatingService, setIsCreatingService] = useState(false);
+  const [isDeletingService, setIsDeletingService] = useState(false);
+  const [rowToDelete, setRowToDelete] = useState<ServiceCatalogRow | null>(
+    null
+  );
   const [isCreateServiceDialogOpen, setIsCreateServiceDialogOpen] =
     useState(false);
   const [isDiscardCreateDialogOpen, setIsDiscardCreateDialogOpen] =
@@ -396,6 +413,9 @@ export function ServicesCatalogPanel() {
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [createServiceDraft, setCreateServiceDraft] =
     useState<CreateServiceDraft>(INITIAL_CREATE_SERVICE_DRAFT);
+  const firstEditableInputRefs = useRef<Record<string, HTMLInputElement | null>>(
+    {}
+  );
 
   const loadRows = async () => {
     setIsLoading(true);
@@ -442,6 +462,7 @@ export function ServicesCatalogPanel() {
     return rows.filter((row) => {
       const searchable = [
         row.ID_CONFIG_PARAMETRO,
+        row.ID_CONDICION_PARAMETRO,
         row.ID_PARAMETRO,
         row.ID_MAT_ENSAYO,
         row.ID_MATRIZ,
@@ -548,6 +569,39 @@ export function ServicesCatalogPanel() {
     setRows((prev) =>
       prev.map((row) => (row.id === rowId ? { ...original } : row))
     );
+  };
+
+  const handleEditRow = (rowId: string) => {
+    const input = firstEditableInputRefs.current[rowId];
+    if (!input) return;
+    input.focus();
+    input.select();
+  };
+
+  const handleConfirmDeleteRow = async () => {
+    if (!rowToDelete) return;
+
+    setIsDeletingService(true);
+    try {
+      await deleteTechnicalService(rowToDelete.id);
+      toast.success(
+        `Servicio ${rowToDelete.ID_CONFIG_PARAMETRO || rowToDelete.id} eliminado.`
+      );
+      setRowToDelete(null);
+      await loadRows();
+    } catch (error) {
+      console.error('[ServicesCatalog] delete service error', error);
+      const message =
+        error &&
+        typeof error === 'object' &&
+        'message' in error &&
+        typeof error.message === 'string'
+          ? error.message
+          : 'No se pudo eliminar el servicio.';
+      toast.error(message);
+    } finally {
+      setIsDeletingService(false);
+    }
   };
 
   const handleSaveChanges = async () => {
@@ -872,12 +926,15 @@ export function ServicesCatalogPanel() {
                   <TableHead className='min-w-[10rem] text-right'>
                     Deshacer cambios
                   </TableHead>
+                  <TableHead className='min-w-[8rem] text-right'>
+                    Acciones
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={EDITABLE_COLUMNS.length + 2}>
+                    <TableCell colSpan={EDITABLE_COLUMNS.length + 3}>
                       <div className='text-muted-foreground flex items-center justify-center gap-2 py-6 text-sm'>
                         <Loader2 className='h-4 w-4 animate-spin' />
                         Cargando catálogo...
@@ -887,7 +944,7 @@ export function ServicesCatalogPanel() {
                 ) : pageRows.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={EDITABLE_COLUMNS.length + 2}
+                      colSpan={EDITABLE_COLUMNS.length + 3}
                       className='text-muted-foreground py-6 text-center text-sm'
                     >
                       No se encontraron servicios con ese criterio.
@@ -908,19 +965,52 @@ export function ServicesCatalogPanel() {
                           {row.ID_CONFIG_PARAMETRO || row.id}
                         </TableCell>
 
-                        {EDITABLE_COLUMNS.map((column) => (
+                        {EDITABLE_COLUMNS.map((column, columnIndex) => (
                           <TableCell key={`${row.id}-${column.key}`}>
-                            <Input
-                              value={row[column.key]}
-                              onChange={(event) =>
-                                handleCellChange(
-                                  row.id,
-                                  column.key,
-                                  event.target.value
-                                )
-                              }
-                              className='h-8'
-                            />
+                            {column.key === 'ID_CONDICION_PARAMETRO' ? (
+                              <Select
+                                value={row.ID_CONDICION_PARAMETRO || 'ACREDITADO'}
+                                onValueChange={(value) =>
+                                  handleCellChange(
+                                    row.id,
+                                    'ID_CONDICION_PARAMETRO',
+                                    value
+                                  )
+                                }
+                              >
+                                <SelectTrigger className='h-8'>
+                                  <SelectValue placeholder='Sí' />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value='ACREDITADO'>Sí</SelectItem>
+                                  <SelectItem value='NO ACREDITADO'>
+                                    No
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <Input
+                                ref={(node) => {
+                                  if (columnIndex === 1) {
+                                    firstEditableInputRefs.current[row.id] =
+                                      node;
+                                  }
+                                }}
+                                data-row-id={row.id}
+                                data-first-editable={
+                                  columnIndex === 1 ? 'true' : undefined
+                                }
+                                value={row[column.key]}
+                                onChange={(event) =>
+                                  handleCellChange(
+                                    row.id,
+                                    column.key,
+                                    event.target.value
+                                  )
+                                }
+                                className='h-8'
+                              />
+                            )}
                           </TableCell>
                         ))}
 
@@ -935,6 +1025,36 @@ export function ServicesCatalogPanel() {
                           >
                             <Undo2 className='h-4 w-4' />
                           </Button>
+                        </TableCell>
+                        <TableCell className='text-right'>
+                          <DropdownMenu modal={false}>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                type='button'
+                                variant='ghost'
+                                size='sm'
+                                className='h-8 w-8 cursor-pointer p-0'
+                                disabled={isSaving || isCreatingService}
+                              >
+                                <span className='sr-only'>Abrir acciones</span>
+                                <MoreVertical className='h-4 w-4' />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align='end' side='bottom'>
+                              <DropdownMenuItem
+                                className='cursor-pointer'
+                                onClick={() => handleEditRow(row.id)}
+                              >
+                                Editar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className='text-destructive focus:text-destructive cursor-pointer'
+                                onClick={() => setRowToDelete(row)}
+                              >
+                                Eliminar
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     );
@@ -1187,6 +1307,40 @@ export function ServicesCatalogPanel() {
             <AlertDialogCancel className='cursor-pointer'>
               Seguir editando
             </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!rowToDelete}
+        onOpenChange={(open) => {
+          if (!open && !isDeletingService) {
+            setRowToDelete(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar servicio</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Está seguro de eliminar este servicio técnico? Esta acción no se
+              puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              className='cursor-pointer'
+              disabled={isDeletingService}
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className='bg-destructive hover:bg-destructive/90 text-destructive-foreground cursor-pointer'
+              onClick={handleConfirmDeleteRow}
+              disabled={isDeletingService}
+            >
+              {isDeletingService ? 'Eliminando…' : 'Eliminar'}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
