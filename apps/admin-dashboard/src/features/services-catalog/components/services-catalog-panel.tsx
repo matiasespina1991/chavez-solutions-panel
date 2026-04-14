@@ -5,6 +5,7 @@ import { collection, getDocs, Timestamp } from 'firebase/firestore';
 import {
   ArrowDown,
   ArrowUp,
+  X,
   Loader2,
   MoreVertical,
   Plus,
@@ -63,6 +64,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from '@/components/ui/tooltip';
 
 type EditableFieldKey =
   | 'ID_CONDICION_PARAMETRO'
@@ -100,6 +107,8 @@ type ServiceCatalogRow = {
   UNIDAD_NORMA: string;
   LIM_INF_INTERNO: string;
   LIM_SUP_INTERNO: string;
+  LIM_INF_NORMA: string;
+  LIM_SUP_NORMA: string;
 };
 
 type CreateServiceDraft = {
@@ -272,7 +281,6 @@ const EDITABLE_COLUMNS: Array<{
   label: string;
   minWidth: string;
 }> = [
-  { key: 'ID_CONDICION_PARAMETRO', label: 'Acreditado', minWidth: 'min-w-[9rem]' },
   { key: 'ID_PARAMETRO', label: 'Parámetro', minWidth: 'min-w-[14rem]' },
   { key: 'ID_MAT_ENSAYO', label: 'Material', minWidth: 'min-w-[12rem]' },
   { key: 'ID_MATRIZ', label: 'Matriz', minWidth: 'min-w-[13rem]' },
@@ -285,6 +293,11 @@ const EDITABLE_COLUMNS: Array<{
     key: 'ID_MET_REFERENCIA',
     label: 'Método referencia',
     minWidth: 'min-w-[12rem]'
+  },
+  {
+    key: 'ID_CONDICION_PARAMETRO',
+    label: 'Acreditado',
+    minWidth: 'min-w-[6rem]'
   },
   { key: 'UNIDAD_INTERNO', label: 'Unidad', minWidth: 'min-w-[8rem]' },
   { key: 'LIM_INF_INTERNO', label: 'Límite inf.', minWidth: 'min-w-[9rem]' },
@@ -340,7 +353,9 @@ const buildRowFromDoc = (
   UNIDAD_INTERNO: toStringValue(data.UNIDAD_INTERNO),
   UNIDAD_NORMA: toStringValue(data.UNIDAD_NORMA),
   LIM_INF_INTERNO: toStringValue(data.LIM_INF_INTERNO),
-  LIM_SUP_INTERNO: toStringValue(data.LIM_SUP_INTERNO)
+  LIM_SUP_INTERNO: toStringValue(data.LIM_SUP_INTERNO),
+  LIM_INF_NORMA: toStringValue(data.LIM_INF_NORMA),
+  LIM_SUP_NORMA: toStringValue(data.LIM_SUP_NORMA)
 });
 
 const AUTOCOMPLETE_FIELD_KEYS: Array<keyof CreateServiceDraft> = [
@@ -359,7 +374,7 @@ const normalizeForCompare = (value: string): string => value.trim();
 const normalizeForAutocomplete = (value: string): string =>
   value
     .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .trim();
 
@@ -398,6 +413,7 @@ export function ServicesCatalogPanel() {
   const [isSaving, setIsSaving] = useState(false);
   const [isCreatingService, setIsCreatingService] = useState(false);
   const [isDeletingService, setIsDeletingService] = useState(false);
+  const [editingRowId, setEditingRowId] = useState<string | null>(null);
   const [rowToDelete, setRowToDelete] = useState<ServiceCatalogRow | null>(
     null
   );
@@ -413,9 +429,6 @@ export function ServicesCatalogPanel() {
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [createServiceDraft, setCreateServiceDraft] =
     useState<CreateServiceDraft>(INITIAL_CREATE_SERVICE_DRAFT);
-  const firstEditableInputRefs = useRef<Record<string, HTMLInputElement | null>>(
-    {}
-  );
 
   const loadRows = async () => {
     setIsLoading(true);
@@ -472,7 +485,8 @@ export function ServicesCatalogPanel() {
         row.ID_TECNICA,
         row.ID_MET_INTERNO,
         row.ID_MET_REFERENCIA,
-        row.UNIDAD_INTERNO
+        row.UNIDAD_INTERNO,
+        row.UNIDAD_NORMA
       ]
         .join(' ')
         .toLowerCase();
@@ -571,11 +585,28 @@ export function ServicesCatalogPanel() {
     );
   };
 
-  const handleEditRow = (rowId: string) => {
-    const input = firstEditableInputRefs.current[rowId];
-    if (!input) return;
-    input.focus();
-    input.select();
+  const handleEditRow = (row: ServiceCatalogRow) => {
+    setEditingRowId(row.id);
+    setCreateServiceDraft({
+      ID_CONFIG_PARAMETRO: row.ID_CONFIG_PARAMETRO || row.id,
+      ID_PARAMETRO: row.ID_PARAMETRO,
+      ID_CONDICION_PARAMETRO: row.ID_CONDICION_PARAMETRO || 'ACREDITADO',
+      ID_UBICACION: row.ID_UBICACION,
+      ID_MATRIZ: row.ID_MATRIZ,
+      ID_MAT_ENSAYO: row.ID_MAT_ENSAYO,
+      ID_NORMA: row.ID_NORMA,
+      ID_TABLA_NORMA: row.ID_TABLA_NORMA,
+      ID_TECNICA: row.ID_TECNICA,
+      ID_MET_INTERNO: row.ID_MET_INTERNO,
+      ID_MET_REFERENCIA: row.ID_MET_REFERENCIA,
+      UNIDAD_INTERNO: row.UNIDAD_INTERNO,
+      UNIDAD_NORMA: row.UNIDAD_NORMA,
+      LIM_INF_INTERNO: row.LIM_INF_INTERNO,
+      LIM_SUP_INTERNO: row.LIM_SUP_INTERNO,
+      LIM_INF_NORMA: row.LIM_INF_NORMA,
+      LIM_SUP_NORMA: row.LIM_SUP_NORMA
+    });
+    setIsCreateServiceDialogOpen(true);
   };
 
   const handleConfirmDeleteRow = async () => {
@@ -680,7 +711,7 @@ export function ServicesCatalogPanel() {
         new Set(
           rows
             .map((row) => row[key])
-            .map((value) => value.trim())
+            .map((value) => (typeof value === 'string' ? value.trim() : ''))
             .filter((value) => value.length > 0)
         )
       ).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
@@ -715,6 +746,7 @@ export function ServicesCatalogPanel() {
   };
 
   const handleOpenCreateServiceDialog = () => {
+    setEditingRowId(null);
     setCreateServiceDraft(INITIAL_CREATE_SERVICE_DRAFT);
     if (autocompleteBlurTimeoutRef.current !== null) {
       window.clearTimeout(autocompleteBlurTimeoutRef.current);
@@ -741,12 +773,14 @@ export function ServicesCatalogPanel() {
     }
 
     setIsCreateServiceDialogOpen(false);
+    setEditingRowId(null);
     setCreateServiceDraft(INITIAL_CREATE_SERVICE_DRAFT);
   };
 
   const handleConfirmDiscardCreateServiceDraft = () => {
     setIsDiscardCreateDialogOpen(false);
     setIsCreateServiceDialogOpen(false);
+    setEditingRowId(null);
     if (autocompleteBlurTimeoutRef.current !== null) {
       window.clearTimeout(autocompleteBlurTimeoutRef.current);
       autocompleteBlurTimeoutRef.current = null;
@@ -755,7 +789,7 @@ export function ServicesCatalogPanel() {
     setCreateServiceDraft(INITIAL_CREATE_SERVICE_DRAFT);
   };
 
-  const handleCreateService = async () => {
+  const handleSaveServiceDialog = async () => {
     const payload: CreateTechnicalServicePayload = {
       ...createServiceDraft,
       ID_CONFIG_PARAMETRO: createServiceDraft.ID_CONFIG_PARAMETRO.trim(),
@@ -800,11 +834,76 @@ export function ServicesCatalogPanel() {
       return;
     }
 
+    if (editingRowId) {
+      const row = rows.find((entry) => entry.id === editingRowId);
+      if (!row) {
+        toast.error('No se encontró el servicio para editar.');
+        return;
+      }
+
+      const patch = {
+        ID_CONDICION_PARAMETRO: payload.ID_CONDICION_PARAMETRO,
+        ID_UBICACION: payload.ID_UBICACION,
+        ID_PARAMETRO: payload.ID_PARAMETRO,
+        ID_MATRIZ: payload.ID_MATRIZ,
+        ID_MAT_ENSAYO: payload.ID_MAT_ENSAYO,
+        ID_NORMA: payload.ID_NORMA,
+        ID_TABLA_NORMA: payload.ID_TABLA_NORMA,
+        ID_TECNICA: payload.ID_TECNICA,
+        ID_MET_INTERNO: payload.ID_MET_INTERNO,
+        ID_MET_REFERENCIA: payload.ID_MET_REFERENCIA,
+        UNIDAD_INTERNO: payload.UNIDAD_INTERNO,
+        UNIDAD_NORMA: payload.UNIDAD_NORMA,
+        LIM_INF_INTERNO: payload.LIM_INF_INTERNO,
+        LIM_SUP_INTERNO: payload.LIM_SUP_INTERNO,
+        LIM_INF_NORMA: payload.LIM_INF_NORMA,
+        LIM_SUP_NORMA: payload.LIM_SUP_NORMA
+      };
+
+      setIsCreatingService(true);
+      try {
+        await saveServicesTechnicalChanges(
+          [
+            {
+              id: editingRowId,
+              patch,
+              lastKnownUpdatedAt: row.updatedAtISO
+            }
+          ],
+          'Edición técnica desde diálogo de servicio'
+        );
+        toast.success('Servicio técnico actualizado correctamente.');
+        setIsCreateServiceDialogOpen(false);
+        setEditingRowId(null);
+        setCreateServiceDraft(INITIAL_CREATE_SERVICE_DRAFT);
+        setActiveAutocompleteField(null);
+        if (autocompleteBlurTimeoutRef.current !== null) {
+          window.clearTimeout(autocompleteBlurTimeoutRef.current);
+          autocompleteBlurTimeoutRef.current = null;
+        }
+        await loadRows();
+      } catch (error) {
+        console.error('[ServicesCatalog] update service error', error);
+        const message =
+          error &&
+          typeof error === 'object' &&
+          'message' in error &&
+          typeof error.message === 'string'
+            ? error.message
+            : 'No se pudo actualizar el servicio técnico.';
+        toast.error(message);
+      } finally {
+        setIsCreatingService(false);
+      }
+      return;
+    }
+
     setIsCreatingService(true);
     try {
       await createTechnicalService(payload);
       toast.success('Servicio técnico creado correctamente.');
       setIsCreateServiceDialogOpen(false);
+      setEditingRowId(null);
       setCreateServiceDraft(INITIAL_CREATE_SERVICE_DRAFT);
       setActiveAutocompleteField(null);
       if (autocompleteBlurTimeoutRef.current !== null) {
@@ -886,8 +985,18 @@ export function ServicesCatalogPanel() {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder='Buscar por parámetro, norma, técnica, tabla o matriz...'
-                className='pl-9'
+                className='pr-9 pl-9'
               />
+              {query.trim().length > 0 ? (
+                <button
+                  type='button'
+                  aria-label='Limpiar búsqueda'
+                  className='text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer transition-colors'
+                  onClick={() => setQuery('')}
+                >
+                  <X className='h-4 w-4' />
+                </button>
+              ) : null}
             </div>
 
             <p className='text-muted-foreground text-sm'>
@@ -923,24 +1032,34 @@ export function ServicesCatalogPanel() {
                       </button>
                     </TableHead>
                   ))}
-                  <TableHead className='min-w-[10rem] text-right'>
-                    Deshacer cambios
+                  <TableHead className='min-w-[7rem] text-right'>
+                    Acción: Deshacer
                   </TableHead>
                   <TableHead className='min-w-[8rem] text-right'>
-                    Acciones
+                    <span className='sr-only'>Acciones</span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={EDITABLE_COLUMNS.length + 3}>
-                      <div className='text-muted-foreground flex items-center justify-center gap-2 py-6 text-sm'>
-                        <Loader2 className='h-4 w-4 animate-spin' />
-                        Cargando catálogo...
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                  Array.from({ length: PAGE_SIZE }).map((_, index) => (
+                    <TableRow key={`skeleton-row-${index}`}>
+                      <TableCell>
+                        <Skeleton className='h-6 w-20' />
+                      </TableCell>
+                      {EDITABLE_COLUMNS.map((column) => (
+                        <TableCell key={`skeleton-${index}-${column.key}`}>
+                          <Skeleton className='h-8 w-full' />
+                        </TableCell>
+                      ))}
+                      <TableCell className='text-right'>
+                        <Skeleton className='ml-auto h-8 w-8 rounded-md' />
+                      </TableCell>
+                      <TableCell className='text-right'>
+                        <Skeleton className='ml-auto h-8 w-8 rounded-md' />
+                      </TableCell>
+                    </TableRow>
+                  ))
                 ) : pageRows.length === 0 ? (
                   <TableRow>
                     <TableCell
@@ -965,11 +1084,13 @@ export function ServicesCatalogPanel() {
                           {row.ID_CONFIG_PARAMETRO || row.id}
                         </TableCell>
 
-                        {EDITABLE_COLUMNS.map((column, columnIndex) => (
+                        {EDITABLE_COLUMNS.map((column) => (
                           <TableCell key={`${row.id}-${column.key}`}>
                             {column.key === 'ID_CONDICION_PARAMETRO' ? (
                               <Select
-                                value={row.ID_CONDICION_PARAMETRO || 'ACREDITADO'}
+                                value={
+                                  row.ID_CONDICION_PARAMETRO || 'ACREDITADO'
+                                }
                                 onValueChange={(value) =>
                                   handleCellChange(
                                     row.id,
@@ -978,7 +1099,7 @@ export function ServicesCatalogPanel() {
                                   )
                                 }
                               >
-                                <SelectTrigger className='h-8'>
+                                <SelectTrigger className='h-8 w-[5.25rem] min-w-[5.25rem]'>
                                   <SelectValue placeholder='Sí' />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -990,16 +1111,6 @@ export function ServicesCatalogPanel() {
                               </Select>
                             ) : (
                               <Input
-                                ref={(node) => {
-                                  if (columnIndex === 1) {
-                                    firstEditableInputRefs.current[row.id] =
-                                      node;
-                                  }
-                                }}
-                                data-row-id={row.id}
-                                data-first-editable={
-                                  columnIndex === 1 ? 'true' : undefined
-                                }
                                 value={row[column.key]}
                                 onChange={(event) =>
                                   handleCellChange(
@@ -1015,16 +1126,21 @@ export function ServicesCatalogPanel() {
                         ))}
 
                         <TableCell className='text-right'>
-                          <Button
-                            type='button'
-                            variant='ghost'
-                            size='sm'
-                            className='h-8 px-2'
-                            onClick={() => handleResetRow(row.id)}
-                            disabled={!isDirty}
-                          >
-                            <Undo2 className='h-4 w-4' />
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type='button'
+                                variant='ghost'
+                                size='sm'
+                                className='h-8 px-2'
+                                onClick={() => handleResetRow(row.id)}
+                                disabled={!isDirty}
+                              >
+                                <Undo2 className='h-4 w-4' />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Deshacer cambios</TooltipContent>
+                          </Tooltip>
                         </TableCell>
                         <TableCell className='text-right'>
                           <DropdownMenu modal={false}>
@@ -1043,7 +1159,7 @@ export function ServicesCatalogPanel() {
                             <DropdownMenuContent align='end' side='bottom'>
                               <DropdownMenuItem
                                 className='cursor-pointer'
-                                onClick={() => handleEditRow(row.id)}
+                                onClick={() => handleEditRow(row)}
                               >
                                 Editar
                               </DropdownMenuItem>
@@ -1112,7 +1228,9 @@ export function ServicesCatalogPanel() {
         >
           <div className='flex max-h-[90vh] flex-col'>
             <DialogHeader className='border-b px-6 py-5'>
-              <DialogTitle>Agregar servicio</DialogTitle>
+              <DialogTitle>
+                {editingRowId ? 'Editar servicio' : 'Agregar servicio'}
+              </DialogTitle>
             </DialogHeader>
 
             <div className='flex-1 overflow-y-auto px-6 py-5'>
@@ -1176,6 +1294,10 @@ export function ServicesCatalogPanel() {
                               <Input
                                 id={`new-service-${field.key}`}
                                 value={createServiceDraft[field.key]}
+                                disabled={
+                                  editingRowId !== null &&
+                                  field.key === 'ID_CONFIG_PARAMETRO'
+                                }
                                 onChange={(event) =>
                                   handleCreateServiceFieldChange(
                                     field.key,
@@ -1271,13 +1393,13 @@ export function ServicesCatalogPanel() {
                 <Button
                   type='button'
                   className='cursor-pointer'
-                  onClick={handleCreateService}
+                  onClick={handleSaveServiceDialog}
                   disabled={isCreatingService}
                 >
                   {isCreatingService ? (
                     <Loader2 className='h-4 w-4 animate-spin' />
                   ) : null}
-                  Guardar servicio
+                  {editingRowId ? 'Actualizar servicio' : 'Guardar servicio'}
                 </Button>
               </div>
             </DialogFooter>
@@ -1335,7 +1457,7 @@ export function ServicesCatalogPanel() {
               Cancelar
             </AlertDialogCancel>
             <AlertDialogAction
-              className='bg-destructive hover:bg-destructive/90 text-destructive-foreground cursor-pointer'
+              className='cursor-pointer bg-black text-white hover:bg-black/90 dark:bg-black dark:text-white dark:hover:bg-black/90'
               onClick={handleConfirmDeleteRow}
               disabled={isDeletingService}
             >
