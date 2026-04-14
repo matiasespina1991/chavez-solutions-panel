@@ -1788,6 +1788,10 @@ export default function ConfiguratorForm() {
   const groupedServicesForRender = useMemo(() => {
     return serviceGroups.filter((group) => group.items.length > 0);
   }, [serviceGroups]);
+  const shouldShowFloatingEstimatedCosts =
+    activeTab === 'samples' &&
+    selectedServices.length > 3 &&
+    !isEstimatedCostsInView;
   const validDaysValue = form.watch('validDays');
   const createdAtValue = form.watch('createdAt');
   const validUntilLabel = (() => {
@@ -1822,78 +1826,43 @@ export default function ConfiguratorForm() {
       return;
     }
 
+    const target = estimatedCostsSectionRef.current;
+    if (!target) {
+      setIsEstimatedCostsInView(false);
+      return;
+    }
+
     let frameId: number | null = null;
-    let scrollContainer: Element | Window = window;
 
-    const resolveScrollContainer = (start: HTMLElement): Element | Window => {
-      let node: HTMLElement | null = start.parentElement;
-      while (node && node !== document.body) {
-        const style = window.getComputedStyle(node);
-        const overflowY = style.overflowY;
-        const isScrollableY =
-          (overflowY === 'auto' || overflowY === 'scroll') &&
-          node.scrollHeight > node.clientHeight;
-        if (isScrollableY) return node;
-        node = node.parentElement;
-      }
-      return window;
-    };
-
-    const updateVisibility = (reason: string) => {
+    const updateVisibility = () => {
       if (frameId !== null) return;
       frameId = window.requestAnimationFrame(() => {
         frameId = null;
-        const target = estimatedCostsSectionRef.current;
-        if (!target) {
+        const currentTarget = estimatedCostsSectionRef.current;
+        if (!currentTarget) {
           setIsEstimatedCostsInView(false);
           return;
         }
-        const targetTop = target.getBoundingClientRect().top + 30;
-        const viewportBottom =
-          scrollContainer === window
-            ? window.innerHeight
-            : (scrollContainer as Element).getBoundingClientRect().bottom;
-        const nextIsInView = targetTop <= viewportBottom;
-        setIsEstimatedCostsInView(nextIsInView);
+        const rect = currentTarget.getBoundingClientRect();
+        const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
+        setIsEstimatedCostsInView(isVisible);
       });
     };
 
-    const updateVisibilityImmediate = () => {
-      const target = estimatedCostsSectionRef.current;
-      if (!target) {
-        setIsEstimatedCostsInView(false);
-        return;
-      }
-      scrollContainer = resolveScrollContainer(target);
-      const targetTop = target.getBoundingClientRect().top;
-      const viewportBottom =
-        scrollContainer === window
-          ? window.innerHeight
-          : (scrollContainer as Element).getBoundingClientRect().bottom;
-      const nextIsInView = targetTop <= viewportBottom;
-      setIsEstimatedCostsInView(nextIsInView);
-    };
+    updateVisibility();
 
-    updateVisibilityImmediate();
-    const handleWindowScroll = () => updateVisibility('window-scroll');
-    const handleWindowResize = () => updateVisibility('window-resize');
-    const handleContainerScroll = () => updateVisibility('container-scroll');
-    const handleDocumentScroll = () =>
-      updateVisibility('document-capture-scroll');
+    const handleWindowScroll = () => updateVisibility();
+    const handleWindowResize = () => updateVisibility();
+    const handleDocumentScroll = () => updateVisibility();
 
     window.addEventListener('scroll', handleWindowScroll, { passive: true });
     window.addEventListener('resize', handleWindowResize);
     document.addEventListener('scroll', handleDocumentScroll, true);
-    if (scrollContainer !== window) {
-      scrollContainer.addEventListener('scroll', handleContainerScroll);
-    }
+
     return () => {
       window.removeEventListener('scroll', handleWindowScroll);
       window.removeEventListener('resize', handleWindowResize);
       document.removeEventListener('scroll', handleDocumentScroll, true);
-      if (scrollContainer !== window) {
-        scrollContainer.removeEventListener('scroll', handleContainerScroll);
-      }
       if (frameId !== null) {
         window.cancelAnimationFrame(frameId);
       }
@@ -2622,16 +2591,16 @@ export default function ConfiguratorForm() {
                                         className='dark:bg-background rounded-xl border bg-white p-4'
                                       >
                                         <div className='flex items-start justify-between gap-2'>
-                                          <div className='flex-1 space-y-3'>
+                                          <div className='flex-1 space-y-2'>
                                             <p className='text-sm font-medium'>
                                               {service.ID_PARAMETRO ||
                                                 serviceId}
                                             </p>
-                                            <p className='text-muted-foreground text-xs'>
+                                            <p className='text-muted-foreground text-xs leading-tight'>
                                               {service.ID_MAT_ENSAYO?.trim() ||
                                                 'Sin material de ensayo'}
                                             </p>
-                                            <p className='text-muted-foreground text-xs'>
+                                            <p className='text-muted-foreground text-xs leading-tight'>
                                               {service.ID_TABLA_NORMA ||
                                                 'Sin tabla'}{' '}
                                               •{' '}
@@ -2639,7 +2608,12 @@ export default function ConfiguratorForm() {
                                                 service.UNIDAD_INTERNO ||
                                                 'Sin unidad'}
                                             </p>
-                                            <p className='text-muted-foreground text-xs'>
+                                            <p className='text-muted-foreground text-xs leading-tight'>
+                                              Límite interno:{' '}
+                                              {service.LIM_INF_INTERNO || '—'} a{' '}
+                                              {service.LIM_SUP_INTERNO || '—'}
+                                            </p>
+                                            <p className='text-muted-foreground text-xs leading-tight'>
                                               {service.ID_TECNICA ||
                                                 service.ID_MET_REFERENCIA ||
                                                 service.ID_MET_INTERNO ||
@@ -2649,7 +2623,7 @@ export default function ConfiguratorForm() {
                                               <div className='space-y-1'>
                                                 <label
                                                   htmlFor={`quantity-${scopedServiceId}`}
-                                                  className='text-muted-foreground text-xs'
+                                                  className='text-muted-foreground text-xs leading-tight'
                                                 >
                                                   Cantidad
                                                 </label>
@@ -2672,7 +2646,7 @@ export default function ConfiguratorForm() {
                                               <div className='space-y-1'>
                                                 <label
                                                   htmlFor={`range-min-${scopedServiceId}`}
-                                                  className='text-muted-foreground text-xs'
+                                                  className='text-muted-foreground text-xs leading-tight'
                                                 >
                                                   Rango mín. (
                                                   {service.UNIDAD_NORMA?.trim() ||
@@ -2698,7 +2672,7 @@ export default function ConfiguratorForm() {
                                               <div className='space-y-1'>
                                                 <label
                                                   htmlFor={`range-max-${scopedServiceId}`}
-                                                  className='text-muted-foreground text-xs'
+                                                  className='text-muted-foreground text-xs leading-tight'
                                                 >
                                                   Rango máx. (
                                                   {service.UNIDAD_NORMA?.trim() ||
@@ -2724,7 +2698,7 @@ export default function ConfiguratorForm() {
                                               <div className='space-y-1'>
                                                 <label
                                                   htmlFor={`price-${scopedServiceId}`}
-                                                  className='text-muted-foreground text-xs'
+                                                  className='text-muted-foreground text-xs leading-tight'
                                                 >
                                                   Precio (USD)
                                                 </label>
@@ -2759,7 +2733,7 @@ export default function ConfiguratorForm() {
                                               <div className='space-y-1'>
                                                 <label
                                                   htmlFor={`discount-${scopedServiceId}`}
-                                                  className='text-muted-foreground text-xs'
+                                                  className='text-muted-foreground text-xs leading-tight'
                                                 >
                                                   Descuento (USD)
                                                 </label>
@@ -2836,7 +2810,7 @@ export default function ConfiguratorForm() {
                 </div>
                 <div className='pointer-events-none absolute top-38 bottom-0 left-[calc(100%+1rem)] hidden w-[320px] min-[1400px]:block'>
                   <AnimatePresence initial={false}>
-                    {!isEstimatedCostsInView ? (
+                    {shouldShowFloatingEstimatedCosts ? (
                       <motion.div
                         key='estimated-costs-floating'
                         className='pointer-events-auto sticky top-16'

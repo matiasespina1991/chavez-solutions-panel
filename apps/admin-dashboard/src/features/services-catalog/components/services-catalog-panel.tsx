@@ -50,7 +50,11 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
-import { saveServicesTechnicalChanges } from '@/features/admin/services/import-services';
+import {
+  createTechnicalService,
+  CreateTechnicalServicePayload,
+  saveServicesTechnicalChanges
+} from '@/features/admin/services/import-services';
 
 type EditableFieldKey =
   | 'ID_PARAMETRO'
@@ -235,7 +239,7 @@ const CREATE_SERVICE_SECTIONS: Array<{
       {
         key: 'LIM_SUP_INTERNO',
         label: 'Límite superior interno',
-        placeholder: '2.00'
+        placeholder: '1.00'
       },
       {
         key: 'LIM_INF_NORMA',
@@ -245,7 +249,7 @@ const CREATE_SERVICE_SECTIONS: Array<{
       {
         key: 'LIM_SUP_NORMA',
         label: 'Límite superior norma',
-        placeholder: '2.00'
+        placeholder: '1.00'
       }
     ]
   }
@@ -379,12 +383,14 @@ export function ServicesCatalogPanel() {
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isCreatingService, setIsCreatingService] = useState(false);
   const [isCreateServiceDialogOpen, setIsCreateServiceDialogOpen] =
     useState(false);
   const [isDiscardCreateDialogOpen, setIsDiscardCreateDialogOpen] =
     useState(false);
-  const [activeAutocompleteField, setActiveAutocompleteField] =
-    useState<keyof CreateServiceDraft | null>(null);
+  const [activeAutocompleteField, setActiveAutocompleteField] = useState<
+    keyof CreateServiceDraft | null
+  >(null);
   const autocompleteBlurTimeoutRef = useRef<number | null>(null);
   const [sortKey, setSortKey] = useState<SortableCatalogFieldKey | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
@@ -479,7 +485,10 @@ export function ServicesCatalogPanel() {
 
   const dirtySet = useMemo(() => new Set(dirtyIds), [dirtyIds]);
 
-  const totalPages = Math.max(1, Math.ceil(sortedFilteredRows.length / PAGE_SIZE));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(sortedFilteredRows.length / PAGE_SIZE)
+  );
   const currentPage = Math.min(page, totalPages);
 
   useEffect(() => {
@@ -692,6 +701,78 @@ export function ServicesCatalogPanel() {
     setCreateServiceDraft(INITIAL_CREATE_SERVICE_DRAFT);
   };
 
+  const handleCreateService = async () => {
+    const payload: CreateTechnicalServicePayload = {
+      ...createServiceDraft,
+      ID_CONFIG_PARAMETRO: createServiceDraft.ID_CONFIG_PARAMETRO.trim(),
+      ID_PARAMETRO: createServiceDraft.ID_PARAMETRO.trim(),
+      ID_CONDICION_PARAMETRO:
+        createServiceDraft.ID_CONDICION_PARAMETRO.trim() || 'ACREDITADO',
+      ID_UBICACION: createServiceDraft.ID_UBICACION.trim(),
+      ID_MATRIZ: createServiceDraft.ID_MATRIZ.trim(),
+      ID_MAT_ENSAYO: createServiceDraft.ID_MAT_ENSAYO.trim(),
+      ID_NORMA: createServiceDraft.ID_NORMA.trim(),
+      ID_TABLA_NORMA: createServiceDraft.ID_TABLA_NORMA.trim(),
+      ID_TECNICA: createServiceDraft.ID_TECNICA.trim(),
+      ID_MET_INTERNO: createServiceDraft.ID_MET_INTERNO.trim(),
+      ID_MET_REFERENCIA: createServiceDraft.ID_MET_REFERENCIA.trim(),
+      UNIDAD_INTERNO: createServiceDraft.UNIDAD_INTERNO.trim(),
+      UNIDAD_NORMA: createServiceDraft.UNIDAD_NORMA.trim(),
+      LIM_INF_INTERNO: createServiceDraft.LIM_INF_INTERNO.trim(),
+      LIM_SUP_INTERNO: createServiceDraft.LIM_SUP_INTERNO.trim(),
+      LIM_INF_NORMA: createServiceDraft.LIM_INF_NORMA.trim(),
+      LIM_SUP_NORMA: createServiceDraft.LIM_SUP_NORMA.trim()
+    };
+
+    const requiredFields: Array<keyof CreateTechnicalServicePayload> = [
+      'ID_CONFIG_PARAMETRO',
+      'ID_PARAMETRO',
+      'ID_MATRIZ',
+      'ID_MAT_ENSAYO',
+      'ID_NORMA',
+      'ID_TABLA_NORMA',
+      'ID_TECNICA',
+      'UNIDAD_INTERNO',
+      'UNIDAD_NORMA',
+      'LIM_INF_INTERNO',
+      'LIM_SUP_INTERNO',
+      'LIM_INF_NORMA',
+      'LIM_SUP_NORMA'
+    ];
+
+    const missingFields = requiredFields.filter((field) => !payload[field]);
+    if (missingFields.length > 0) {
+      toast.error('Completa los campos obligatorios antes de guardar.');
+      return;
+    }
+
+    setIsCreatingService(true);
+    try {
+      await createTechnicalService(payload);
+      toast.success('Servicio técnico creado correctamente.');
+      setIsCreateServiceDialogOpen(false);
+      setCreateServiceDraft(INITIAL_CREATE_SERVICE_DRAFT);
+      setActiveAutocompleteField(null);
+      if (autocompleteBlurTimeoutRef.current !== null) {
+        window.clearTimeout(autocompleteBlurTimeoutRef.current);
+        autocompleteBlurTimeoutRef.current = null;
+      }
+      await loadRows();
+    } catch (error) {
+      console.error('[ServicesCatalog] create service error', error);
+      const message =
+        error &&
+        typeof error === 'object' &&
+        'message' in error &&
+        typeof error.message === 'string'
+          ? error.message
+          : 'No se pudo crear el servicio técnico.';
+      toast.error(message);
+    } finally {
+      setIsCreatingService(false);
+    }
+  };
+
   const panelMaxWidth = isMobile
     ? 'calc(100dvw - 1rem)'
     : state === 'collapsed'
@@ -721,7 +802,7 @@ export function ServicesCatalogPanel() {
                 size='sm'
                 className='cursor-pointer'
                 onClick={handleOpenCreateServiceDialog}
-                disabled={isSaving}
+                disabled={isSaving || isCreatingService}
               >
                 <Plus className='h-4 w-4' />
                 Agregar servicio
@@ -730,7 +811,9 @@ export function ServicesCatalogPanel() {
                 type='button'
                 size='sm'
                 onClick={handleSaveChanges}
-                disabled={isSaving || dirtyIds.length === 0}
+                disabled={
+                  isSaving || isCreatingService || dirtyIds.length === 0
+                }
               >
                 {isSaving ? (
                   <Loader2 className='h-4 w-4 animate-spin' />
@@ -980,8 +1063,13 @@ export function ServicesCatalogPanel() {
                                   )
                                 }
                                 onFocus={() => {
-                                  if (AUTOCOMPLETE_FIELD_KEYS.includes(field.key)) {
-                                    if (autocompleteBlurTimeoutRef.current !== null) {
+                                  if (
+                                    AUTOCOMPLETE_FIELD_KEYS.includes(field.key)
+                                  ) {
+                                    if (
+                                      autocompleteBlurTimeoutRef.current !==
+                                      null
+                                    ) {
                                       window.clearTimeout(
                                         autocompleteBlurTimeoutRef.current
                                       );
@@ -991,8 +1079,13 @@ export function ServicesCatalogPanel() {
                                   }
                                 }}
                                 onBlur={() => {
-                                  if (AUTOCOMPLETE_FIELD_KEYS.includes(field.key)) {
-                                    if (autocompleteBlurTimeoutRef.current !== null) {
+                                  if (
+                                    AUTOCOMPLETE_FIELD_KEYS.includes(field.key)
+                                  ) {
+                                    if (
+                                      autocompleteBlurTimeoutRef.current !==
+                                      null
+                                    ) {
                                       window.clearTimeout(
                                         autocompleteBlurTimeoutRef.current
                                       );
@@ -1000,7 +1093,8 @@ export function ServicesCatalogPanel() {
                                     autocompleteBlurTimeoutRef.current =
                                       window.setTimeout(() => {
                                         setActiveAutocompleteField(null);
-                                        autocompleteBlurTimeoutRef.current = null;
+                                        autocompleteBlurTimeoutRef.current =
+                                          null;
                                       }, 120);
                                   }
                                 }}
@@ -1032,7 +1126,7 @@ export function ServicesCatalogPanel() {
                                       </button>
                                     ))}
                                   </div>
-                              )}
+                                )}
                             </div>
                           )}
                         </div>
@@ -1050,10 +1144,19 @@ export function ServicesCatalogPanel() {
                   variant='outline'
                   className='cursor-pointer'
                   onClick={handleRequestCloseCreateServiceDialog}
+                  disabled={isCreatingService}
                 >
                   Cancelar
                 </Button>
-                <Button type='button' className='cursor-pointer'>
+                <Button
+                  type='button'
+                  className='cursor-pointer'
+                  onClick={handleCreateService}
+                  disabled={isCreatingService}
+                >
+                  {isCreatingService ? (
+                    <Loader2 className='h-4 w-4 animate-spin' />
+                  ) : null}
                   Guardar servicio
                 </Button>
               </div>

@@ -6,6 +6,26 @@ interface ImportServicesFromCsvResponse {
   fileName: string | null;
 }
 
+export interface CreateTechnicalServicePayload {
+  ID_CONFIG_PARAMETRO: string;
+  ID_PARAMETRO: string;
+  ID_CONDICION_PARAMETRO: string;
+  ID_UBICACION: string;
+  ID_MATRIZ: string;
+  ID_MAT_ENSAYO: string;
+  ID_NORMA: string;
+  ID_TABLA_NORMA: string;
+  ID_TECNICA: string;
+  ID_MET_INTERNO: string;
+  ID_MET_REFERENCIA: string;
+  UNIDAD_INTERNO: string;
+  UNIDAD_NORMA: string;
+  LIM_INF_INTERNO: string;
+  LIM_SUP_INTERNO: string;
+  LIM_INF_NORMA: string;
+  LIM_SUP_NORMA: string;
+}
+
 export interface ServiceHistoryEntry {
   id: string;
   createdAt: string | null;
@@ -44,6 +64,10 @@ export interface SaveServicesTechnicalChangesResponse {
   conflicts: string[];
   invalid: string[];
   auditId: string;
+}
+
+export interface CreateTechnicalServiceResponse {
+  id: string;
 }
 
 export const importServicesFromCsv = async (
@@ -109,5 +133,18 @@ export const saveServicesTechnicalChanges = async (
   >(functions, 'saveServicesTechnicalChanges');
 
   const result = await callable({ changes, reason });
+  return result.data;
+};
+
+export const createTechnicalService = async (
+  payload: CreateTechnicalServicePayload
+): Promise<CreateTechnicalServiceResponse> => {
+  const functions = getFunctions();
+  const callable = httpsCallable<
+    { payload: CreateTechnicalServicePayload },
+    CreateTechnicalServiceResponse
+  >(functions, 'createTechnicalService');
+
+  const result = await callable({ payload });
   return result.data;
 };
