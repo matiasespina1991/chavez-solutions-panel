@@ -346,7 +346,7 @@ export default function AboutForm() {
           open={isImagePickerOpen}
           onOpenChange={setIsImagePickerOpen}
           title='Seleccionar imagen'
-          description='Seleccioná una imagen para About Me.'
+          description='Selecciona una imagen para About Me.'
           selectionMode='single'
           allowedTypes={['image']}
           onConfirm={(items) => {
