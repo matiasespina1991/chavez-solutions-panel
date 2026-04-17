@@ -90,6 +90,7 @@ import {
 } from '../services/configurations';
 import { ProformaSummaryPanel } from '@/features/proformas/components/proforma-summary-panel';
 import { IconFilterPlus } from '@tabler/icons-react';
+import { cn } from '@/lib/utils';
 
 const formSchema = z.object({
   type: z.literal('proforma'),
@@ -2160,7 +2161,9 @@ export default function ConfiguratorForm() {
                 type='button'
                 variant='outline'
                 size='icon'
-                disabled={isGeneratingPreviewPdf || isLoadingRequest}
+                disabled={
+                  isGeneratingPreviewPdf || isLoadingRequest || !canSubmitFinal
+                }
                 onClick={handleDownloadPreviewPdf}
                 aria-label='Descargar PDF'
               >
@@ -2186,7 +2189,15 @@ export default function ConfiguratorForm() {
                 type='button'
                 variant='outline'
                 size='icon'
-                disabled={isSendingPreviewEmail || isLoadingRequest}
+                className={cn(
+                  'border-border dark:border-border border',
+                  isSendingPreviewEmail || isLoadingRequest || !canSubmitFinal
+                    ? 'cursor-not-allowed'
+                    : ''
+                )}
+                disabled={
+                  isSendingPreviewEmail || isLoadingRequest || !canSubmitFinal
+                }
                 onClick={handleOpenSendEmailDialog}
                 aria-label='Enviar proforma por email'
               >
