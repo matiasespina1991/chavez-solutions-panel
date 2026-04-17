@@ -1788,9 +1788,13 @@ export default function ConfiguratorForm() {
   const groupedServicesForRender = useMemo(() => {
     return serviceGroups.filter((group) => group.items.length > 0);
   }, [serviceGroups]);
+  const totalServicesCount = useMemo(
+    () => serviceGroups.reduce((acc, group) => acc + group.items.length, 0),
+    [serviceGroups]
+  );
   const shouldShowFloatingEstimatedCosts =
     activeTab === 'samples' &&
-    selectedServices.length > 3 &&
+    totalServicesCount >= 4 &&
     !isEstimatedCostsInView;
   const validDaysValue = form.watch('validDays');
   const createdAtValue = form.watch('createdAt');
@@ -1821,13 +1825,7 @@ export default function ConfiguratorForm() {
     form.watch('pricing.total') ?? summarySubtotal + summaryTaxAmount;
 
   useEffect(() => {
-    if (activeTab !== 'samples') {
-      setIsEstimatedCostsInView(false);
-      return;
-    }
-
-    const target = estimatedCostsSectionRef.current;
-    if (!target) {
+    if (activeTab !== 'samples' || totalServicesCount < 4) {
       setIsEstimatedCostsInView(false);
       return;
     }
@@ -1838,13 +1836,15 @@ export default function ConfiguratorForm() {
       if (frameId !== null) return;
       frameId = window.requestAnimationFrame(() => {
         frameId = null;
-        const currentTarget = estimatedCostsSectionRef.current;
-        if (!currentTarget) {
+        const target = estimatedCostsSectionRef.current;
+        if (!target) {
           setIsEstimatedCostsInView(false);
           return;
         }
-        const rect = currentTarget.getBoundingClientRect();
+
+        const rect = target.getBoundingClientRect();
         const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
+
         setIsEstimatedCostsInView(isVisible);
       });
     };
@@ -1867,7 +1867,7 @@ export default function ConfiguratorForm() {
         window.cancelAnimationFrame(frameId);
       }
     };
-  }, [activeTab, groupedServicesForRender.length]);
+  }, [activeTab, totalServicesCount]);
 
   const renderEstimatedCostsPanel = () => (
     <div className='space-y-2 rounded-md border p-4'>
