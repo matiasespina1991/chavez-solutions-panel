@@ -1,5 +1,6 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import admin from 'firebase-admin';
+import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
 
 const db = admin.firestore();
 const ALLOWED_MATRICES = new Set(['water', 'soil', 'noise', 'gases']);
@@ -77,7 +78,7 @@ export const createWorkOrder = onCall(async (req) => {
   }
 
   const sourceRequestRef = db
-    .collection('requests')
+    .collection(FIRESTORE_COLLECTIONS.REQUESTS)
     .doc(sourceRequestId);
 
   const result = await db.runTransaction(async (tx) => {
@@ -91,7 +92,7 @@ export const createWorkOrder = onCall(async (req) => {
 
     if (source.linkedWorkOrderId) {
       const existingWoSnap = await tx.get(
-        db.collection('work_orders').doc(source.linkedWorkOrderId)
+        db.collection(FIRESTORE_COLLECTIONS.WORK_ORDERS).doc(source.linkedWorkOrderId)
       );
       const existingNumber = existingWoSnap.exists
         ? (existingWoSnap.data()?.workOrderNumber as string | undefined)
@@ -121,7 +122,7 @@ export const createWorkOrder = onCall(async (req) => {
       );
     }
 
-    const workOrderRef = db.collection('work_orders').doc();
+    const workOrderRef = db.collection(FIRESTORE_COLLECTIONS.WORK_ORDERS).doc();
     const workOrderNumber = buildTempWorkOrderNumber();
 
     tx.set(workOrderRef, {

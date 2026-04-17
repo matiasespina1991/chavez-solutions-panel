@@ -1,9 +1,10 @@
 import { onCall } from 'firebase-functions/v2/https';
 import admin from 'firebase-admin';
+import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
 
 const db = admin.firestore();
-const HISTORY_COLLECTION = 'services_history';
-const HISTORY_META_COLLECTION = 'services_history_meta';
+const HISTORY_COLLECTION = FIRESTORE_COLLECTIONS.SERVICES_HISTORY;
+const HISTORY_META_COLLECTION = FIRESTORE_COLLECTIONS.SERVICES_HISTORY_META;
 const HISTORY_META_DOC = 'current';
 
 export const listServiceHistory = onCall(async () => {

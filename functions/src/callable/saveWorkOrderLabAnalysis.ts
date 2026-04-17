@@ -1,5 +1,6 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import admin from 'firebase-admin';
+import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
 
 const db = admin.firestore();
 
@@ -53,7 +54,7 @@ export const saveWorkOrderLabAnalysis = onCall(async (req) => {
     );
   }
 
-  const workOrderRef = db.collection('work_orders').doc(workOrderId);
+  const workOrderRef = db.collection(FIRESTORE_COLLECTIONS.WORK_ORDERS).doc(workOrderId);
 
   const result = await db.runTransaction(async (tx) => {
     const workOrderSnap = await tx.get(workOrderRef);

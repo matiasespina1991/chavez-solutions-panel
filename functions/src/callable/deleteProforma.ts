@@ -1,5 +1,6 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import admin from 'firebase-admin';
+import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
 
 const db = admin.firestore();
 
@@ -19,8 +20,8 @@ export const deleteProforma = onCall(async (req) => {
     throw new HttpsError('invalid-argument', 'requestId is required.');
   }
 
-  const sourceRef = db.collection('requests').doc(requestId);
-  const deletedRef = db.collection('deleted_requests').doc(requestId);
+  const sourceRef = db.collection(FIRESTORE_COLLECTIONS.REQUESTS).doc(requestId);
+  const deletedRef = db.collection(FIRESTORE_COLLECTIONS.DELETED_REQUESTS).doc(requestId);
 
   await db.runTransaction(async (tx) => {
     const sourceSnap = await tx.get(sourceRef);
@@ -39,7 +40,7 @@ export const deleteProforma = onCall(async (req) => {
     let workOrderRef: FirebaseFirestore.DocumentReference | null = null;
 
     if (linkedWorkOrderId) {
-      workOrderRef = db.collection('work_orders').doc(linkedWorkOrderId);
+      workOrderRef = db.collection(FIRESTORE_COLLECTIONS.WORK_ORDERS).doc(linkedWorkOrderId);
       const workOrderSnap = await tx.get(workOrderRef);
       if (!workOrderSnap.exists) {
         workOrderRef = null;
@@ -48,7 +49,7 @@ export const deleteProforma = onCall(async (req) => {
 
     if (!workOrderRef) {
       const workOrderBySourceQuery = db
-        .collection('work_orders')
+        .collection(FIRESTORE_COLLECTIONS.WORK_ORDERS)
         .where('sourceRequestId', '==', requestId)
         .limit(1);
       const workOrderBySourceSnap = await tx.get(workOrderBySourceQuery);

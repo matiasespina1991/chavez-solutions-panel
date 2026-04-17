@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner';
 
 import { db } from '@/lib/firebase';
+import { FIRESTORE_COLLECTIONS } from '@/constants/firestore';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -434,7 +435,9 @@ export function ServicesCatalogPanel() {
     setIsLoading(true);
 
     try {
-      const snapshot = await getDocs(collection(db, 'services'));
+      const snapshot = await getDocs(
+        collection(db, FIRESTORE_COLLECTIONS.SERVICES)
+      );
 
       const loadedRows = snapshot.docs
         .map((docSnap) =>

@@ -1,10 +1,11 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import admin from 'firebase-admin';
+import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
 
 const db = admin.firestore();
-const SERVICES_COLLECTION = 'services';
-const HISTORY_COLLECTION = 'services_history';
-const HISTORY_META_COLLECTION = 'services_history_meta';
+const SERVICES_COLLECTION = FIRESTORE_COLLECTIONS.SERVICES;
+const HISTORY_COLLECTION = FIRESTORE_COLLECTIONS.SERVICES_HISTORY;
+const HISTORY_META_COLLECTION = FIRESTORE_COLLECTIONS.SERVICES_HISTORY_META;
 const HISTORY_META_DOC = 'current';
 const BATCH_LIMIT = 400;
 

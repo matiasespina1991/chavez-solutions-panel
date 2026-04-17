@@ -1,8 +1,9 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import admin from 'firebase-admin';
+import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
 
 const db = admin.firestore();
-const SERVICES_COLLECTION = 'services';
+const SERVICES_COLLECTION = FIRESTORE_COLLECTIONS.SERVICES;
 
 interface DeleteTechnicalServiceRequest {
   id?: string;
@@ -37,4 +38,3 @@ export const deleteTechnicalService = onCall(
     return { deletedId: id };
   }
 );
-

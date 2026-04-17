@@ -10,6 +10,7 @@ import {
 } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from '@/lib/firebase';
+import { FIRESTORE_COLLECTIONS } from '@/constants/firestore';
 
 export type ConfigurationStatus = 'draft' | 'final';
 export type ConfigurationType = 'proforma' | 'work_order' | 'both';
@@ -161,9 +162,9 @@ export interface ServiceRequestDocument
   linkedWorkOrderId?: string | null;
 }
 
-const SERVICE_REQUEST_COLLECTION = 'requests';
-const WORK_ORDER_COLLECTION = 'work_orders';
-const SERVICES_COLLECTION = 'services';
+const SERVICE_REQUEST_COLLECTION = FIRESTORE_COLLECTIONS.REQUESTS;
+const WORK_ORDER_COLLECTION = FIRESTORE_COLLECTIONS.WORK_ORDERS;
+const SERVICES_COLLECTION = FIRESTORE_COLLECTIONS.SERVICES;
 
 const normalizeMatrixArray = (value: unknown): MatrixType[] => {
   if (!Array.isArray(value)) return [];

@@ -1,9 +1,10 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import admin from 'firebase-admin';
+import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
 
 const db = admin.firestore();
-const SERVICES_COLLECTION = 'services';
-const SERVICES_AUDIT_COLLECTION = 'services_audit';
+const SERVICES_COLLECTION = FIRESTORE_COLLECTIONS.SERVICES;
+const SERVICES_AUDIT_COLLECTION = FIRESTORE_COLLECTIONS.SERVICES_AUDIT;
 const BATCH_LIMIT = 400;
 
 const ALLOWED_FIELDS = new Set([
@@ -257,4 +258,3 @@ export const saveServicesTechnicalChanges = onCall(
     };
   }
 );
-

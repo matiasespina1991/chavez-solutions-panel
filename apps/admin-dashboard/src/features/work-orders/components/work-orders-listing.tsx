@@ -32,6 +32,7 @@ import {
   TooltipTrigger
 } from '@/components/ui/tooltip';
 import { completeWorkOrder } from '@/features/configurator/services/configurations';
+import { FIRESTORE_COLLECTIONS } from '@/constants/firestore';
 import { db } from '@/lib/firebase';
 import {
   collection,
@@ -444,7 +445,7 @@ export default function WorkOrdersListing() {
   };
 
   useEffect(() => {
-    const requestsQuery = query(collection(db, 'requests'));
+    const requestsQuery = query(collection(db, FIRESTORE_COLLECTIONS.REQUESTS));
     const unsubscribe = onSnapshot(requestsQuery, (snapshot) => {
       const nextMap: Record<string, WorkOrderRow['serviceItems']> = {};
       snapshot.docs.forEach((docSnap) => {
@@ -510,7 +511,7 @@ export default function WorkOrdersListing() {
 
   useEffect(() => {
     const workOrdersQuery = query(
-      collection(db, 'work_orders'),
+      collection(db, FIRESTORE_COLLECTIONS.WORK_ORDERS),
       orderBy('updatedAt', 'desc')
     );
 

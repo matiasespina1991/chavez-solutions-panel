@@ -6,8 +6,6 @@ admin.initializeApp();
 setGlobalOptions({ maxInstances: 10 });
 
 // Triggers
-export { onImageUpload } from './triggers/onImageUpload.js';
-export { onVideoUpload } from './triggers/onVideoUpload.js';
 export { onProformaSubmitted } from './triggers/onProformaSubmitted.js';
 export { onMailOutboxCreated } from './triggers/onMailOutboxCreated.js';
 

@@ -1,8 +1,9 @@
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import admin from 'firebase-admin';
+import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
 
 const db = admin.firestore();
-const MAIL_OUTBOX_COLLECTION = 'mail_outbox';
+const MAIL_OUTBOX_COLLECTION = FIRESTORE_COLLECTIONS.MAIL_OUTBOX;
 
 interface ProformaClient {
   businessName?: string | null;
@@ -48,7 +49,7 @@ const toMatrixLabel = (matrix: string[]) =>
 
 export const onProformaSubmitted = onDocumentWritten(
   {
-    document: 'requests/{requestId}',
+    document: `${FIRESTORE_COLLECTIONS.REQUESTS}/{requestId}`,
     region: 'europe-west3',
     retry: false,
     maxInstances: 10

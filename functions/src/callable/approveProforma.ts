@@ -1,5 +1,6 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import admin from 'firebase-admin';
+import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
 
 const db = admin.firestore();
 
@@ -53,7 +54,7 @@ export const approveProforma = onCall(async (req) => {
     throw new HttpsError('invalid-argument', 'requestId is required.');
   }
 
-  const requestRef = db.collection('requests').doc(requestId);
+  const requestRef = db.collection(FIRESTORE_COLLECTIONS.REQUESTS).doc(requestId);
 
   const result = await db.runTransaction<ApproveProformaResponse>(async (tx) => {
     const requestSnap = await tx.get(requestRef);

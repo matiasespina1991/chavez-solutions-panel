@@ -1,5 +1,6 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import admin from 'firebase-admin';
+import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
 
 const db = admin.firestore();
 
@@ -39,10 +40,10 @@ export const completeWorkOrder = onCall(async (req) => {
     let workOrderRef: FirebaseFirestore.DocumentReference;
 
     if (workOrderId) {
-      workOrderRef = db.collection('work_orders').doc(workOrderId);
+      workOrderRef = db.collection(FIRESTORE_COLLECTIONS.WORK_ORDERS).doc(workOrderId);
     } else {
       const workOrderQuery = db
-        .collection('work_orders')
+        .collection(FIRESTORE_COLLECTIONS.WORK_ORDERS)
         .where('sourceRequestId', '==', sourceRequestIdInput)
         .limit(1);
       const workOrderQuerySnap = await tx.get(workOrderQuery);
@@ -99,7 +100,7 @@ export const completeWorkOrder = onCall(async (req) => {
     }
 
     const sourceRequestRef = db
-      .collection('requests')
+      .collection(FIRESTORE_COLLECTIONS.REQUESTS)
       .doc(sourceRequestId);
     const sourceRequestSnap = await tx.get(sourceRequestRef);
 

@@ -1,5 +1,6 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import admin from 'firebase-admin';
+import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
 
 const db = admin.firestore();
 
@@ -54,7 +55,7 @@ export const rejectProforma = onCall(async (req) => {
     );
   }
 
-  const requestRef = db.collection('requests').doc(requestId);
+  const requestRef = db.collection(FIRESTORE_COLLECTIONS.REQUESTS).doc(requestId);
 
   const result = await db.runTransaction<RejectProformaResponse>(async (tx) => {
     const requestSnap = await tx.get(requestRef);

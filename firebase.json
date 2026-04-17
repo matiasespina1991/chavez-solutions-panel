@@ -9,7 +9,7 @@
     "indexes": "firestore.indexes.json"
   },
   "hosting": {
-    "source": "apps/web",
+    "source": "apps/admin-dashboard",
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -22,19 +22,8 @@
   },
   "apphosting": [
     {
-      "backendId": "laura-butallo-web-backend",
-      "rootDir": "apps/web",
-      "ignore": [
-        "node_modules",
-        ".git",
-        "firebase-debug.log",
-        "firebase-debug.*.log",
-        "functions"
-      ]
-    },
-    {
       "backendId": "dashboard",
-      "rootDir": "/",
+      "rootDir": "apps/admin-dashboard",
       "ignore": [
         "node_modules",
         ".git",

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { FIRESTORE_COLLECTIONS } from '@/constants/firestore';
 import { saveWorkOrderLabAnalysis } from '@/features/lab-analysis/services/lab-analysis';
 import { IconPlus, IconTrash } from '@tabler/icons-react';
 import { toast } from 'sonner';
@@ -103,7 +104,7 @@ export default function LabAnalysisForm() {
         setIsLoading(true);
         setLoadError(null);
 
-        const workOrderRef = doc(db, 'work_orders', workOrderId);
+        const workOrderRef = doc(db, FIRESTORE_COLLECTIONS.WORK_ORDERS, workOrderId);
         const workOrderSnap = await getDoc(workOrderRef);
 
         if (!workOrderSnap.exists()) {

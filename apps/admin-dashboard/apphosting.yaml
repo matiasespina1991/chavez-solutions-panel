@@ -1,7 +1,6 @@
 # Settings for Backend (on Cloud Run).
-# The admin dashboard lives in a separate app under apps/admin,
-# so point App Hosting at the public site inside apps/web.
-sourceDir: apps/web
+# This file is the dashboard source-of-truth when deploying this app directly.
+sourceDir: .
 # See https://firebase.google.com/docs/app-hosting/configure#cloud-run
 runConfig:
   minInstances: 0

@@ -41,6 +41,7 @@ import {
   resumeWorkOrderFromRequest,
   generateProformaPreviewPdf
 } from '@/features/configurator/services/configurations';
+import { FIRESTORE_COLLECTIONS } from '@/constants/firestore';
 import { auth, db } from '@/lib/firebase';
 import {
   collection,
@@ -845,7 +846,7 @@ export default function RequestsListing() {
 
   useEffect(() => {
     const requestsQuery = query(
-      collection(db, 'requests'),
+      collection(db, FIRESTORE_COLLECTIONS.REQUESTS),
       orderBy('updatedAt', 'desc')
     );
 

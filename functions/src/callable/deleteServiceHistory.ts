@@ -1,12 +1,13 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import admin from 'firebase-admin';
+import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
 
 const db = admin.firestore();
-const HISTORY_COLLECTION = 'services_history';
-const HISTORY_META_COLLECTION = 'services_history_meta';
+const HISTORY_COLLECTION = FIRESTORE_COLLECTIONS.SERVICES_HISTORY;
+const HISTORY_META_COLLECTION = FIRESTORE_COLLECTIONS.SERVICES_HISTORY_META;
 const HISTORY_META_DOC = 'current';
 const BATCH_LIMIT = 400;
-const DELETED_HISTORY_COLLECTION = 'services_deleted_history';
+const DELETED_HISTORY_COLLECTION = FIRESTORE_COLLECTIONS.SERVICES_DELETED_HISTORY;
 
 const deleteDocuments = async (
   docRefs: FirebaseFirestore.DocumentReference[]

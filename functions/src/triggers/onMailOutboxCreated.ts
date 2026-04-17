@@ -5,9 +5,10 @@ import {
   ProformaPreviewPayload
 } from '../utils/proformaPreviewPdf.js';
 import { sendWithGmailApi } from '../utils/gmail.js';
+import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
 
 const db = admin.firestore();
-const MAIL_OUTBOX_COLLECTION = 'mail_outbox';
+const MAIL_OUTBOX_COLLECTION = FIRESTORE_COLLECTIONS.MAIL_OUTBOX;
 
 interface MailOutboxData {
   type?: string;
@@ -200,7 +201,7 @@ export const onMailOutboxCreated = onDocumentCreated(
 
     try {
       const requestSnap = await db
-        .collection('requests')
+        .collection(FIRESTORE_COLLECTIONS.REQUESTS)
         .doc(requestId)
         .get();
       if (!requestSnap.exists) {
