@@ -919,6 +919,7 @@ export function ServicesCatalogPanel() {
     query: string
   ): string[] => {
     if (!AUTOCOMPLETE_FIELD_KEYS.includes(key)) return [];
+
     const queryValue = normalizeForAutocomplete(query);
     if (!queryValue.length) return [];
 
@@ -926,9 +927,19 @@ export function ServicesCatalogPanel() {
       createServiceAutocompleteOptions[
         key as keyof typeof createServiceAutocompleteOptions
       ] ?? [];
-    return options.filter((option) =>
+
+    const matches = options.filter((option) =>
       normalizeForAutocomplete(option).startsWith(queryValue)
     );
+
+    if (
+      matches.length === 1 &&
+      normalizeForAutocomplete(matches[0]) === queryValue
+    ) {
+      return [];
+    }
+
+    return matches;
   };
 
   const getCreateServiceAutocompleteMatches = (
@@ -1001,15 +1012,10 @@ export function ServicesCatalogPanel() {
   };
 
   const isCreateServiceFieldInvalid = (key: keyof CreateServiceDraft) => {
-    if (!CREATE_SERVICE_REQUIRED_FIELDS.includes(key)) {
-      return false;
-    }
-    const isMissing = !createServiceDraft[key].trim();
-    const shouldShow =
-      createServiceSubmitAttempted || createServiceTouchedFields[key];
-    return shouldShow && isMissing;
+    if (!CREATE_SERVICE_REQUIRED_FIELDS.includes(key)) return false;
+    if (!createServiceSubmitAttempted) return false;
+    return !createServiceDraft[key].trim();
   };
-
   const handleDuplicateRow = (row: ServiceCatalogRow) => {
     const nextDraft: CreateServiceDraft = {
       ID_CONFIG_PARAMETRO: '',
@@ -1284,14 +1290,14 @@ export function ServicesCatalogPanel() {
                 ) : null}
               </div>
 
-              <label className='text-muted-foreground inline-flex shrink-0 items-center gap-2 text-sm'>
+              <label className='text-muted-foreground inline-flex shrink-0 cursor-pointer items-center gap-2 text-sm'>
                 <Checkbox
                   checked={hideColumnsFromTechnique}
                   onCheckedChange={(checked) =>
                     setHideColumnsFromTechnique(checked === true)
                   }
                   aria-label='Alternar vista compacta'
-                  className='bg-background !border-[#9a9a9a] shadow-none dark:!border-[#5f5f5f]'
+                  className='bg-background cursor-pointer !border-[#9a9a9a] shadow-none dark:!border-[#5f5f5f]'
                 />
                 <span>Vista resumida</span>
               </label>
@@ -1762,10 +1768,6 @@ export function ServicesCatalogPanel() {
                                   }
                                 }}
                                 onBlur={() => {
-                                  setCreateServiceTouchedFields((prev) => ({
-                                    ...prev,
-                                    [field.key]: true
-                                  }));
                                   if (
                                     AUTOCOMPLETE_FIELD_KEYS.includes(field.key)
                                   ) {
