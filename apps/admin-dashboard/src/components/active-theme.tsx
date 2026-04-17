@@ -9,7 +9,7 @@ import {
 } from 'react';
 
 const COOKIE_NAME = 'active_theme';
-const DEFAULT_THEME = 'auto-gray';
+const DEFAULT_THEME = 'default';
 const AUTO_SCALE_MIN_HEIGHT = 900;
 const AUTO_THEME_MAP: Record<string, { base: string; scaled: string }> = {
   auto: { base: 'gray', scaled: 'gray-scaled' },

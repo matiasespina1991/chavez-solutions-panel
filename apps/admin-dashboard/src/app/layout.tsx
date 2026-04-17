@@ -37,8 +37,8 @@ export default async function RootLayout({
       ? 'blue'
       : activeThemeValue === 'auto-gray'
         ? 'gray'
-        : 'gray'
-    : (activeThemeValue ?? 'gray');
+        : 'default'
+    : (activeThemeValue ?? 'default');
   const isScaled = initialThemeValue?.endsWith('-scaled');
 
   return (
@@ -60,7 +60,7 @@ export default async function RootLayout({
         suppressHydrationWarning
         className={cn(
           'bg-background overflow-hidden overscroll-none font-sans antialiased',
-          initialThemeValue ? `theme-${initialThemeValue}` : '',
+          initialThemeValue ? `theme-${initialThemeValue}` : 'theme-default',
           isScaled ? 'theme-scaled' : '',
           fontVariables
         )}
