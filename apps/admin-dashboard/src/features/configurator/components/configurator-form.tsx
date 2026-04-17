@@ -2603,15 +2603,15 @@ export default function ConfiguratorForm() {
                                             <p className='text-muted-foreground text-xs leading-tight'>
                                               {service.ID_TABLA_NORMA ||
                                                 'Sin tabla'}{' '}
-                                              •{' '}
-                                              {service.UNIDAD_NORMA ||
-                                                service.UNIDAD_INTERNO ||
-                                                'Sin unidad'}
                                             </p>
                                             <p className='text-muted-foreground text-xs leading-tight'>
                                               Límite interno:{' '}
                                               {service.LIM_INF_INTERNO || '—'} a{' '}
-                                              {service.LIM_SUP_INTERNO || '—'}
+                                              {service.LIM_SUP_INTERNO || '—'} (
+                                              {service.UNIDAD_NORMA ||
+                                                service.UNIDAD_INTERNO ||
+                                                'Sin unidad'}
+                                              )
                                             </p>
                                             <p className='text-muted-foreground text-xs leading-tight'>
                                               {service.ID_TECNICA ||
@@ -3254,6 +3254,7 @@ export default function ConfiguratorForm() {
                     dialogSelectedServiceIds.includes(serviceId);
                   const isLockedSelection =
                     isSelected && dialogLockedServiceIds.includes(serviceId);
+
                   const cardButton = (
                     <button
                       key={serviceId}
@@ -3262,7 +3263,7 @@ export default function ConfiguratorForm() {
                         isLockedSelection
                           ? 'border-border bg-muted/35 cursor-not-allowed'
                           : isSelected
-                            ? 'border-black bg-black/5'
+                            ? 'border-black/60 bg-black/10 dark:border-white/70 dark:bg-white/10'
                             : 'hover:bg-muted/50 border-border'
                       }`}
                       onClick={() => handleToggleServiceSelection(serviceId)}
@@ -3277,14 +3278,15 @@ export default function ConfiguratorForm() {
                             {getMatEnsayoLabel(service)}
                           </p>
                           <p className='text-muted-foreground text-xs'>
-                            {service.ID_TABLA_NORMA || 'Sin tabla'} •{' '}
-                            {service.UNIDAD_NORMA ||
-                              service.UNIDAD_INTERNO ||
-                              'Sin unidad'}
+                            {service.ID_TABLA_NORMA || 'Sin tabla'}
                           </p>
                           <p className='text-muted-foreground text-xs'>
                             Límite interno: {service.LIM_INF_INTERNO || '—'} a{' '}
-                            {service.LIM_SUP_INTERNO || '—'}
+                            {service.LIM_SUP_INTERNO || '—'} (
+                            {service.UNIDAD_NORMA ||
+                              service.UNIDAD_INTERNO ||
+                              'Sin unidad'}
+                            )
                           </p>
                           <p className='text-muted-foreground text-xs'>
                             {service.ID_TECNICA ||
@@ -3298,7 +3300,7 @@ export default function ConfiguratorForm() {
                             className={`inline-flex aspect-square size-[1.125rem] shrink-0 items-center justify-center self-start rounded-full leading-none ${
                               isLockedSelection
                                 ? 'bg-muted-foreground/60 text-white'
-                                : 'bg-black text-white'
+                                : 'bg-black/90 text-white dark:bg-white/80 dark:text-black'
                             }`}
                           >
                             <Check className='h-2.5 w-2.5' strokeWidth={3} />
