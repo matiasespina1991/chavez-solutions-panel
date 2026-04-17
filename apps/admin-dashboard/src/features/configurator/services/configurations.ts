@@ -11,19 +11,18 @@ import {
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from '@/lib/firebase';
 import { FIRESTORE_COLLECTIONS } from '@/constants/firestore';
+import type {
+  MatrixType as DomainMatrixType,
+  RequestApprovalStatus as DomainRequestApprovalStatus,
+  RequestStatus as DomainRequestStatus,
+  TechnicalServiceDocument
+} from '@/types/domain';
 
 export type ConfigurationStatus = 'draft' | 'final';
 export type ConfigurationType = 'proforma' | 'work_order' | 'both';
-export type MatrixType = 'water' | 'soil' | 'noise' | 'gases';
-export type ServiceRequestStatus =
-  | 'draft'
-  | 'submitted'
-  | 'converted_to_work_order'
-  | 'work_order_paused'
-  | 'work_order_completed'
-  | 'cancelled';
-
-export type ServiceRequestApprovalStatus = 'pending' | 'approved' | 'rejected';
+export type MatrixType = DomainMatrixType;
+export type ServiceRequestStatus = DomainRequestStatus;
+export type ServiceRequestApprovalStatus = DomainRequestApprovalStatus;
 
 export interface ServiceRequestApproval {
   status: ServiceRequestApprovalStatus;
@@ -116,25 +115,7 @@ export interface ConfigurationServices {
   grouped: ConfigurationServiceGroup[];
 }
 
-export interface ImportedServiceDocument {
-  id: string;
-  ID_CONFIG_PARAMETRO?: string;
-  ID_MATRIZ?: string;
-  ID_MAT_ENSAYO?: string;
-  ID_NORMA?: string;
-  ID_TABLA_NORMA?: string;
-  ID_PARAMETRO?: string;
-  UNIDAD_NORMA?: string;
-  UNIDAD_INTERNO?: string;
-  LIM_INF_NORMA?: string;
-  LIM_SUP_NORMA?: string;
-  LIM_INF_INTERNO?: string;
-  LIM_SUP_INTERNO?: string;
-  ID_TECNICA?: string;
-  ID_MET_REFERENCIA?: string;
-  ID_MET_INTERNO?: string;
-  PRECIO?: number | null;
-}
+export type ImportedServiceDocument = TechnicalServiceDocument;
 
 export interface ConfigurationDocument {
   id?: string;

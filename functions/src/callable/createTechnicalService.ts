@@ -1,17 +1,13 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import admin from 'firebase-admin';
 import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
+import type {
+  CreateTechnicalServiceRequest,
+  CreateTechnicalServiceResponse,
+} from '../types/technical-services.js';
 
 const db = admin.firestore();
 const SERVICES_COLLECTION = FIRESTORE_COLLECTIONS.SERVICES;
-
-interface CreateTechnicalServiceRequest {
-  payload?: Record<string, unknown>;
-}
-
-interface CreateTechnicalServiceResponse {
-  id: string;
-}
 
 const REQUIRED_FIELDS = [
   'ID_CONFIG_PARAMETRO',

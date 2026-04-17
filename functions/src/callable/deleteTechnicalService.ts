@@ -1,17 +1,13 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import admin from 'firebase-admin';
 import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
+import type {
+  DeleteTechnicalServiceRequest,
+  DeleteTechnicalServiceResponse,
+} from '../types/technical-services.js';
 
 const db = admin.firestore();
 const SERVICES_COLLECTION = FIRESTORE_COLLECTIONS.SERVICES;
-
-interface DeleteTechnicalServiceRequest {
-  id?: string;
-}
-
-interface DeleteTechnicalServiceResponse {
-  deletedId: string;
-}
 
 export const deleteTechnicalService = onCall(
   async (req): Promise<DeleteTechnicalServiceResponse> => {

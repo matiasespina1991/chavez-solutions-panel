@@ -1,6 +1,11 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import admin from 'firebase-admin';
 import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
+import type {
+  SaveServicesTechnicalChangesRequest,
+  SaveServicesTechnicalChangesResponse,
+  TechnicalServicePatchValue,
+} from '../types/technical-services.js';
 
 const db = admin.firestore();
 const SERVICES_COLLECTION = FIRESTORE_COLLECTIONS.SERVICES;
@@ -27,28 +32,6 @@ const ALLOWED_FIELDS = new Set([
   'PRECIO',
 ]);
 
-type PrimitivePatchValue = string | number | null;
-
-interface ServiceTechnicalChange {
-  id?: string;
-  patch?: Record<string, unknown>;
-  lastKnownUpdatedAt?: string | null;
-}
-
-interface SaveServicesTechnicalChangesRequest {
-  changes?: ServiceTechnicalChange[];
-  reason?: string;
-}
-
-interface SaveServicesTechnicalChangesResponse {
-  updated: number;
-  skipped: number;
-  notFound: string[];
-  conflicts: string[];
-  invalid: string[];
-  auditId: string;
-}
-
 const toMillis = (value: unknown): number | null => {
   if (!value) return null;
 
@@ -69,7 +52,7 @@ const toMillis = (value: unknown): number | null => {
   return null;
 };
 
-const normalizePatchValue = (value: unknown): PrimitivePatchValue => {
+const normalizePatchValue = (value: unknown): TechnicalServicePatchValue => {
   if (value === null) return null;
   if (typeof value === 'number') {
     if (!Number.isFinite(value)) {
@@ -131,7 +114,7 @@ export const saveServicesTechnicalChanges = onCall(
         );
       }
 
-      const patch: Record<string, PrimitivePatchValue> = {};
+      const patch: Record<string, TechnicalServicePatchValue> = {};
       Object.entries(patchSource).forEach(([field, value]) => {
         if (!ALLOWED_FIELDS.has(field)) return;
         patch[field] = normalizePatchValue(value);

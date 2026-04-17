@@ -1,17 +1,13 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import admin from 'firebase-admin';
 import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
+import type { LinkedWorkOrderRequestData } from '../types/requests.js';
 
 const db = admin.firestore();
 
 interface ResumeWorkOrderRequest {
   sourceRequestId?: string;
   notes?: string;
-}
-
-interface ServiceRequestData {
-  linkedWorkOrderId?: string | null;
-  isWorkOrder?: boolean;
 }
 
 interface WorkOrderData {
@@ -42,7 +38,7 @@ export const resumeWorkOrder = onCall(async (req) => {
       throw new HttpsError('not-found', 'Service request not found.');
     }
 
-    const source = sourceSnap.data() as ServiceRequestData;
+    const source = sourceSnap.data() as LinkedWorkOrderRequestData;
 
     if (!source.linkedWorkOrderId) {
       throw new HttpsError(

@@ -38,11 +38,11 @@
 - `risk`: medium
 - `depends_on`: [CT-1001]
 - `acceptance`:
-  - [ ] Tipos canonicos definidos y consumidos.
-  - [ ] Duplicacion local reducida en features core.
+  - [x] Tipos canonicos definidos y consumidos (slice inicial: `Matrix/Status/RequestRow/WorkOrderRow/TechnicalServicePayload`).
+  - [x] Duplicacion local reducida en features core (`requests-listing`, `work-orders-listing`, `configurations`, `import-services`).
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
-- `status`: `todo`
+- `status`: `in_progress`
 
 ## CT-1004
 
@@ -52,11 +52,11 @@
 - `risk`: medium
 - `depends_on`: [CT-1002]
 - `acceptance`:
-  - [ ] Contratos backend compartidos definidos.
-  - [ ] Payloads tipados sin duplicacion principal.
+  - [x] Contratos backend compartidos definidos (slice inicial: `requests` + `technical-services`).
+  - [x] Payloads tipados sin duplicacion principal en callables core (`approve/reject/createWorkOrder/pause/resume/create/delete/saveTechnicalChanges`).
 - `validation_commands`:
   - `cd functions && npx tsc --noEmit`
-- `status`: `todo`
+- `status`: `in_progress`
 
 ## CT-1005
 

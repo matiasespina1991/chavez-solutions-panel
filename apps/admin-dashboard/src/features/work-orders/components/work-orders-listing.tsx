@@ -33,6 +33,11 @@ import {
 } from '@/components/ui/tooltip';
 import { completeWorkOrder } from '@/features/configurator/services/configurations';
 import { FIRESTORE_COLLECTIONS } from '@/constants/firestore';
+import type {
+  MatrixType as WorkOrderMatrix,
+  WorkOrderListRow as WorkOrderRow,
+  WorkOrderStatus
+} from '@/types/domain';
 import { db } from '@/lib/firebase';
 import {
   collection,
@@ -50,52 +55,6 @@ import {
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-
-type WorkOrderMatrix = 'water' | 'soil' | 'noise' | 'gases';
-type WorkOrderStatus =
-  | 'issued'
-  | 'paused'
-  | 'completed'
-  | 'cancelled'
-  | 'unknown';
-
-interface WorkOrderRow {
-  id: string;
-  workOrderNumber: string;
-  sourceReference: string;
-  sourceRequestId: string;
-  notes: string;
-  matrix: WorkOrderMatrix[];
-  status: WorkOrderStatus;
-  client: {
-    businessName: string;
-    taxId: string;
-    contactName: string;
-  };
-  serviceItems: Array<{
-    serviceId: string;
-    parameterId: string;
-    parameterLabel: string;
-    tableLabel: string | null;
-    unit: string | null;
-    method: string | null;
-    rangeMin: string;
-    rangeMax: string;
-    quantity: number;
-    unitPrice: number;
-    discountAmount: number;
-  }>;
-  sampleItems: Array<{ sampleCode: string; sampleType: string }>;
-  analysisItems: Array<{ parameterLabelEs: string; unitPrice: number }>;
-  taxPercent: number;
-  clientBusinessName: string;
-  agreedCount: number;
-  analysesCount: number;
-  total: number;
-  subtotal: number;
-  updatedAtLabel: string;
-  updatedAtMs: number;
-}
 
 type SortKey =
   | 'reference'

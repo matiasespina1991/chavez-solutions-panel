@@ -1,10 +1,2 @@
-interface SaveServicesTechnicalChangesResponse {
-    updated: number;
-    skipped: number;
-    notFound: string[];
-    conflicts: string[];
-    invalid: string[];
-    auditId: string;
-}
+import type { SaveServicesTechnicalChangesResponse } from '../types/technical-services.js';
 export declare const saveServicesTechnicalChanges: import("firebase-functions/v2/https").CallableFunction<any, Promise<SaveServicesTechnicalChangesResponse>, unknown>;
-export {};

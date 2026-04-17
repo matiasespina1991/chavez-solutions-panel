@@ -76,7 +76,7 @@ export const sanitizeProformaPreviewPayload = (
       city: String(next.client?.city || '').trim(),
       email: String(next.client?.email || '').trim(),
       phone: String(next.client?.phone || '').trim(),
-      mobile: String(next.client?.mobile || '').trim()
+      mobile: String(next.client?.mobile || '').trim(),
     },
     services: Array.isArray(next.services)
       ? next.services.slice(0, 30).map((service) => ({
@@ -87,7 +87,8 @@ export const sanitizeProformaPreviewPayload = (
           rangeOffered: String(service.rangeOffered || '').trim(),
           quantity: Math.max(0, Math.floor(sanitizeNumber(service.quantity))),
           unitPrice:
-            typeof service.unitPrice === 'number' && Number.isFinite(service.unitPrice)
+            typeof service.unitPrice === 'number' &&
+            Number.isFinite(service.unitPrice)
               ? service.unitPrice
               : null,
           discountAmount:
@@ -96,9 +97,10 @@ export const sanitizeProformaPreviewPayload = (
               ? service.discountAmount
               : null,
           subtotal:
-            typeof service.subtotal === 'number' && Number.isFinite(service.subtotal)
+            typeof service.subtotal === 'number' &&
+            Number.isFinite(service.subtotal)
               ? service.subtotal
-              : null
+              : null,
         }))
       : [],
     serviceGroups: Array.isArray(next.serviceGroups)
@@ -129,16 +131,16 @@ export const sanitizeProformaPreviewPayload = (
                   typeof service.subtotal === 'number' &&
                   Number.isFinite(service.subtotal)
                     ? service.subtotal
-                    : null
+                    : null,
               }))
-            : []
+            : [],
         }))
       : [],
     pricing: {
       subtotal: sanitizeNumber(next.pricing?.subtotal),
       taxPercent: sanitizeNumber(next.pricing?.taxPercent),
-      total: sanitizeNumber(next.pricing?.total)
-    }
+      total: sanitizeNumber(next.pricing?.total),
+    },
   };
 };
 
@@ -163,10 +165,13 @@ const escapeHtml = (value: string): string =>
     .replace(/'/g, '&#39;');
 
 const buildProformaPreviewHtml = (payload: ProformaPreviewPayload): string => {
-  const taxAmount = (payload.pricing.subtotal * payload.pricing.taxPercent) / 100;
+  const taxAmount =
+    (payload.pricing.subtotal * payload.pricing.taxPercent) / 100;
   const hasGroups =
     Array.isArray(payload.serviceGroups) &&
-    payload.serviceGroups.some((group) => Array.isArray(group.items) && group.items.length > 0);
+    payload.serviceGroups.some(
+      (group) => Array.isArray(group.items) && group.items.length > 0
+    );
 
   const normalizedGroups = hasGroups
     ? (payload.serviceGroups ?? []).filter(
@@ -188,22 +193,29 @@ const buildProformaPreviewHtml = (payload: ProformaPreviewPayload): string => {
         <td>${escapeHtml(service.method || '-')}</td>
         <td>${service.quantity || 0}</td>
         <td>${formatMoneyCompact(service.unitPrice)}</td>
-        <td>${formatMoneyCompact(service.discountAmount)}</td>
+        <td>-${formatMoneyCompact(service.discountAmount)}</td>
         <td>${formatMoneyCompact(service.subtotal)}</td>
       </tr>`
         )
         .join('');
 
       const groupSubtotal = group.items.reduce((acc, service) => {
-        if (typeof service.subtotal === 'number' && Number.isFinite(service.subtotal)) {
+        if (
+          typeof service.subtotal === 'number' &&
+          Number.isFinite(service.subtotal)
+        ) {
           return acc + service.subtotal;
         }
-        if (typeof service.unitPrice === 'number' && Number.isFinite(service.unitPrice)) {
+        if (
+          typeof service.unitPrice === 'number' &&
+          Number.isFinite(service.unitPrice)
+        ) {
           return (
             acc +
             Math.max(
               0,
-              service.unitPrice * (service.quantity || 0) - (service.discountAmount ?? 0)
+              service.unitPrice * (service.quantity || 0) -
+                (service.discountAmount ?? 0)
             )
           );
         }
@@ -333,7 +345,7 @@ const buildProformaPreviewHtml = (payload: ProformaPreviewPayload): string => {
           <th style="width:19%">Método de ensayo o técnica</th>
           <th class="nowrap" style="width:8%">Cantidad</th>
           <th style="width:9%">Precio</th>
-          <th style="width:7%">Descuento</th>
+          <th style="width:7%">Desc.</th>
           <th class="nowrap" style="width:8%">Subtotal</th>
         </tr>
       </thead>
@@ -393,13 +405,13 @@ const tryRenderPdfWithPuppeteerInFunction = async (
     args: chromium.args,
     defaultViewport: chromium.defaultViewport,
     executablePath: await chromium.executablePath(),
-    headless: chromium.headless
+    headless: chromium.headless,
   });
 
   try {
     const page = await browser.newPage();
     await page.setContent(buildProformaPreviewHtml(payload), {
-      waitUntil: 'networkidle0'
+      waitUntil: 'networkidle0',
     });
     const pdfBuffer = await page.pdf({
       format: 'A4',
@@ -408,8 +420,8 @@ const tryRenderPdfWithPuppeteerInFunction = async (
         top: '10mm',
         right: '10mm',
         bottom: '10mm',
-        left: '10mm'
-      }
+        left: '10mm',
+      },
     });
     return Buffer.from(pdfBuffer);
   } finally {
@@ -435,8 +447,8 @@ export const generateAndStoreProformaPreviewPdf = async (params: {
     metadata: {
       contentType: 'application/pdf',
       cacheControl: 'private, max-age=0, no-transform',
-      contentDisposition: `attachment; filename="${fileName}"`
-    }
+      contentDisposition: `attachment; filename="${fileName}"`,
+    },
   });
 
   const downloadURL = await ensureTokenDownloadURL(storagePath);

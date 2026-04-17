@@ -42,6 +42,12 @@ import {
   generateProformaPreviewPdf
 } from '@/features/configurator/services/configurations';
 import { FIRESTORE_COLLECTIONS } from '@/constants/firestore';
+import type {
+  MatrixType as ServiceRequestMatrix,
+  RequestApprovalStatus as ServiceRequestApprovalStatus,
+  RequestListRow as ServiceRequestRow,
+  RequestStatus as ServiceRequestStatus
+} from '@/types/domain';
 import { auth, db } from '@/lib/firebase';
 import {
   collection,
@@ -64,73 +70,6 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { ProformaSummaryPanel } from '@/features/proformas/components/proforma-summary-panel';
-
-type ServiceRequestMatrix = 'water' | 'soil' | 'noise' | 'gases';
-type ServiceRequestStatus =
-  | 'draft'
-  | 'submitted'
-  | 'converted_to_work_order'
-  | 'work_order_paused'
-  | 'work_order_completed'
-  | 'cancelled';
-
-type ServiceRequestApprovalStatus = 'pending' | 'approved' | 'rejected';
-
-interface ServiceRequestRow {
-  id: string;
-  reference: string;
-  notes: string;
-  isWorkOrder: boolean;
-  matrix: ServiceRequestMatrix[];
-  status: ServiceRequestStatus;
-  approvalStatus: ServiceRequestApprovalStatus | null;
-  approvalFeedback: string;
-  validDays: number | null;
-  createdAtMs: number;
-  client: {
-    businessName: string;
-    taxId: string;
-    contactName: string;
-    address: string;
-    city: string;
-    email: string;
-    phone: string;
-  };
-  serviceItems: Array<{
-    serviceId: string;
-    parameterId: string;
-    parameterLabel: string;
-    tableLabel: string | null;
-    unit: string | null;
-    method: string | null;
-    rangeMin: string;
-    rangeMax: string;
-    quantity: number;
-    unitPrice: number;
-    discountAmount: number;
-  }>;
-  serviceGroups: Array<{
-    id: string;
-    name: string;
-    items: Array<{
-      serviceId: string;
-      parameterLabel: string;
-      quantity: number;
-      unitPrice: number;
-      discountAmount: number;
-    }>;
-  }>;
-  sampleItems: Array<{ sampleCode: string; sampleType: string }>;
-  analysisItems: Array<{ parameterLabelEs: string; unitPrice: number }>;
-  taxPercent: number;
-  clientBusinessName: string;
-  agreedCount: number;
-  analysesCount: number;
-  total: number;
-  subtotal: number;
-  updatedAtLabel: string;
-  updatedAtMs: number;
-}
 
 type SortKey =
   | 'reference'

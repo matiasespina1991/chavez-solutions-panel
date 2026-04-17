@@ -1,4 +1,5 @@
 import { getFunctions, httpsCallable } from 'firebase/functions';
+import type { TechnicalServiceCreatePayload } from '@/types/domain';
 
 interface ImportServicesFromCsvResponse {
   importedCount: number;
@@ -6,25 +7,7 @@ interface ImportServicesFromCsvResponse {
   fileName: string | null;
 }
 
-export interface CreateTechnicalServicePayload {
-  ID_CONFIG_PARAMETRO: string;
-  ID_PARAMETRO: string;
-  ID_CONDICION_PARAMETRO: string;
-  ID_UBICACION: string;
-  ID_MATRIZ: string;
-  ID_MAT_ENSAYO: string;
-  ID_NORMA: string;
-  ID_TABLA_NORMA: string;
-  ID_TECNICA: string;
-  ID_MET_INTERNO: string;
-  ID_MET_REFERENCIA: string;
-  UNIDAD_INTERNO: string;
-  UNIDAD_NORMA: string;
-  LIM_INF_INTERNO: string;
-  LIM_SUP_INTERNO: string;
-  LIM_INF_NORMA: string;
-  LIM_SUP_NORMA: string;
-}
+export type CreateTechnicalServicePayload = TechnicalServiceCreatePayload;
 
 export interface ServiceHistoryEntry {
   id: string;

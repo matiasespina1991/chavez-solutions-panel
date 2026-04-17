@@ -1,6 +1,7 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import admin from 'firebase-admin';
 import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
+import type { RequestDocumentData, RequestStatus } from '../types/requests.js';
 
 const db = admin.firestore();
 const ALLOWED_MATRICES = new Set(['water', 'soil', 'noise', 'gases']);
@@ -29,41 +30,13 @@ interface CreateWorkOrderRequest {
   sourceRequestId?: string;
 }
 
-type ServiceRequestApprovalStatus = 'pending' | 'approved' | 'rejected';
-
-interface ServiceRequestApprovalData {
-  status?: ServiceRequestApprovalStatus;
-}
-
-type ServiceRequestStatus =
-  | 'draft'
-  | 'submitted'
-  | 'converted_to_work_order'
-  | 'work_order_paused'
-  | 'work_order_completed'
-  | 'cancelled';
-
-const NON_EMITTABLE_STATUSES: ServiceRequestStatus[] = [
+const NON_EMITTABLE_STATUSES: RequestStatus[] = [
   'draft',
   'converted_to_work_order',
   'work_order_paused',
   'work_order_completed',
   'cancelled',
 ];
-
-interface ServiceRequestData {
-  isWorkOrder?: boolean;
-  status?: ServiceRequestStatus;
-  matrix?: string[];
-  reference?: string;
-  notes?: string;
-  client?: unknown;
-  samples?: unknown;
-  services?: unknown;
-  pricing?: unknown;
-  linkedWorkOrderId?: string | null;
-  approval?: ServiceRequestApprovalData | null;
-}
 
 export const createWorkOrder = onCall(async (req) => {
   if (!req.auth) {
@@ -88,7 +61,7 @@ export const createWorkOrder = onCall(async (req) => {
       throw new HttpsError('not-found', 'Service request not found.');
     }
 
-    const source = sourceSnap.data() as ServiceRequestData;
+    const source = sourceSnap.data() as RequestDocumentData;
 
     if (source.linkedWorkOrderId) {
       const existingWoSnap = await tx.get(

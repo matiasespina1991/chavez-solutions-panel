@@ -1,30 +1,13 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import admin from 'firebase-admin';
 import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
+import type { ProformaRequestData, RequestStatus } from '../types/requests.js';
 
 const db = admin.firestore();
 
 interface ApproveProformaRequest {
   requestId?: string;
   feedback?: string;
-}
-
-type RequestStatus =
-  | 'draft'
-  | 'submitted'
-  | 'converted_to_work_order'
-  | 'work_order_paused'
-  | 'work_order_completed'
-  | 'cancelled';
-
-type ApprovalStatus = 'pending' | 'approved' | 'rejected';
-
-interface ProformaRequestData {
-  status?: RequestStatus;
-  linkedWorkOrderId?: string | null;
-  approval?: {
-    status?: ApprovalStatus;
-  } | null;
 }
 
 interface ApproveProformaResponse {
