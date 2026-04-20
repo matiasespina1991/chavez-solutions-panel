@@ -68,7 +68,7 @@
 - `acceptance`:
   - [x] Naming legacy corregido en docs core operativos (`requests-list`, `requests`, `deleteProforma`).
   - [x] Compatibilidad `ServiceRequest*` removida en app core (`configurations`, `configurator-form`, logs de `requests-listing`), usando `Request*` directo.
-  - [ ] Naming interno legacy reducido en codigo sin romper APIs publicas.
+  - [x] Naming interno legacy reducido en codigo sin romper APIs publicas (sin `ServiceRequest*` en `apps/admin-dashboard/src` y sin artefactos legacy en `functions/lib`).
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
   - `cd functions && npx tsc --noEmit`
@@ -84,7 +84,7 @@
 - `acceptance`:
   - [x] Slice matriz consolidado en util compartida (`normalizeMatrixArray`).
   - [x] Reuso aplicado en modulos core app (`configurator`, `requests-listing`, `work-orders-listing`).
-  - [ ] Slice timestamp/status labels pendiente.
+  - [x] Slice timestamp/status labels app consolidado (`formatFirestoreTimestamp`, `firestoreTimestampToMs`, `REQUEST_STATUS_LABEL_MAP`, `WORK_ORDER_STATUS_LABEL_MAP`) y reusado en listados core.
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
   - `cd functions && npx tsc --noEmit`
@@ -98,9 +98,14 @@
 - `risk`: high (impacto cross-flow).
 - `depends_on`: [CT-1001, CT-1002, CT-1003, CT-1004]
 - `acceptance`:
-  - [ ] Contrato unico consumido por configurador, resumen, PDF y outbox.
-  - [ ] Sin divergencia entre previews y mail payload.
+  - [x] Contrato unico consumido por configurador, resumen, PDF y outbox.
+  - [x] Sin divergencia entre previews y mail payload.
+  - [x] Slice inicial: `requests-listing` preserva campos tecnicos de `services.grouped` y `onMailOutboxCreated` consume `services.items/grouped` del contrato canonico.
+  - [x] Slice app: adaptador compartido `toProformaPreviewServiceLine` reutilizado en `configurator-form` y `requests-listing` para generar payload de preview sin duplicacion de mapping.
+  - [x] Slice backend: util compartida `mapRequestServicesToPreview` centraliza parseo/mapeo `services/items/grouped` y se reutiliza en `onMailOutboxCreated`.
+  - [x] Slice labels matriz: utilidades compartidas de labels/mapeo de matriz en app y functions, removiendo duplicacion en `configurator-form`, `requests-listing`, `work-orders-listing`, `onProformaSubmitted` y `onMailOutboxCreated`.
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
   - `cd functions && npx tsc --noEmit`
-- `status`: `todo`
+  - `cd functions && npm run test:contracts`
+- `status`: `approved`

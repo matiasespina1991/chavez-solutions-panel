@@ -34,8 +34,13 @@ import {
 import { completeWorkOrder } from '@/features/configurator/services/configurations';
 import { FIRESTORE_COLLECTIONS } from '@/constants/firestore';
 import { normalizeMatrixArray } from '@/lib/request-normalizers';
+import { formatMatrixLabelList } from '@/lib/matrix-labels';
+import {
+  firestoreTimestampToMs,
+  formatFirestoreTimestamp
+} from '@/lib/firestore-timestamps';
+import { WORK_ORDER_STATUS_LABEL_MAP } from '@/lib/status-labels';
 import type {
-  MatrixType as WorkOrderMatrix,
   WorkOrderListRow as WorkOrderRow,
   WorkOrderStatus
 } from '@/types/domain';
@@ -44,8 +49,7 @@ import {
   collection,
   onSnapshot,
   orderBy,
-  query,
-  Timestamp
+  query
 } from 'firebase/firestore';
 import {
   IconDownload,
@@ -69,72 +73,6 @@ type SortKey =
   | 'updatedAt';
 
 type SortDirection = 'asc' | 'desc';
-
-const matrixLabelMap: Record<WorkOrderMatrix, string> = {
-  water: 'Agua',
-  soil: 'Suelo',
-  noise: 'Ruido',
-  gases: 'Gases'
-};
-
-const formatMatrixLabel = (matrix: WorkOrderMatrix[]) =>
-  matrix.length ? matrix.map((entry) => matrixLabelMap[entry]).join(', ') : '—';
-
-const statusLabelMap: Record<WorkOrderStatus, string> = {
-  issued: 'OT emitida',
-  paused: 'OT pausada',
-  completed: 'OT finalizada',
-  cancelled: 'OT cancelada',
-  unknown: 'Estado desconocido'
-};
-
-const formatTimestamp = (value: unknown) => {
-  const dateFormatter = new Intl.DateTimeFormat('es-EC', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
-
-  const timeFormatter = new Intl.DateTimeFormat('es-EC', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  });
-
-  const formatDate = (date: Date) => {
-    const datePart = dateFormatter.format(date).replace(',', '');
-    const normalized = datePart.charAt(0).toUpperCase() + datePart.slice(1);
-    const timePart = timeFormatter.format(date);
-    return `${normalized}, ${timePart} hs`;
-  };
-
-  if (!value) return '—';
-  if (value instanceof Timestamp) {
-    return formatDate(value.toDate());
-  }
-  if (typeof value === 'object' && value !== null && 'toDate' in value) {
-    try {
-      return formatDate((value as { toDate: () => Date }).toDate());
-    } catch {
-      return '—';
-    }
-  }
-  return '—';
-};
-
-const toTimestampMs = (value: unknown) => {
-  if (!value) return 0;
-  if (value instanceof Timestamp) return value.toDate().getTime();
-  if (typeof value === 'object' && value !== null && 'toDate' in value) {
-    try {
-      return (value as { toDate: () => Date }).toDate().getTime();
-    } catch {
-      return 0;
-    }
-  }
-  return 0;
-};
 
 const escapeHtml = (value: string) =>
   value
@@ -302,8 +240,8 @@ export default function WorkOrdersListing() {
            <h3>Datos generales</h3>
            <p class="line"><strong>N° OT:</strong> ${escapeHtml(selectedRow.workOrderNumber)}</p>
            <p class="line"><strong>Referencia origen:</strong> ${escapeHtml(selectedRow.sourceReference)}</p>
-           <p class="line"><strong>Matrices:</strong> ${escapeHtml(formatMatrixLabel(selectedRow.matrix))}</p>
-           <p class="line"><strong>Estado:</strong> ${escapeHtml(statusLabelMap[selectedRow.status])}</p>
+           <p class="line"><strong>Matrices:</strong> ${escapeHtml(formatMatrixLabelList(selectedRow.matrix))}</p>
+           <p class="line"><strong>Estado:</strong> ${escapeHtml(WORK_ORDER_STATUS_LABEL_MAP[selectedRow.status])}</p>
            <p class="line"><strong>Última actualización:</strong> ${escapeHtml(selectedRow.updatedAtLabel)}</p>
          </div>
          <div class="card">
@@ -670,8 +608,8 @@ export default function WorkOrdersListing() {
             analysesCount: normalizedServiceItems.length || analysesCount,
             total: Number.isFinite(total) ? total : 0,
             subtotal: Number.isFinite(subtotal) ? subtotal : 0,
-            updatedAtLabel: formatTimestamp(value.updatedAt),
-            updatedAtMs: toTimestampMs(value.updatedAt)
+            updatedAtLabel: formatFirestoreTimestamp(value.updatedAt),
+            updatedAtMs: firestoreTimestampToMs(value.updatedAt)
           };
         });
 
@@ -709,8 +647,8 @@ export default function WorkOrdersListing() {
           break;
         case 'matrix':
           compare = collator.compare(
-            formatMatrixLabel(left.matrix),
-            formatMatrixLabel(right.matrix)
+            formatMatrixLabelList(left.matrix),
+            formatMatrixLabelList(right.matrix)
           );
           break;
         case 'client':
@@ -779,9 +717,9 @@ export default function WorkOrdersListing() {
         row.sourceRequestId,
         row.notes,
         row.matrix.join(','),
-        formatMatrixLabel(row.matrix),
+        formatMatrixLabelList(row.matrix),
         row.status,
-        statusLabelMap[row.status],
+        WORK_ORDER_STATUS_LABEL_MAP[row.status],
         row.client.businessName,
         row.client.taxId,
         row.client.contactName,
@@ -983,7 +921,7 @@ export default function WorkOrdersListing() {
                     </td>
                     <td className='w-[4.5rem] px-3 py-3 md:w-[5rem] md:px-4'>
                       <span className='block w-full max-w-full truncate'>
-                        {formatMatrixLabel(row.matrix)}
+                        {formatMatrixLabelList(row.matrix)}
                       </span>
                     </td>
                     <td className='w-[4.5rem] px-3 py-3 text-right md:px-4'>
@@ -1172,7 +1110,7 @@ export default function WorkOrdersListing() {
                     </p>
                     <p>
                       <span className='font-medium'>Matrices:</span>{' '}
-                      {formatMatrixLabel(selectedRow.matrix)}
+                      {formatMatrixLabelList(selectedRow.matrix)}
                     </p>
                   </div>
                   <div className='bg-muted/20 space-y-2 rounded-md border p-4'>

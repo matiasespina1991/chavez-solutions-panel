@@ -12,7 +12,7 @@ interface ProformaPreviewClient {
   mobile?: string;
 }
 
-interface ProformaPreviewServiceLine {
+export interface ProformaPreviewServiceLine {
   table: string;
   label: string;
   unit: string;
@@ -24,7 +24,7 @@ interface ProformaPreviewServiceLine {
   subtotal: number | null;
 }
 
-interface ProformaPreviewServiceGroup {
+export interface ProformaPreviewServiceGroup {
   name: string;
   items: ProformaPreviewServiceLine[];
 }

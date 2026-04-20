@@ -39,12 +39,18 @@ import {
   createWorkOrderFromRequest,
   pauseWorkOrderFromRequest,
   resumeWorkOrderFromRequest,
-  generateProformaPreviewPdf
+  generateProformaPreviewPdf,
+  toProformaPreviewServiceLine
 } from '@/features/configurator/services/configurations';
 import { FIRESTORE_COLLECTIONS } from '@/constants/firestore';
 import { normalizeMatrixArray } from '@/lib/request-normalizers';
+import { formatMatrixLabelList, toMatrixLabel } from '@/lib/matrix-labels';
+import {
+  firestoreTimestampToMs,
+  formatFirestoreTimestamp
+} from '@/lib/firestore-timestamps';
+import { REQUEST_STATUS_LABEL_MAP } from '@/lib/status-labels';
 import type {
-  MatrixType as RequestMatrix,
   RequestApprovalStatus,
   RequestListRow as RequestRow,
   RequestStatus
@@ -54,8 +60,7 @@ import {
   collection,
   onSnapshot,
   orderBy,
-  query,
-  Timestamp
+  query
 } from 'firebase/firestore';
 import {
   IconCircleCheckFilled,
@@ -84,73 +89,6 @@ type SortKey =
   | 'updatedAt';
 
 type SortDirection = 'asc' | 'desc';
-
-const matrixLabelMap: Record<RequestMatrix, string> = {
-  water: 'Agua',
-  soil: 'Suelo',
-  noise: 'Ruido',
-  gases: 'Gases'
-};
-
-const formatMatrixLabel = (matrix: RequestMatrix[]) =>
-  matrix.length ? matrix.map((entry) => matrixLabelMap[entry]).join(', ') : '—';
-
-const statusLabelMap: Record<RequestStatus, string> = {
-  draft: '(Borrador)',
-  submitted: 'Proforma enviada',
-  converted_to_work_order: 'OT emitida',
-  work_order_paused: 'OT pausada',
-  work_order_completed: 'OT finalizada',
-  cancelled: 'Solicitud cancelada'
-};
-
-const formatTimestamp = (value: unknown) => {
-  const dateFormatter = new Intl.DateTimeFormat('es-EC', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
-
-  const timeFormatter = new Intl.DateTimeFormat('es-EC', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  });
-
-  const formatDate = (date: Date) => {
-    const datePart = dateFormatter.format(date).replace(',', '');
-    const normalized = datePart.charAt(0).toUpperCase() + datePart.slice(1);
-    const timePart = timeFormatter.format(date);
-    return `${normalized}, ${timePart} hs`;
-  };
-
-  if (!value) return '—';
-  if (value instanceof Timestamp) {
-    return formatDate(value.toDate());
-  }
-  if (typeof value === 'object' && value !== null && 'toDate' in value) {
-    try {
-      return formatDate((value as { toDate: () => Date }).toDate());
-    } catch {
-      return '—';
-    }
-  }
-  return '—';
-};
-
-const toTimestampMs = (value: unknown) => {
-  if (!value) return 0;
-  if (value instanceof Timestamp) return value.toDate().getTime();
-  if (typeof value === 'object' && value !== null && 'toDate' in value) {
-    try {
-      return (value as { toDate: () => Date }).toDate().getTime();
-    } catch {
-      return 0;
-    }
-  }
-  return 0;
-};
 
 const getValidUntilMs = (createdAtMs: number, validDays: number | null) => {
   if (!createdAtMs || !validDays || validDays <= 0) return null;
@@ -287,7 +225,7 @@ export default function RequestsListing() {
     if (row.status === 'draft' && row.approvalStatus === 'rejected') {
       return 'Proforma rechazada';
     }
-    return statusLabelMap[row.status];
+    return REQUEST_STATUS_LABEL_MAP[row.status];
   };
 
   const getStatusDisplayLabel = (row: RequestRow) => {
@@ -675,7 +613,7 @@ export default function RequestsListing() {
 
     return {
       reference: row.reference,
-      matrixLabels: row.matrix.map((entry) => matrixLabelMap[entry] ?? entry),
+      matrixLabels: row.matrix.map(toMatrixLabel),
       validDays: row.validDays,
       issuedAtLabel: formatDateLabel(issuedAtMs),
       validUntilLabel: formatDateLabel(validUntilMs),
@@ -689,50 +627,36 @@ export default function RequestsListing() {
         phone: row.client.phone || '',
         mobile: ''
       },
-      services: row.serviceItems.map((service) => {
-        const quantity = service.quantity ?? 0;
-        const unitPrice = Number.isFinite(service.unitPrice)
-          ? service.unitPrice
-          : null;
-        const discountAmount = Number.isFinite(service.discountAmount)
-          ? service.discountAmount
-          : null;
-        const lineSubtotal =
-          typeof unitPrice === 'number'
-            ? Math.max(0, quantity * unitPrice - (discountAmount ?? 0))
-            : null;
-
-        return {
-          table: service.tableLabel || 'Sin tabla',
-          label: service.parameterLabel || service.parameterId || 'Servicio',
-          unit: service.unit || 'Sin unidad',
-          method: service.method || 'Sin método',
-          rangeOffered: `${service.rangeMin || '—'} a ${service.rangeMax || '—'}`,
-          quantity,
-          unitPrice,
-          discountAmount,
-          subtotal: lineSubtotal
-        };
-      }),
+      services: row.serviceItems.map((service) =>
+        toProformaPreviewServiceLine({
+          tableLabel: service.tableLabel,
+          label: service.parameterLabel,
+          parameterId: service.parameterId,
+          unit: service.unit,
+          method: service.method,
+          rangeMin: service.rangeMin,
+          rangeMax: service.rangeMax,
+          quantity: service.quantity,
+          unitPrice: service.unitPrice,
+          discountAmount: service.discountAmount
+        })
+      ),
       serviceGroups: row.serviceGroups.map((group, groupIndex) => ({
         name: group.name || `Combo ${groupIndex + 1}`,
-        items: group.items.map((item) => {
-          const lineSubtotal = Math.max(
-            0,
-            item.unitPrice * item.quantity - item.discountAmount
-          );
-          return {
-            table: 'Sin tabla',
-            label: item.parameterLabel || 'Servicio',
-            unit: 'Sin unidad',
-            method: 'Sin método',
-            rangeOffered: '—',
-            quantity: item.quantity ?? 0,
-            unitPrice: item.unitPrice ?? null,
-            discountAmount: item.discountAmount ?? null,
-            subtotal: lineSubtotal
-          };
-        })
+        items: group.items.map((item) =>
+          toProformaPreviewServiceLine({
+            tableLabel: item.tableLabel,
+            label: item.parameterLabel,
+            parameterId: item.parameterId,
+            unit: item.unit,
+            method: item.method,
+            rangeMin: item.rangeMin,
+            rangeMax: item.rangeMax,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            discountAmount: item.discountAmount
+          })
+        )
       })),
       pricing: {
         subtotal: row.subtotal ?? 0,
@@ -826,7 +750,8 @@ export default function RequestsListing() {
               : 0;
 
           const createdAtMs =
-            toTimestampMs(value.createdAt) || toTimestampMs(value.updatedAt);
+            firestoreTimestampToMs(value.createdAt) ||
+            firestoreTimestampToMs(value.updatedAt);
 
           const agreedCount =
             typeof value.samples === 'object' && value.samples !== null
@@ -1015,6 +940,11 @@ export default function RequestsListing() {
                           serviceId?: string;
                           parameterId?: string;
                           parameterLabel?: string;
+                          tableLabel?: string | null;
+                          unit?: string | null;
+                          method?: string | null;
+                          rangeMin?: string | null;
+                          rangeMax?: string | null;
                           quantity?: number;
                           unitPrice?: number | null;
                           discountAmount?: number | null;
@@ -1027,11 +957,30 @@ export default function RequestsListing() {
                               rowItem.parameterId ??
                               `grouped-service-${groupIndex}-${itemIndex}`
                           ),
+                          parameterId: String(
+                            rowItem.parameterId ??
+                              rowItem.serviceId ??
+                              `grouped-parameter-${groupIndex}-${itemIndex}`
+                          ),
                           parameterLabel: String(
                             rowItem.parameterLabel ??
                               rowItem.parameterId ??
                               'Servicio'
                           ),
+                          tableLabel:
+                            typeof rowItem.tableLabel === 'string'
+                              ? rowItem.tableLabel
+                              : null,
+                          unit:
+                            typeof rowItem.unit === 'string'
+                              ? rowItem.unit
+                              : null,
+                          method:
+                            typeof rowItem.method === 'string'
+                              ? rowItem.method
+                              : null,
+                          rangeMin: String(rowItem.rangeMin ?? ''),
+                          rangeMax: String(rowItem.rangeMax ?? ''),
                           quantity: Math.max(1, Number(rowItem.quantity ?? 1)),
                           unitPrice: Number.isFinite(unitPrice) ? unitPrice : 0,
                           discountAmount:
@@ -1063,7 +1012,13 @@ export default function RequestsListing() {
                       name: 'Combo 1',
                       items: normalizedServiceItems.map((item) => ({
                         serviceId: item.serviceId,
+                        parameterId: item.parameterId,
                         parameterLabel: item.parameterLabel,
+                        tableLabel: item.tableLabel,
+                        unit: item.unit,
+                        method: item.method,
+                        rangeMin: item.rangeMin,
+                        rangeMax: item.rangeMax,
                         quantity: item.quantity,
                         unitPrice: item.unitPrice,
                         discountAmount: item.discountAmount
@@ -1095,8 +1050,8 @@ export default function RequestsListing() {
             analysesCount: normalizedServiceItems.length || legacyAnalysesCount,
             total: Number.isFinite(total) ? total : 0,
             subtotal: Number.isFinite(subtotal) ? subtotal : 0,
-            updatedAtLabel: formatTimestamp(value.updatedAt),
-            updatedAtMs: toTimestampMs(value.updatedAt)
+            updatedAtLabel: formatFirestoreTimestamp(value.updatedAt),
+            updatedAtMs: firestoreTimestampToMs(value.updatedAt)
           };
         });
 
@@ -1131,8 +1086,8 @@ export default function RequestsListing() {
           break;
         case 'matrix':
           compare = collator.compare(
-            formatMatrixLabel(left.matrix),
-            formatMatrixLabel(right.matrix)
+            formatMatrixLabelList(left.matrix),
+            formatMatrixLabelList(right.matrix)
           );
           break;
         case 'client':
@@ -1197,7 +1152,7 @@ export default function RequestsListing() {
         row.reference,
         row.notes,
         row.matrix.join(','),
-        formatMatrixLabel(row.matrix),
+        formatMatrixLabelList(row.matrix),
         row.status,
         row.approvalStatus ?? '',
         getApprovalStatusLabel(row),
@@ -1435,7 +1390,7 @@ export default function RequestsListing() {
                     </td>
                     <td className='w-[4.5rem] px-3 py-3 md:w-[5rem] md:px-4'>
                       <span className='block w-full max-w-full truncate'>
-                        {formatMatrixLabel(row.matrix)}
+                        {formatMatrixLabelList(row.matrix)}
                       </span>
                     </td>
                     <td className='w-[4.5rem] px-3 py-3 text-right md:px-4'>
@@ -1807,7 +1762,7 @@ export default function RequestsListing() {
                 ) : null}
                 <ProformaSummaryPanel
                   typeLabel={selectedRow.isWorkOrder ? 'Proforma + OT' : 'Proforma'}
-                  matrixLabel={formatMatrixLabel(selectedRow.matrix)}
+                  matrixLabel={formatMatrixLabelList(selectedRow.matrix)}
                   reference={selectedRow.reference}
                   validDaysLabel={
                     selectedRow.validDays ? `${selectedRow.validDays} días` : '—'

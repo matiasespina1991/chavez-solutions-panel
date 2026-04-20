@@ -157,11 +157,11 @@ Resultado: menos fricción operativa, trazabilidad de estado y una base para est
 ### 6.2 Funciones callable clave
 
 - `createWorkOrder`: emite OT desde solicitud aprobada.
-- `approveServiceRequest` / `rejectServiceRequest`: gestión de aprobación.
+- `approveProforma` / `rejectProforma`: gestión de aprobación.
 - `pauseWorkOrder` / `resumeWorkOrder`: control de pausa.
 - `completeWorkOrder`: finaliza OT y actualiza solicitud origen.
 - `saveWorkOrderLabAnalysis`: persiste resultados de laboratorio.
-- `deleteServiceRequest`: elimina solicitud y cancela OT vinculada si existe.
+- `deleteProforma`: elimina solicitud y cancela OT vinculada si existe.
 - `importServicesFromCsv`: reemplazo masivo de catálogo de servicios.
 - `listServiceHistory` / `restoreServiceHistory` / `deleteServiceHistory`: versionado de catálogo.
 - `generateProformaPreviewPdf`: genera PDF de proforma con render HTML + Puppeteer.
@@ -169,7 +169,7 @@ Resultado: menos fricción operativa, trazabilidad de estado y una base para est
 
 ### 6.3 Triggers clave
 
-- `onServiceRequestSubmitted`:
+- `onProformaSubmitted`:
   - cuando una solicitud pasa a `submitted`, crea item en `mail_outbox` con estado `pending`.
 - `onMailOutboxCreated`:
   - procesa `mail_outbox`,
@@ -181,7 +181,7 @@ Resultado: menos fricción operativa, trazabilidad de estado y una base para est
 
 Patrón implementado:
 
-1. Evento de negocio (`service_requests.status -> submitted`)
+1. Evento de negocio (`requests.status -> submitted`)
 2. Escritura en outbox (`mail_outbox`)
 3. Trigger consumidor procesa outbox
 
@@ -197,18 +197,18 @@ Ventajas:
 
 ## 7.1 Colecciones core
 
-- `service_requests`: solicitud/proforma (origen del flujo)
+- `requests`: solicitud/proforma (origen del flujo)
 - `work_orders`: ejecución operativa de OT
 - `services`: catálogo importado (parámetros/tabla/unidad/método/precio)
 - `services_history`: snapshots de catálogo por importación
 - `services_history_meta/current`: puntero a versión activa
 - `services_deleted_history`: histórico eliminado
 - `mail_outbox`: cola de correos por eventos
-- `deleted_service_requests`: archivo de solicitudes eliminadas
+- `deleted_requests`: archivo de solicitudes eliminadas
 
 ## 7.2 Estados relevantes
 
-### `service_requests.status`
+### `requests.status`
 
 - `draft`
 - `submitted`
@@ -217,7 +217,7 @@ Ventajas:
 - `work_order_completed`
 - `cancelled`
 
-### `service_requests.approval.status`
+### `requests.approval.status`
 
 - `pending`
 - `approved`

@@ -82,6 +82,7 @@ import {
   generateProformaPreviewPdf,
   getConfigurationById,
   sendProformaPreviewEmail,
+  toProformaPreviewServiceLine,
   updateConfiguration,
   ConfigurationDocument,
   ConfigurationServiceItem,
@@ -91,6 +92,7 @@ import {
 import { ProformaSummaryPanel } from '@/features/proformas/components/proforma-summary-panel';
 import { IconFilterPlus } from '@tabler/icons-react';
 import { cn } from '@/lib/utils';
+import { formatMatrixLabelList, toMatrixLabel } from '@/lib/matrix-labels';
 
 const formSchema = z.object({
   type: z.literal('proforma'),
@@ -188,7 +190,6 @@ const formSchema = z.object({
 });
 
 type FormValues = z.infer<typeof formSchema>;
-type MatrixOption = FormValues['matrix'][number];
 type ConfiguratorTab = 'client' | 'samples' | 'type' | 'summary';
 type DialogFilterKey = 'matEnsayo' | 'norma' | 'tabla' | 'tecnica';
 type DialogFilters = Record<DialogFilterKey, string[]>;
@@ -199,13 +200,6 @@ const DIALOG_FILTER_LABELS: Record<DialogFilterKey, string> = {
   norma: 'Norma',
   tabla: 'Tabla',
   tecnica: 'Técnica'
-};
-
-const MATRIX_LABEL_MAP: Record<MatrixOption, string> = {
-  water: 'Agua',
-  soil: 'Suelo',
-  noise: 'Ruido',
-  gases: 'Gases'
 };
 
 const TAB_ORDER: ConfiguratorTab[] = ['client', 'samples', 'type', 'summary'];
@@ -1913,7 +1907,7 @@ export default function ConfiguratorForm() {
       reference: referenceLabel,
       matrixLabels:
         Array.isArray(matrix) && matrix.length
-          ? matrix.map((entry) => MATRIX_LABEL_MAP[entry] ?? entry)
+          ? matrix.map(toMatrixLabel)
           : [],
       validDays:
         typeof validDaysValue === 'number' && Number.isFinite(validDaysValue)
@@ -1931,70 +1925,46 @@ export default function ConfiguratorForm() {
         phone: form.getValues('client.phone') || '',
         mobile: ''
       },
-      services: selectedServices.map((service) => {
-        const quantity = service.quantity ?? 0;
-        const unitPrice = service.unitPrice ?? null;
-        const discountAmount = service.discountAmount ?? null;
-        const lineSubtotal =
-          typeof unitPrice === 'number'
-            ? Math.max(0, quantity * unitPrice - (discountAmount ?? 0))
-            : null;
-        return {
-          table: service.ID_TABLA_NORMA || 'Sin tabla',
+      services: selectedServices.map((service) =>
+        toProformaPreviewServiceLine({
+          tableLabel: service.ID_TABLA_NORMA,
           label:
-            service.ID_PARAMETRO ||
-            service.ID_CONFIG_PARAMETRO ||
-            service.id ||
-            'Servicio',
-          unit: service.UNIDAD_NORMA || service.UNIDAD_INTERNO || 'Sin unidad',
+            service.ID_PARAMETRO || service.ID_CONFIG_PARAMETRO || service.id,
+          parameterId: service.ID_CONFIG_PARAMETRO || service.id,
+          unit: service.UNIDAD_NORMA || service.UNIDAD_INTERNO,
           method:
             service.ID_TECNICA ||
             service.ID_MET_REFERENCIA ||
-            service.ID_MET_INTERNO ||
-            'Sin método',
-          rangeOffered: `${service.LIM_INF_INTERNO || '—'} a ${
-            service.LIM_SUP_INTERNO || '—'
-          }`,
-          quantity,
-          unitPrice,
-          discountAmount,
-          subtotal: lineSubtotal
-        };
-      }),
+            service.ID_MET_INTERNO,
+          rangeMin: service.LIM_INF_INTERNO,
+          rangeMax: service.LIM_SUP_INTERNO,
+          quantity: service.quantity,
+          unitPrice: service.unitPrice,
+          discountAmount: service.discountAmount
+        })
+      ),
       serviceGroups: summaryServiceGroups.map((group, groupIndex) => ({
         name: group.name || `Combo ${groupIndex + 1}`,
-        items: group.items.map((service) => {
-          const quantity = service.quantity ?? 0;
-          const unitPrice = service.unitPrice ?? null;
-          const discountAmount = service.discountAmount ?? null;
-          const lineSubtotal =
-            unitPrice !== null
-              ? Math.max(0, quantity * unitPrice - (discountAmount ?? 0))
-              : null;
-
-          return {
-            table: service.ID_TABLA_NORMA || 'Sin tabla',
+        items: group.items.map((service) =>
+          toProformaPreviewServiceLine({
+            tableLabel: service.ID_TABLA_NORMA,
             label:
               service.ID_PARAMETRO ||
               service.ID_CONFIG_PARAMETRO ||
-              service.id ||
-              'Servicio',
-            unit:
-              service.UNIDAD_NORMA || service.UNIDAD_INTERNO || 'Sin unidad',
+              service.id,
+            parameterId: service.ID_CONFIG_PARAMETRO || service.id,
+            unit: service.UNIDAD_NORMA || service.UNIDAD_INTERNO,
             method:
               service.ID_TECNICA ||
               service.ID_MET_REFERENCIA ||
-              service.ID_MET_INTERNO ||
-              'Sin método',
-            rangeOffered: `${service.LIM_INF_INTERNO || '—'} a ${
-              service.LIM_SUP_INTERNO || '—'
-            }`,
-            quantity,
-            unitPrice,
-            discountAmount,
-            subtotal: lineSubtotal
-          };
-        })
+              service.ID_MET_INTERNO,
+            rangeMin: service.LIM_INF_INTERNO,
+            rangeMax: service.LIM_SUP_INTERNO,
+            quantity: service.quantity,
+            unitPrice: service.unitPrice,
+            discountAmount: service.discountAmount
+          })
+        )
       })),
       pricing: {
         subtotal: summarySubtotal,
@@ -2846,10 +2816,8 @@ export default function ConfiguratorForm() {
                 <ProformaSummaryPanel
                   typeLabel='Proforma'
                   matrixLabel={
-                    Array.isArray(matrix) && matrix.length
-                      ? matrix
-                          .map((entry) => MATRIX_LABEL_MAP[entry] ?? entry)
-                          .join(', ')
+                    Array.isArray(matrix)
+                      ? formatMatrixLabelList(matrix)
                       : '—'
                   }
                   reference={form.getValues('reference') || '—'}

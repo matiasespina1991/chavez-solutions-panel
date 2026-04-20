@@ -19,7 +19,7 @@
 | CT-1004 | in_progress | CT-1002 | `cross-cutting/phase-1-contracts-and-naming.md` |
 | CT-1005 | in_progress | CT-1003, CT-1004 | `cross-cutting/phase-1-contracts-and-naming.md` |
 | CT-1006 | in_progress | CT-1003 | `cross-cutting/phase-1-contracts-and-naming.md` |
-| CT-1007 | todo | CT-1001, CT-1002, CT-1003, CT-1004 | `cross-cutting/phase-1-contracts-and-naming.md` |
+| CT-1007 | approved | CT-1001, CT-1002, CT-1003, CT-1004 | `cross-cutting/phase-1-contracts-and-naming.md` |
 
 ## Fase 2 - Seguridad y acceso
 

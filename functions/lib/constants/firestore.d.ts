@@ -8,6 +8,4 @@ export declare const FIRESTORE_COLLECTIONS: {
     readonly SERVICES_HISTORY: "services_history";
     readonly SERVICES_HISTORY_META: "services_history_meta";
     readonly SERVICES_DELETED_HISTORY: "services_deleted_history";
-    readonly MEDIA: "media";
-    readonly MEDIASETS: "mediasets";
 };

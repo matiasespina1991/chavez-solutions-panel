@@ -33,7 +33,13 @@ export interface RequestServiceItem {
 
 export interface RequestServiceGroupItem {
   serviceId: string;
+  parameterId?: string;
   parameterLabel: string;
+  tableLabel?: string | null;
+  unit?: string | null;
+  method?: string | null;
+  rangeMin?: string;
+  rangeMax?: string;
   quantity: number;
   unitPrice: number;
   discountAmount: number;

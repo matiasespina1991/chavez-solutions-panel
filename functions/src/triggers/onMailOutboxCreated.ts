@@ -4,6 +4,8 @@ import {
   generateAndStoreProformaPreviewPdf,
   ProformaPreviewPayload
 } from '../utils/proformaPreviewPdf.js';
+import { matrixKeyToLabel } from '../utils/matrixLabels.js';
+import { mapRequestServicesToPreview } from '../utils/requestServicesPreview.js';
 import { sendWithGmailApi } from '../utils/gmail.js';
 import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
 
@@ -33,17 +35,7 @@ interface ProformaSource {
     email?: string | null;
     phone?: string | null;
   } | null;
-  services?: Array<{
-    tableLabel?: string | null;
-    parameterLabel?: string | null;
-    unit?: string | null;
-    method?: string | null;
-    rangeMin?: string | null;
-    rangeMax?: string | null;
-    quantity?: number | null;
-    unitPrice?: number | null;
-    discountAmount?: number | null;
-  }> | null;
+  services?: unknown;
   pricing?: {
     subtotal?: number | null;
     taxPercent?: number | null;
@@ -51,13 +43,6 @@ interface ProformaSource {
     validDays?: number | null;
   } | null;
 }
-
-const MATRIX_LABELS: Record<string, string> = {
-  water: 'Agua',
-  soil: 'Suelo',
-  noise: 'Ruido',
-  gases: 'Gases'
-};
 
 const formatDate = (date: Date): string => {
   const day = `${date.getDate()}`.padStart(2, '0');
@@ -87,16 +72,15 @@ const toPreviewPayload = (
   const validUntil = new Date(createdAt);
   validUntil.setDate(validUntil.getDate() + normalizedValidDays);
 
-  const services = Array.isArray(source.services) ? source.services : [];
+  const { services, serviceGroups } = mapRequestServicesToPreview(
+    source.services
+  );
 
   return {
     reference: source.reference || requestId,
     matrixLabels: Array.isArray(source.matrix)
       ? source.matrix
-          .map((value) => {
-            const key = String(value || '').trim().toLowerCase();
-            return MATRIX_LABELS[key] ?? String(value || '').trim();
-          })
+          .map(matrixKeyToLabel)
           .filter((value) => value.length > 0)
       : [],
     validDays: normalizedValidDays,
@@ -112,36 +96,8 @@ const toPreviewPayload = (
       phone: source.client?.phone || '',
       mobile: source.client?.phone || ''
     },
-    services: services.map((service) => {
-      const quantity = Number(service.quantity ?? 0);
-      const safeQuantity =
-        Number.isFinite(quantity) && quantity > 0 ? Math.floor(quantity) : 0;
-      const unitPrice =
-        typeof service.unitPrice === 'number' && Number.isFinite(service.unitPrice)
-          ? service.unitPrice
-          : null;
-      const discountAmount =
-        typeof service.discountAmount === 'number' &&
-        Number.isFinite(service.discountAmount)
-          ? service.discountAmount
-          : null;
-      const subtotal =
-        unitPrice === null
-          ? null
-          : Math.max(0, safeQuantity * unitPrice - (discountAmount ?? 0));
-
-      return {
-        table: service.tableLabel || 'Sin tabla',
-        label: service.parameterLabel || 'Servicio',
-        unit: service.unit || '',
-        method: service.method || '',
-        rangeOffered: `${service.rangeMin || '—'} a ${service.rangeMax || '—'}`,
-        quantity: safeQuantity,
-        unitPrice,
-        discountAmount,
-        subtotal
-      };
-    }),
+    services,
+    serviceGroups,
     pricing: {
       subtotal:
         typeof source.pricing?.subtotal === 'number' &&

@@ -1,6 +1,10 @@
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import admin from 'firebase-admin';
 import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
+import {
+  formatMatrixLabel,
+  normalizeMatrixArray
+} from '../utils/matrixLabels.js';
 
 const db = admin.firestore();
 const MAIL_OUTBOX_COLLECTION = FIRESTORE_COLLECTIONS.MAIL_OUTBOX;
@@ -19,33 +23,6 @@ interface ProformaData {
   } | null;
   client?: ProformaClient | null;
 }
-
-const MATRIX_LABELS: Record<string, string> = {
-  water: 'Agua',
-  soil: 'Suelo',
-  noise: 'Ruido',
-  gases: 'Gases'
-};
-const ALLOWED_MATRICES = new Set(Object.keys(MATRIX_LABELS));
-
-const normalizeMatrixArray = (value: unknown): string[] => {
-  if (!Array.isArray(value)) return [];
-  const unique = new Set<string>();
-
-  value.forEach((entry) => {
-    if (typeof entry !== 'string') return;
-    const normalized = entry.trim().toLowerCase();
-    if (!normalized || !ALLOWED_MATRICES.has(normalized)) return;
-    unique.add(normalized);
-  });
-
-  return Array.from(unique);
-};
-
-const toMatrixLabel = (matrix: string[]) =>
-  matrix.length
-    ? matrix.map((entry) => MATRIX_LABELS[entry] ?? entry).join(', ')
-    : '—';
 
 export const onProformaSubmitted = onDocumentWritten(
   {
@@ -90,7 +67,7 @@ export const onProformaSubmitted = onDocumentWritten(
         payload: {
           reference: afterData.reference || '',
           matrix,
-          matrixLabel: toMatrixLabel(matrix),
+          matrixLabel: formatMatrixLabel(matrix),
           clientBusinessName: afterData.client?.businessName || '',
           total: Number(afterData.pricing?.total || 0)
         },

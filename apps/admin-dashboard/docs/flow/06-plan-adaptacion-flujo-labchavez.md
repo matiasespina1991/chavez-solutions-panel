@@ -7,13 +7,13 @@ Este documento describe cómo adaptaría el sistema actual al flujo de negocio d
 Se implementó la base de Fase 1 en código:
 
 - Nuevos callables backend:
-  - `approveServiceRequest`
-  - `rejectServiceRequest`
+  - `approveProforma`
+  - `rejectProforma`
 - Endurecimiento de emisión OT:
   - `createWorkOrder` ahora exige `approval.status === approved`.
   - Se eliminó el bypass de cliente con `forceEmit`.
 - Cliente (servicios):
-  - Se agregaron wrappers `approveServiceRequest` y `rejectServiceRequest`.
+  - Se agregaron wrappers `approveProforma` y `rejectProforma`.
   - `createWorkOrderFromRequest` traduce el error de aprobación pendiente a mensaje funcional en español.
 
 Implementado en UI: la pantalla de solicitudes ya expone acciones de aprobación/rechazo de proforma con motivo de rechazo.
@@ -116,8 +116,8 @@ Mover el configurador a “etapa comercial”:
 
 Agregar función explícita de aprobación (hoy no existe):
 
-- `approveServiceRequest` (aprobación)
-- `rejectServiceRequest` (retroalimentación/rechazo)
+- `approveProforma` (aprobación)
+- `rejectProforma` (retroalimentación/rechazo)
 
 Campos sugeridos:
 
@@ -154,8 +154,8 @@ Agregar estado financiero posterior a aceptación:
 
 Agregar callables:
 
-- `approveServiceRequest`
-- `rejectServiceRequest`
+- `approveProforma`
+- `rejectProforma`
 - `registerFieldSampling`
 - `registerLabIntake`
 - `publishLabResults`
