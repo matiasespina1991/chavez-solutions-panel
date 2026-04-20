@@ -34,7 +34,6 @@ import {
 import { completeWorkOrder } from '@/features/configurator/services/configurations';
 import { FIRESTORE_COLLECTIONS } from '@/constants/firestore';
 import { normalizeMatrixArray } from '@/lib/request-normalizers';
-import { formatMatrixLabelList } from '@/lib/matrix-labels';
 import {
   firestoreTimestampToMs,
   formatFirestoreTimestamp
@@ -63,7 +62,6 @@ import { toast } from 'sonner';
 
 type SortKey =
   | 'reference'
-  | 'matrix'
   | 'client'
   | 'samples'
   | 'analyses'
@@ -240,7 +238,6 @@ export default function WorkOrdersListing() {
            <h3>Datos generales</h3>
            <p class="line"><strong>N° OT:</strong> ${escapeHtml(selectedRow.workOrderNumber)}</p>
            <p class="line"><strong>Referencia origen:</strong> ${escapeHtml(selectedRow.sourceReference)}</p>
-           <p class="line"><strong>Matrices:</strong> ${escapeHtml(formatMatrixLabelList(selectedRow.matrix))}</p>
            <p class="line"><strong>Estado:</strong> ${escapeHtml(WORK_ORDER_STATUS_LABEL_MAP[selectedRow.status])}</p>
            <p class="line"><strong>Última actualización:</strong> ${escapeHtml(selectedRow.updatedAtLabel)}</p>
          </div>
@@ -645,12 +642,6 @@ export default function WorkOrdersListing() {
             right.workOrderNumber
           );
           break;
-        case 'matrix':
-          compare = collator.compare(
-            formatMatrixLabelList(left.matrix),
-            formatMatrixLabelList(right.matrix)
-          );
-          break;
         case 'client':
           compare = collator.compare(
             left.clientBusinessName,
@@ -717,7 +708,6 @@ export default function WorkOrdersListing() {
         row.sourceRequestId,
         row.notes,
         row.matrix.join(','),
-        formatMatrixLabelList(row.matrix),
         row.status,
         WORK_ORDER_STATUS_LABEL_MAP[row.status],
         row.client.businessName,
@@ -754,13 +744,12 @@ export default function WorkOrdersListing() {
   if (loading) {
     return (
       <DataTableSkeleton
-        columnCount={10}
+        columnCount={9}
         rowCount={8}
         filterCount={0}
         withViewOptions={false}
         withPagination={false}
         cellWidths={[
-          '12rem',
           '12rem',
           '14rem',
           '6rem',
@@ -825,15 +814,6 @@ export default function WorkOrdersListing() {
                     onClick={() => handleSort('client')}
                   >
                     Cliente{getSortIndicator('client')}
-                  </button>
-                </th>
-                <th className='w-[4.5rem] px-3 py-3 md:w-[5rem] md:px-4'>
-                  <button
-                    type='button'
-                    className='cursor-pointer select-none'
-                    onClick={() => handleSort('matrix')}
-                  >
-                    Matrices{getSortIndicator('matrix')}
                   </button>
                 </th>
                 <th className='w-[4.5rem] px-3 py-3 text-right md:px-4'>
@@ -917,11 +897,6 @@ export default function WorkOrdersListing() {
                     <td className='w-[8rem] px-3 py-3 md:w-[10rem] md:px-4'>
                       <span className='block w-full max-w-full truncate'>
                         {row.clientBusinessName}
-                      </span>
-                    </td>
-                    <td className='w-[4.5rem] px-3 py-3 md:w-[5rem] md:px-4'>
-                      <span className='block w-full max-w-full truncate'>
-                        {formatMatrixLabelList(row.matrix)}
                       </span>
                     </td>
                     <td className='w-[4.5rem] px-3 py-3 text-right md:px-4'>
@@ -1107,10 +1082,6 @@ export default function WorkOrdersListing() {
                     <p>
                       <span className='font-medium'>Referencia origen:</span>{' '}
                       {selectedRow.sourceReference}
-                    </p>
-                    <p>
-                      <span className='font-medium'>Matrices:</span>{' '}
-                      {formatMatrixLabelList(selectedRow.matrix)}
                     </p>
                   </div>
                   <div className='bg-muted/20 space-y-2 rounded-md border p-4'>

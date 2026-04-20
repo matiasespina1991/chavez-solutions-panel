@@ -44,7 +44,6 @@ import {
 } from '@/features/configurator/services/configurations';
 import { FIRESTORE_COLLECTIONS } from '@/constants/firestore';
 import { normalizeMatrixArray } from '@/lib/request-normalizers';
-import { formatMatrixLabelList, toMatrixLabel } from '@/lib/matrix-labels';
 import {
   firestoreTimestampToMs,
   formatFirestoreTimestamp
@@ -79,7 +78,6 @@ import { ProformaSummaryPanel } from '@/features/proformas/components/proforma-s
 
 type SortKey =
   | 'reference'
-  | 'matrix'
   | 'client'
   | 'samples'
   | 'analyses'
@@ -443,6 +441,7 @@ export default function RequestsListing() {
       await createWorkOrderFromRequest(row.id);
 
       toast.success(`Orden de trabajo ejecutada (${row.reference})`);
+      const approverEmail = auth.currentUser?.email?.trim() || null;
 
       setRows((prev) =>
         prev.map((entry) =>
@@ -451,6 +450,7 @@ export default function RequestsListing() {
                 ...entry,
                 status: 'converted_to_work_order',
                 approvalStatus: 'approved',
+                approvalActorEmail: approverEmail,
                 isWorkOrder: true
               }
             : entry
@@ -463,6 +463,7 @@ export default function RequestsListing() {
               ...prev,
               status: 'converted_to_work_order',
               approvalStatus: 'approved',
+              approvalActorEmail: approverEmail,
               isWorkOrder: true
             }
           : prev
@@ -578,11 +579,7 @@ export default function RequestsListing() {
   const handleDialogEdit = () => {
     if (!selectedRow) return;
 
-    const workOrderIssued = hasIssuedWorkOrder(selectedRow);
-    const isWorkOrderPaused = selectedRow.status === 'work_order_paused';
-
-    if (workOrderIssued && !isWorkOrderPaused) {
-      toast.error('No se puede editar una orden de trabajo ya emitida');
+    if (hasIssuedWorkOrder(selectedRow)) {
       return;
     }
 
@@ -601,6 +598,7 @@ export default function RequestsListing() {
   const canApproveSelectedRow =
     selectedRow?.status === 'submitted' &&
     selectedRow.approvalStatus !== 'approved';
+  const canEditSelectedRow = selectedRow ? !hasIssuedWorkOrder(selectedRow) : false;
 
   const handleDialogResumeWorkOrder = () => {
     if (!selectedRow || selectedRow.status !== 'work_order_paused') return;
@@ -613,7 +611,7 @@ export default function RequestsListing() {
 
     return {
       reference: row.reference,
-      matrixLabels: row.matrix.map(toMatrixLabel),
+      matrixLabels: [],
       validDays: row.validDays,
       issuedAtLabel: formatDateLabel(issuedAtMs),
       validUntilLabel: formatDateLabel(validUntilMs),
@@ -724,6 +722,16 @@ export default function RequestsListing() {
             typeof value.approval === 'object' && value.approval !== null
               ? String((value.approval as { feedback?: string }).feedback ?? '')
               : '';
+          const approvalActorEmail =
+            typeof value.approval === 'object' && value.approval !== null
+              ? String(
+                  (
+                    value.approval as {
+                      approvedBy?: { email?: string | null } | null;
+                    }
+                  ).approvedBy?.email ?? ''
+                ).trim() || null
+              : null;
           const total =
             typeof value.pricing === 'object' && value.pricing !== null
               ? Number((value.pricing as { total?: number | null }).total ?? 0)
@@ -1035,6 +1043,7 @@ export default function RequestsListing() {
             matrix,
             status,
             approvalStatus,
+            approvalActorEmail,
             approvalFeedback,
             validDays:
               Number.isFinite(validDays) && validDays > 0 ? validDays : null,
@@ -1083,12 +1092,6 @@ export default function RequestsListing() {
       switch (sortKey) {
         case 'reference':
           compare = collator.compare(left.reference, right.reference);
-          break;
-        case 'matrix':
-          compare = collator.compare(
-            formatMatrixLabelList(left.matrix),
-            formatMatrixLabelList(right.matrix)
-          );
           break;
         case 'client':
           compare = collator.compare(
@@ -1152,7 +1155,6 @@ export default function RequestsListing() {
         row.reference,
         row.notes,
         row.matrix.join(','),
-        formatMatrixLabelList(row.matrix),
         row.status,
         row.approvalStatus ?? '',
         getApprovalStatusLabel(row),
@@ -1203,13 +1205,12 @@ export default function RequestsListing() {
   if (loading) {
     return (
       <DataTableSkeleton
-        columnCount={10}
+        columnCount={9}
         rowCount={8}
         filterCount={0}
         withViewOptions={false}
         withPagination={false}
         cellWidths={[
-          '10rem',
           '10rem',
           '14rem',
           '6rem',
@@ -1274,15 +1275,6 @@ export default function RequestsListing() {
                     onClick={() => handleSort('client')}
                   >
                     Cliente{getSortIndicator('client')}
-                  </button>
-                </th>
-                <th className='w-[4.5rem] px-3 py-3 md:w-[5rem] md:px-4'>
-                  <button
-                    type='button'
-                    className='cursor-pointer select-none'
-                    onClick={() => handleSort('matrix')}
-                  >
-                    Matrices{getSortIndicator('matrix')}
                   </button>
                 </th>
                 <th className='w-[4.5rem] px-3 py-3 text-right md:px-4'>
@@ -1386,11 +1378,6 @@ export default function RequestsListing() {
                     <td className='w-[8rem] px-3 py-3 md:w-[10rem] md:px-4'>
                       <span className='block w-full max-w-full truncate'>
                         {row.clientBusinessName}
-                      </span>
-                    </td>
-                    <td className='w-[4.5rem] px-3 py-3 md:w-[5rem] md:px-4'>
-                      <span className='block w-full max-w-full truncate'>
-                        {formatMatrixLabelList(row.matrix)}
                       </span>
                     </td>
                     <td className='w-[4.5rem] px-3 py-3 text-right md:px-4'>
@@ -1659,18 +1646,25 @@ export default function RequestsListing() {
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button
-                      type='button'
-                      variant='ghost'
-                      size='icon'
-                      className={dialogActionButtonClass}
-                      onClick={handleDialogEdit}
-                      aria-label='Editar solicitud'
-                    >
-                      <IconPencil className='h-4 w-4' />
-                    </Button>
+                    <span className='inline-flex'>
+                      <Button
+                        type='button'
+                        variant='ghost'
+                        size='icon'
+                        className={dialogActionButtonClass}
+                        onClick={handleDialogEdit}
+                        aria-label='Editar solicitud'
+                        disabled={!canEditSelectedRow}
+                      >
+                        <IconPencil className='h-4 w-4' />
+                      </Button>
+                    </span>
                   </TooltipTrigger>
-                  <TooltipContent>Editar solicitud...</TooltipContent>
+                  <TooltipContent>
+                    {canEditSelectedRow
+                      ? 'Editar solicitud...'
+                      : 'No se puede editar una orden de trabajo ya emitida'}
+                  </TooltipContent>
                 </Tooltip>
 
                 <Tooltip>
@@ -1762,8 +1756,12 @@ export default function RequestsListing() {
                 ) : null}
                 <ProformaSummaryPanel
                   typeLabel={selectedRow.isWorkOrder ? 'Proforma + OT' : 'Proforma'}
-                  matrixLabel={formatMatrixLabelList(selectedRow.matrix)}
                   reference={selectedRow.reference}
+                  workOrderExecutedByEmail={
+                    selectedRow.approvalStatus === 'approved'
+                      ? (selectedRow.approvalActorEmail ?? null)
+                      : null
+                  }
                   validDaysLabel={
                     selectedRow.validDays ? `${selectedRow.validDays} días` : '—'
                   }
@@ -1773,7 +1771,8 @@ export default function RequestsListing() {
                   client={{
                     businessName: selectedRow.client.businessName || '—',
                     taxId: selectedRow.client.taxId || '—',
-                    contactName: selectedRow.client.contactName || '—'
+                    contactName: selectedRow.client.contactName || '—',
+                    contactEmail: selectedRow.client.email || ''
                   }}
                   groups={selectedRow.serviceGroups.map((group) => ({
                     id: group.id,
@@ -1792,7 +1791,6 @@ export default function RequestsListing() {
                     total: selectedRow.total
                   }}
                   notes={selectedRow.notes}
-                  approvalStatusLabel={getApprovalStatusLabel(selectedRow)}
                   rejectionReason={
                     selectedRow.approvalStatus === 'rejected'
                       ? selectedRow.approvalFeedback

@@ -92,13 +92,10 @@ import {
 import { ProformaSummaryPanel } from '@/features/proformas/components/proforma-summary-panel';
 import { IconFilterPlus } from '@tabler/icons-react';
 import { cn } from '@/lib/utils';
-import { formatMatrixLabelList, toMatrixLabel } from '@/lib/matrix-labels';
 
 const formSchema = z.object({
   type: z.literal('proforma'),
-  matrix: z
-    .array(z.enum(['water', 'soil', 'noise', 'gases']))
-    .min(1, 'Debe seleccionar al menos una matriz'),
+  matrix: z.array(z.string()),
   reference: z.string().min(1, 'Referencia es requerida'),
   createdAt: z.date().optional(),
   validDays: z.number().optional(),
@@ -220,7 +217,7 @@ type SelectedServiceGroup = {
 
 const createDefaultFormValues = (): FormValues => ({
   type: 'proforma',
-  matrix: ['water'],
+  matrix: [],
   reference: `PR-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000)}`,
   createdAt: new Date(),
   validDays: 30,
@@ -1905,10 +1902,7 @@ export default function ConfiguratorForm() {
   const buildProformaPreviewPayload = () => {
     return {
       reference: referenceLabel,
-      matrixLabels:
-        Array.isArray(matrix) && matrix.length
-          ? matrix.map(toMatrixLabel)
-          : [],
+      matrixLabels: [],
       validDays:
         typeof validDaysValue === 'number' && Number.isFinite(validDaysValue)
           ? validDaysValue
@@ -2815,11 +2809,6 @@ export default function ConfiguratorForm() {
               <CardContent className='space-y-5 px-6 py-5'>
                 <ProformaSummaryPanel
                   typeLabel='Proforma'
-                  matrixLabel={
-                    Array.isArray(matrix)
-                      ? formatMatrixLabelList(matrix)
-                      : '—'
-                  }
                   reference={form.getValues('reference') || '—'}
                   validDaysLabel={
                     validDaysValue ? `${validDaysValue} días` : '—'
@@ -2828,7 +2817,8 @@ export default function ConfiguratorForm() {
                   client={{
                     businessName: form.getValues('client.businessName') || '—',
                     taxId: form.getValues('client.taxId') || '—',
-                    contactName: form.getValues('client.contactName') || '—'
+                    contactName: form.getValues('client.contactName') || '—',
+                    contactEmail: form.getValues('client.email') || ''
                   }}
                   groups={summaryServiceGroups.map((group) => ({
                     id: group.id,

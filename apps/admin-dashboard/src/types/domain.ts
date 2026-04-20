@@ -1,5 +1,3 @@
-export type MatrixType = 'water' | 'soil' | 'noise' | 'gases';
-
 export type RequestStatus =
   | 'draft'
   | 'submitted'
@@ -66,9 +64,10 @@ export interface RequestListRow {
   reference: string;
   notes: string;
   isWorkOrder: boolean;
-  matrix: MatrixType[];
+  matrix: string[];
   status: RequestStatus;
   approvalStatus: RequestApprovalStatus | null;
+  approvalActorEmail?: string | null;
   approvalFeedback: string;
   validDays: number | null;
   createdAtMs: number;
@@ -93,7 +92,7 @@ export interface WorkOrderListRow {
   sourceReference: string;
   sourceRequestId: string;
   notes: string;
-  matrix: MatrixType[];
+  matrix: string[];
   status: WorkOrderStatus;
   client: Pick<RequestClient, 'businessName' | 'taxId' | 'contactName'>;
   serviceItems: RequestServiceItem[];

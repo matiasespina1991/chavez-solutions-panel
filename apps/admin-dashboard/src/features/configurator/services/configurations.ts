@@ -13,7 +13,6 @@ import { db } from '@/lib/firebase';
 import { FIRESTORE_COLLECTIONS } from '@/constants/firestore';
 import { normalizeMatrixArray } from '@/lib/request-normalizers';
 import type {
-  MatrixType as DomainMatrixType,
   RequestApprovalStatus as DomainRequestApprovalStatus,
   RequestStatus as DomainRequestStatus,
   TechnicalServiceDocument
@@ -21,7 +20,6 @@ import type {
 
 export type ConfigurationStatus = 'draft' | 'final';
 export type ConfigurationType = 'proforma' | 'work_order' | 'both';
-export type MatrixType = DomainMatrixType;
 export type RequestStatus = DomainRequestStatus;
 export type RequestApprovalStatus = DomainRequestApprovalStatus;
 
@@ -121,7 +119,7 @@ export type ImportedServiceDocument = TechnicalServiceDocument;
 export interface ConfigurationDocument {
   id?: string;
   type: ConfigurationType;
-  matrix: MatrixType[];
+  matrix: string[];
   reference: string;
   createdAt?: any;
   updatedAt?: any;

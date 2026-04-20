@@ -16,14 +16,15 @@ interface ProformaSummaryServiceGroup {
 
 interface ProformaSummaryPanelProps {
   typeLabel: string;
-  matrixLabel: string;
   reference: string;
+  workOrderExecutedByEmail?: string | null;
   validDaysLabel: string;
   validUntilLabel: string;
   client: {
     businessName: string;
     taxId: string;
     contactName: string;
+    contactEmail?: string;
   };
   groups: ProformaSummaryServiceGroup[];
   pricing: {
@@ -32,22 +33,20 @@ interface ProformaSummaryPanelProps {
     total: number;
   };
   notes?: string | null;
-  approvalStatusLabel?: string;
   rejectionReason?: string | null;
   showTotalUsdSuffix?: boolean;
 }
 
 export function ProformaSummaryPanel({
   typeLabel,
-  matrixLabel,
   reference,
+  workOrderExecutedByEmail,
   validDaysLabel,
   validUntilLabel,
   client,
   groups,
   pricing,
   notes,
-  approvalStatusLabel,
   rejectionReason,
   showTotalUsdSuffix = true
 }: ProformaSummaryPanelProps) {
@@ -57,6 +56,14 @@ export function ProformaSummaryPanel({
     normalizedReference && normalizedReference.length > 0
       ? normalizedReference
       : '- (borrador)';
+  const normalizedExecutedByEmail = workOrderExecutedByEmail?.trim() || '';
+  const normalizedContactName = client.contactName?.trim() || '';
+  const normalizedContactEmail = client.contactEmail?.trim() || '';
+  const contactLabel = normalizedContactName
+    ? normalizedContactEmail
+      ? `${normalizedContactName} (${normalizedContactEmail})`
+      : normalizedContactName
+    : '—';
 
   return (
     <>
@@ -67,23 +74,22 @@ export function ProformaSummaryPanel({
             <span className='font-medium'>Tipo:</span> {typeLabel}
           </p>
           <p className='leading-snug'>
-            <span className='font-medium'>Matrices:</span> {matrixLabel}
-          </p>
-          <p className='leading-snug'>
             <span className='font-medium'>Referencia:</span> {referenceLabel}
           </p>
+          {normalizedExecutedByEmail ? (
+            <p className='leading-snug'>
+              <span className='font-medium'>
+                Orden de trabajo aprobada y ejecutada por:
+              </span>{' '}
+              {normalizedExecutedByEmail}
+            </p>
+          ) : null}
           <p className='leading-snug'>
             <span className='font-medium'>Validez:</span> {validDaysLabel}
           </p>
           <p className='leading-snug'>
             <span className='font-medium'>Válida hasta:</span> {validUntilLabel}
           </p>
-          {approvalStatusLabel ? (
-            <p className='leading-snug'>
-              <span className='font-medium'>Aprobación:</span>{' '}
-              {approvalStatusLabel}
-            </p>
-          ) : null}
           {rejectionReason?.trim() ? (
             <p className='leading-snug'>
               <span className='font-medium'>Motivo rechazo:</span>{' '}
@@ -101,8 +107,8 @@ export function ProformaSummaryPanel({
             <span className='font-medium'>RUC:</span> {client.taxId || '—'}
           </p>
           <p className='leading-snug'>
-            <span className='font-medium'>Contacto:</span>{' '}
-            {client.contactName || '—'}
+            <span className='font-medium'>Persona de contacto:</span>{' '}
+            {contactLabel}
           </p>
         </div>
       </div>

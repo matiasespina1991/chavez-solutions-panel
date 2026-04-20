@@ -20,13 +20,10 @@ type WorkOrderStatus =
   | 'cancelled'
   | 'unknown';
 
-type WorkOrderMatrix = 'water' | 'soil' | 'noise' | 'gases';
-
 interface WorkOrderMeta {
   id: string;
   workOrderNumber: string;
   sourceReference: string;
-  matrix: WorkOrderMatrix[];
   status: WorkOrderStatus;
 }
 
@@ -55,29 +52,6 @@ const statusLabelMap: Record<WorkOrderStatus, string> = {
   cancelled: 'OT cancelada',
   unknown: 'Estado desconocido'
 };
-
-const matrixLabelMap: Record<WorkOrderMatrix, string> = {
-  water: 'Agua',
-  soil: 'Suelo',
-  noise: 'Ruido',
-  gases: 'Gases'
-};
-
-const normalizeMatrixArray = (value: unknown): WorkOrderMatrix[] => {
-  if (!Array.isArray(value)) return [];
-  const unique = new Set<WorkOrderMatrix>();
-
-  value.forEach((entry) => {
-    if (entry === 'water' || entry === 'soil' || entry === 'noise' || entry === 'gases') {
-      unique.add(entry);
-    }
-  });
-
-  return Array.from(unique);
-};
-
-const formatMatrixLabel = (matrix: WorkOrderMatrix[]) =>
-  matrix.length ? matrix.map((entry) => matrixLabelMap[entry]).join(', ') : '—';
 
 export default function LabAnalysisForm() {
   const router = useRouter();
@@ -123,13 +97,10 @@ export default function LabAnalysisForm() {
             ? (rawStatus as WorkOrderStatus)
             : 'unknown';
 
-        const matrix = normalizeMatrixArray(value.matrix);
-
         setWorkOrder({
           id: workOrderSnap.id,
           workOrderNumber: String(value.workOrderNumber ?? workOrderSnap.id),
           sourceReference: String(value.sourceReference ?? '—'),
-          matrix,
           status
         });
 
@@ -330,10 +301,6 @@ export default function LabAnalysisForm() {
           <p>
             <span className='font-medium'>Referencia:</span>{' '}
             {workOrder.sourceReference || '—'}
-          </p>
-          <p>
-            <span className='font-medium'>Matrices:</span>{' '}
-            {formatMatrixLabel(workOrder.matrix)}
           </p>
           <p>
             <span className='font-medium'>Estado:</span>{' '}
