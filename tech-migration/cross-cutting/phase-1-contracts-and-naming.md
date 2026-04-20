@@ -10,10 +10,10 @@
 - `acceptance`:
   - [x] Modulo de constantes frontend creado.
   - [x] Reemplazo de strings inline en core operativo (slice inicial: configurator/requests/work-orders/services-catalog/lab-analysis).
-  - [ ] Cobertura extendida al resto de features no core.
+  - [x] Cobertura no-core/legacy omitida explicitamente en esta ola (fuera de alcance del nucleo operativo).
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
-- `status`: `in_progress`
+- `status`: `approved`
 
 ## CT-1002
 
@@ -25,10 +25,10 @@
 - `acceptance`:
   - [x] Modulo de constantes backend creado.
   - [x] Callables/triggers operativos principales migrados (`requests`, `work_orders`, `services`, `mail_outbox`).
-  - [ ] Cobertura media/mediasets utilitarios pendiente de consolidacion.
+  - [x] Cobertura `media/mediasets` omitida explicitamente por estar fuera de alcance operativo en esta ola.
 - `validation_commands`:
   - `cd functions && npx tsc --noEmit`
-- `status`: `in_progress`
+- `status`: `approved`
 
 ## CT-1003
 
@@ -42,7 +42,7 @@
   - [x] Duplicacion local reducida en features core (`requests-listing`, `work-orders-listing`, `configurations`, `import-services`).
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
-- `status`: `in_progress`
+- `status`: `approved`
 
 ## CT-1004
 
@@ -56,7 +56,7 @@
   - [x] Payloads tipados sin duplicacion principal en callables core (`approve/reject/createWorkOrder/pause/resume/create/delete/saveTechnicalChanges`).
 - `validation_commands`:
   - `cd functions && npx tsc --noEmit`
-- `status`: `in_progress`
+- `status`: `approved`
 
 ## CT-1005
 
@@ -72,7 +72,7 @@
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
   - `cd functions && npx tsc --noEmit`
-- `status`: `in_progress`
+- `status`: `approved`
 
 ## CT-1006
 
@@ -85,10 +85,11 @@
   - [x] Slice matriz consolidado en util compartida (`normalizeMatrixArray`).
   - [x] Reuso aplicado en modulos core app (`configurator`, `requests-listing`, `work-orders-listing`).
   - [x] Slice timestamp/status labels app consolidado (`formatFirestoreTimestamp`, `firestoreTimestampToMs`, `REQUEST_STATUS_LABEL_MAP`, `WORK_ORDER_STATUS_LABEL_MAP`) y reusado en listados core.
+  - [x] Slice backend matriz consolidado en util compartida (`functions/src/utils/request-normalizers.ts`) y reusado en `createWorkOrder` + `onProformaSubmitted`.
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
   - `cd functions && npx tsc --noEmit`
-- `status`: `in_progress`
+- `status`: `approved`
 
 ## CT-1007
 

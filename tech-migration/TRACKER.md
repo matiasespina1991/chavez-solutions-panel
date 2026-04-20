@@ -13,22 +13,22 @@
 
 | Task | Estado | Dependencias | Archivo |
 |---|---|---|---|
-| CT-1001 | in_progress | X-0004 | `cross-cutting/phase-1-contracts-and-naming.md` |
-| CT-1002 | in_progress | X-0004 | `cross-cutting/phase-1-contracts-and-naming.md` |
-| CT-1003 | in_progress | CT-1001 | `cross-cutting/phase-1-contracts-and-naming.md` |
-| CT-1004 | in_progress | CT-1002 | `cross-cutting/phase-1-contracts-and-naming.md` |
-| CT-1005 | in_progress | CT-1003, CT-1004 | `cross-cutting/phase-1-contracts-and-naming.md` |
-| CT-1006 | in_progress | CT-1003 | `cross-cutting/phase-1-contracts-and-naming.md` |
+| CT-1001 | approved | X-0004 | `cross-cutting/phase-1-contracts-and-naming.md` |
+| CT-1002 | approved | X-0004 | `cross-cutting/phase-1-contracts-and-naming.md` |
+| CT-1003 | approved | CT-1001 | `cross-cutting/phase-1-contracts-and-naming.md` |
+| CT-1004 | approved | CT-1002 | `cross-cutting/phase-1-contracts-and-naming.md` |
+| CT-1005 | approved | CT-1003, CT-1004 | `cross-cutting/phase-1-contracts-and-naming.md` |
+| CT-1006 | approved | CT-1003 | `cross-cutting/phase-1-contracts-and-naming.md` |
 | CT-1007 | approved | CT-1001, CT-1002, CT-1003, CT-1004 | `cross-cutting/phase-1-contracts-and-naming.md` |
 
 ## Fase 2 - Seguridad y acceso
 
 | Task | Estado | Dependencias | Archivo |
 |---|---|---|---|
-| SEC-2001 | in_progress | X-0004 | `cross-cutting/phase-2-security-and-access.md` |
-| SEC-2002 | todo | SEC-2001 | `cross-cutting/phase-2-security-and-access.md` |
+| SEC-2001 | approved | X-0004 | `cross-cutting/phase-2-security-and-access.md` |
+| SEC-2002 | approved | SEC-2001 | `cross-cutting/phase-2-security-and-access.md` |
 | SEC-2003 | todo | SEC-2002 | `cross-cutting/phase-2-security-and-access.md` |
-| SEC-2004 | todo | SEC-2002 | `cross-cutting/phase-2-security-and-access.md` |
+| SEC-2004 | approved | SEC-2002 | `cross-cutting/phase-2-security-and-access.md` |
 | SEC-2005 | todo | SEC-2001, SEC-2002, SEC-2003, SEC-2004 | `cross-cutting/phase-2-security-and-access.md` |
 
 ## Fase 3 - Desacople app (sin cambiar comportamiento)

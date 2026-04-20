@@ -8,81 +8,98 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Public read for everything
-    match /{document=**} {
-      allow read: if true;
-    }
-
     // Requests (configurador)
     match /requests/{requestId} {
-      allow read: if true;
+      allow read: if isAuthorized();
       allow create, update: if isAuthorized();
       allow delete: if false;
     }
 
-    // Archived deleted service requests (written from backend callable)
+    // Archived deleted requests (backend only)
     match /deleted_requests/{requestId} {
-      allow read: if true;
-      allow create, update, delete: if false;
+      allow read, create, update, delete: if false;
     }
 
     // Work Orders (created/managed from backend callable)
     match /work_orders/{workOrderId} {
-      allow read: if true;
+      allow read: if isAuthorized();
       allow create, update, delete: if false;
+    }
+
+    // Services catalog (frontend read-only, admin writes via callable)
+    match /services/{serviceId} {
+      allow read: if isAuthorized();
+      allow create, update, delete: if false;
+    }
+
+    // Auth bootstrap config (authorized users list)
+    match /config/{configId} {
+      allow read: if isAuthorized();
+      allow create, update, delete: if false;
+    }
+
+    // Mail outbox (backend only)
+    match /mail_outbox/{mailId} {
+      allow read, create, update, delete: if false;
     }
 
     // Assets collection
     match /assets/{mediaId} {
+      allow read: if isAuthorized();
       // Frontend cannot write assets. Cloud Functions (Admin SDK) bypass rules.
       allow write: if false;
     }
 
     // MediaSets collection
     match /mediasets/{setId} {
-      allow read: if true;
+      allow read: if isAuthorized();
       allow create, update, delete: if isAuthorized();
-      
+
       // Items subcollection
       match /items/{itemId} {
-        allow read: if true;
+        allow read: if isAuthorized();
         allow create, update, delete: if isAuthorized();
       }
     }
 
-    // Exhibitions collection (admin UI)
+    // Exhibitions collection (admin UI legacy)
     match /exhibitions/{exhibitionId} {
-      allow read: if true;
+      allow read: if isAuthorized();
       allow create, update, delete: if isAuthorized();
     }
 
-    // Media collection (admin UI)
+    // Media collection (admin UI legacy)
     match /media/{mediaId} {
-      allow read: if true;
+      allow read: if isAuthorized();
       allow create, update, delete: if isAuthorized();
     }
 
-    // About Me (admin UI)
+    // About Me (admin UI legacy)
     match /about_me/{docId} {
-      allow read: if true;
+      allow read: if isAuthorized();
       allow create, update, delete: if isAuthorized();
     }
 
-    // Contact (admin UI)
+    // Contact (admin UI legacy)
     match /contact/{docId} {
-      allow read: if true;
+      allow read: if isAuthorized();
       allow create, update, delete: if isAuthorized();
     }
 
-    // About Me + Contact collection (admin UI)
+    // About Me + Contact collection (admin UI legacy)
     match /about_me_contact/{docId} {
-      allow read: if true;
+      allow read: if isAuthorized();
       allow create, update, delete: if isAuthorized();
     }
 
     // Prevent direct frontend creation of subcollections (except mediasets/items which is handled above)
     match /assets/{mediaId}/{sub=**} {
       allow write: if false;
+    }
+
+    // Default deny for every non-explicit collection.
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

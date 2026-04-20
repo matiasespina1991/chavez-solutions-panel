@@ -1,6 +1,7 @@
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import admin from 'firebase-admin';
 import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
+import { normalizeMatrixArray } from '../utils/request-normalizers.js';
 
 const db = admin.firestore();
 const MAIL_OUTBOX_COLLECTION = FIRESTORE_COLLECTIONS.MAIL_OUTBOX;
@@ -19,20 +20,6 @@ interface ProformaData {
   } | null;
   client?: ProformaClient | null;
 }
-
-const normalizeMatrixArray = (value: unknown): string[] => {
-  if (!Array.isArray(value)) return [];
-  const unique = new Set<string>();
-
-  value.forEach((entry) => {
-    if (typeof entry !== 'string') return;
-    const normalized = entry.trim();
-    if (!normalized) return;
-    unique.add(normalized);
-  });
-
-  return Array.from(unique);
-};
 
 const formatMatrixLabel = (matrix: string[]) =>
   matrix.length ? matrix.join(', ') : '—';

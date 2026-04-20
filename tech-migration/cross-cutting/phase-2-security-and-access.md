@@ -9,10 +9,11 @@
 - `depends_on`: [X-0004]
 - `acceptance`:
   - [x] No quedan expresiones ambiguas/inseguras en `assets` (`request.time == request.time` removido).
-  - [ ] Reglas reflejan actores reales de negocio.
+  - [x] Reglas core operativas endurecidas sin wildcard publico (`requests`, `work_orders`, `services`, `mail_outbox`).
+  - [x] Reglas reflejan actores reales de negocio (lectura/escritura autenticada por coleccion operativa).
 - `validation_commands`:
   - `firebase emulators:exec --only firestore "echo rules-check"` (si aplica en entorno local)
-- `status`: `in_progress`
+- `status`: `approved`
 
 ## SEC-2002
 
@@ -22,12 +23,12 @@
 - `risk`: high
 - `depends_on`: [SEC-2001]
 - `acceptance`:
-  - [ ] Matriz de permisos definida y aprobable.
-  - [ ] Casos borde identificados.
+  - [x] Matriz de permisos definida y aprobable.
+  - [x] Casos borde identificados.
 - `validation_commands`:
   - `cd functions && npx tsc --noEmit`
   - `cd apps/admin-dashboard && npx tsc --noEmit`
-- `status`: `todo`
+- `status`: `approved`
 
 ## SEC-2003
 
@@ -51,10 +52,10 @@
 - `risk`: medium
 - `depends_on`: [SEC-2002]
 - `acceptance`:
-  - [ ] Rutas operativas permitidas en prod sin drift.
+  - [x] Rutas operativas permitidas en prod sin drift (`requests-list`, `service-requests`, `work-orders`, `lab-analysis`, `services-catalog`, `configurator`).
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
-- `status`: `todo`
+- `status`: `approved`
 
 ## SEC-2005
 

@@ -2,22 +2,9 @@ import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import admin from 'firebase-admin';
 import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
 import type { RequestDocumentData, RequestStatus } from '../types/requests.js';
+import { normalizeMatrixArray } from '../utils/request-normalizers.js';
 
 const db = admin.firestore();
-
-const normalizeMatrixArray = (value: unknown): string[] => {
-  if (!Array.isArray(value)) return [];
-  const unique = new Set<string>();
-
-  value.forEach((entry) => {
-    if (typeof entry !== 'string') return;
-    const normalized = entry.trim();
-    if (!normalized) return;
-    unique.add(normalized);
-  });
-
-  return Array.from(unique);
-};
 
 const buildTempWorkOrderNumber = (): string => {
   const year = new Date().getFullYear();
