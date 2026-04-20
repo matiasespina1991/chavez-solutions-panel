@@ -4,7 +4,6 @@ import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
 import type { RequestDocumentData, RequestStatus } from '../types/requests.js';
 
 const db = admin.firestore();
-const ALLOWED_MATRICES = new Set(['water', 'soil', 'noise', 'gases']);
 
 const normalizeMatrixArray = (value: unknown): string[] => {
   if (!Array.isArray(value)) return [];
@@ -12,8 +11,8 @@ const normalizeMatrixArray = (value: unknown): string[] => {
 
   value.forEach((entry) => {
     if (typeof entry !== 'string') return;
-    const normalized = entry.trim().toLowerCase();
-    if (!normalized || !ALLOWED_MATRICES.has(normalized)) return;
+    const normalized = entry.trim();
+    if (!normalized) return;
     unique.add(normalized);
   });
 

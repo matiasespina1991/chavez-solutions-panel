@@ -19,7 +19,7 @@ El dominio operativo actual está centrado en **servicios** (no en muestras como
 
 ## Datos que captura
 
-- Matrices (`water` / `soil` / `noise` / `gases`) con selección múltiple
+- Matriz (`ID_MATRIZ`) con selección múltiple basada en catálogo técnico
 - Referencia y validez
 - Datos de cliente
 - Notas

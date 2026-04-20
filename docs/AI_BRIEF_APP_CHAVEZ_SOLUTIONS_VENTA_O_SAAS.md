@@ -58,7 +58,7 @@ Resultado: menos fricción operativa, trazabilidad de estado y una base para est
 3. Datos
 4. Resumen
 - Captura:
-  - Matrices múltiples (agua/suelo/ruido/gases)
+  - Matriz/matrices (`ID_MATRIZ`) desde catálogo técnico
   - Referencia y validez
   - Datos de cliente
   - Servicios seleccionados desde colección `services`
@@ -245,7 +245,7 @@ Con esto se calcula subtotal/iva/total de la proforma.
 ## 7.4 Campo de matrices
 
 - `matrix` se maneja como arreglo `string[]` (sin compatibilidad runtime con string legacy).
-- Opciones operativas actuales: `water`, `soil`, `noise`, `gases`.
+- Los valores de `matrix` son dinámicos y provienen de `ID_MATRIZ` del catálogo.
 
 ## 8) Reglas operativas implementadas
 

@@ -4,7 +4,6 @@ import {
   generateAndStoreProformaPreviewPdf,
   ProformaPreviewPayload
 } from '../utils/proformaPreviewPdf.js';
-import { matrixKeyToLabel } from '../utils/matrixLabels.js';
 import { mapRequestServicesToPreview } from '../utils/requestServicesPreview.js';
 import { sendWithGmailApi } from '../utils/gmail.js';
 import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
@@ -80,7 +79,7 @@ const toPreviewPayload = (
     reference: source.reference || requestId,
     matrixLabels: Array.isArray(source.matrix)
       ? source.matrix
-          .map(matrixKeyToLabel)
+          .map((value) => String(value || '').trim())
           .filter((value) => value.length > 0)
       : [],
     validDays: normalizedValidDays,
@@ -120,7 +119,6 @@ const toPreviewPayload = (
 export const onMailOutboxCreated = onDocumentCreated(
   {
     document: `${MAIL_OUTBOX_COLLECTION}/{mailId}`,
-    region: 'europe-west3',
     retry: false,
     maxInstances: 10,
   },

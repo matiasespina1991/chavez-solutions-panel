@@ -32,8 +32,8 @@ El sistema cubre el flujo comercial-operativo de laboratorio:
 Requerimientos funcionales del alcance:
 
 - Referencia automática y progresiva.
-- Proforma con múltiples matrices (agua, suelo, ruido, gases, etc.).
-- Matrices con checkbox en pestaña servicios.
+- Proforma con matriz/matrices (`ID_MATRIZ`) definidas por catálogo.
+- Selección de matriz desde datos reales del catálogo de servicios.
 - Separación de servicios por matriz / material de ensayo.
 - Mostrar límites internos (inf/sup) y unidad en selector de servicios.
 - Soporte de combos de servicios.

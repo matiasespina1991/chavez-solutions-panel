@@ -4,11 +4,6 @@ const assert = require('node:assert/strict');
 const {
   mapRequestServicesToPreview
 } = require('../lib/utils/requestServicesPreview.js');
-const {
-  matrixKeyToLabel,
-  normalizeMatrixArray,
-  formatMatrixLabel
-} = require('../lib/utils/matrixLabels.js');
 
 test('mapRequestServicesToPreview normalizes canonical services.items/grouped', () => {
   const input = {
@@ -92,17 +87,4 @@ test('mapRequestServicesToPreview supports legacy array services', () => {
   assert.equal(result.services[0].label, 'Nitrógeno');
   assert.equal(result.services[0].subtotal, 8);
   assert.equal(result.serviceGroups.length, 0);
-});
-
-test('matrixLabels helpers keep canonical matrix behavior', () => {
-  assert.equal(matrixKeyToLabel('water'), 'Agua');
-  assert.equal(matrixKeyToLabel('soil'), 'Suelo');
-  assert.equal(matrixKeyToLabel('unknown'), 'unknown');
-
-  assert.deepEqual(
-    normalizeMatrixArray(['WATER', 'soil', 'soil', 'x', '', null]),
-    ['water', 'soil']
-  );
-  assert.equal(formatMatrixLabel(['water', 'noise']), 'Agua, Ruido');
-  assert.equal(formatMatrixLabel([]), '—');
 });
