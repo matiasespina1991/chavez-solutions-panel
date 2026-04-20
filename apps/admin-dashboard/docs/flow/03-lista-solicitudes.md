@@ -2,9 +2,9 @@
 
 ## Ruta y propósito
 
-- Ruta: `/dashboard/service-requests`
+- Ruta: `/dashboard/requests-list`
 - Componente: `src/features/requests/components/requests-listing.tsx`
-- Fuente de datos: colección `service_requests` (ordenada por `updatedAt desc`).
+- Fuente de datos: colección `requests` (ordenada por `updatedAt desc`).
 
 Esta sección es el tablero operativo principal de solicitudes: consulta, edición condicionada, emisión de OT, pausa/reanudación y eliminación.
 
@@ -75,7 +75,7 @@ Se marca como vencida cuando:
 
 ### Eliminar solicitud
 
-- Invoca `deleteServiceRequest(id)`.
+- Invoca `deleteProforma(id)`.
 - Se confirma con `AlertDialog`.
 
 ## Restricciones implementadas

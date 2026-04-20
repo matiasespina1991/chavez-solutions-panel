@@ -12,7 +12,7 @@ La vista `/dashboard/work-orders` opera sobre `work_orders` y centraliza seguimi
 ## Fuente de datos
 
 - Colección principal: `work_orders` (ordenada por `updatedAt desc`)
-- Colección de apoyo: `service_requests` para fallback de `services[]` cuando una OT legacy no trae servicios directos
+- Colección de apoyo: `requests` para fallback de `services[]` cuando una OT legacy no trae servicios directos
 
 ## Columnas actuales de la tabla
 
@@ -56,6 +56,6 @@ Acciones de descargar/imprimir están presentes como placeholder en UI.
 
 ## Mantenimiento
 
-Si cambia el contrato de datos de `work_orders` o `service_requests.services`, revisar mapeos defensivos y fallback en:
+Si cambia el contrato de datos de `work_orders` o `requests.services`, revisar mapeos defensivos y fallback en:
 
 - `work-orders-listing.tsx` (normalización de filas)

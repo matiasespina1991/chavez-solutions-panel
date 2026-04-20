@@ -1,6 +1,6 @@
 # 05. Estados y transiciones
 
-## 1) Solicitud de servicio (`service_requests`)
+## 1) Solicitud de servicio (`requests`)
 
 Estados declarados:
 
@@ -54,7 +54,7 @@ stateDiagram-v2
 
 En `src/features/configurator/services/configurations.ts`:
 
-- `ConfigurationStatus` (`draft|final`) se traduce a `ServiceRequestStatus`:
+- `ConfigurationStatus` (`draft|final`) se traduce a `RequestStatus`:
   - `final -> submitted`
   - `draft -> draft`
 - Al leer solicitud para el configurador (`getConfigurationById`):
@@ -68,6 +68,6 @@ En `src/features/configurator/services/configurations.ts`:
 - `pauseWorkOrder` (pausar OT)
 - `resumeWorkOrder` (reanudar OT)
 - `completeWorkOrder` (finalizar OT)
-- `deleteServiceRequest` (eliminar solicitud)
+- `deleteProforma` (eliminar solicitud)
 
 > El frontend orquesta UX y llamadas; la consistencia de negocio entre colecciones depende del backend.

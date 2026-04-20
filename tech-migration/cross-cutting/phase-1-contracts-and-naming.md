@@ -66,11 +66,13 @@
 - `risk`: medium
 - `depends_on`: [CT-1003, CT-1004]
 - `acceptance`:
-  - [ ] Naming interno legacy reducido sin romper APIs publicas.
+  - [x] Naming legacy corregido en docs core operativos (`requests-list`, `requests`, `deleteProforma`).
+  - [x] Compatibilidad `ServiceRequest*` removida en app core (`configurations`, `configurator-form`, logs de `requests-listing`), usando `Request*` directo.
+  - [ ] Naming interno legacy reducido en codigo sin romper APIs publicas.
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
   - `cd functions && npx tsc --noEmit`
-- `status`: `todo`
+- `status`: `in_progress`
 
 ## CT-1006
 
@@ -80,12 +82,13 @@
 - `risk`: medium
 - `depends_on`: [CT-1003]
 - `acceptance`:
-  - [ ] Normalizadores duplicados consolidados.
-  - [ ] Reuso aplicado en modulos core.
+  - [x] Slice matriz consolidado en util compartida (`normalizeMatrixArray`).
+  - [x] Reuso aplicado en modulos core app (`configurator`, `requests-listing`, `work-orders-listing`).
+  - [ ] Slice timestamp/status labels pendiente.
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
   - `cd functions && npx tsc --noEmit`
-- `status`: `todo`
+- `status`: `in_progress`
 
 ## CT-1007
 

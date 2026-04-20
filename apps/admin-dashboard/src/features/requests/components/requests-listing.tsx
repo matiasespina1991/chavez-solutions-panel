@@ -42,11 +42,12 @@ import {
   generateProformaPreviewPdf
 } from '@/features/configurator/services/configurations';
 import { FIRESTORE_COLLECTIONS } from '@/constants/firestore';
+import { normalizeMatrixArray } from '@/lib/request-normalizers';
 import type {
-  MatrixType as ServiceRequestMatrix,
-  RequestApprovalStatus as ServiceRequestApprovalStatus,
-  RequestListRow as ServiceRequestRow,
-  RequestStatus as ServiceRequestStatus
+  MatrixType as RequestMatrix,
+  RequestApprovalStatus,
+  RequestListRow as RequestRow,
+  RequestStatus
 } from '@/types/domain';
 import { auth, db } from '@/lib/firebase';
 import {
@@ -84,35 +85,17 @@ type SortKey =
 
 type SortDirection = 'asc' | 'desc';
 
-const matrixLabelMap: Record<ServiceRequestMatrix, string> = {
+const matrixLabelMap: Record<RequestMatrix, string> = {
   water: 'Agua',
   soil: 'Suelo',
   noise: 'Ruido',
   gases: 'Gases'
 };
 
-const normalizeMatrixArray = (value: unknown): ServiceRequestMatrix[] => {
-  if (!Array.isArray(value)) return [];
-
-  const unique = new Set<ServiceRequestMatrix>();
-  value.forEach((entry) => {
-    if (
-      entry === 'water' ||
-      entry === 'soil' ||
-      entry === 'noise' ||
-      entry === 'gases'
-    ) {
-      unique.add(entry);
-    }
-  });
-
-  return Array.from(unique);
-};
-
-const formatMatrixLabel = (matrix: ServiceRequestMatrix[]) =>
+const formatMatrixLabel = (matrix: RequestMatrix[]) =>
   matrix.length ? matrix.map((entry) => matrixLabelMap[entry]).join(', ') : '—';
 
-const statusLabelMap: Record<ServiceRequestStatus, string> = {
+const statusLabelMap: Record<RequestStatus, string> = {
   draft: '(Borrador)',
   submitted: 'Proforma enviada',
   converted_to_work_order: 'OT emitida',
@@ -190,10 +173,10 @@ const formatDateLabel = (valueMs: number | null) => {
 
 export default function RequestsListing() {
   const router = useRouter();
-  const [rows, setRows] = useState<ServiceRequestRow[]>([]);
+  const [rows, setRows] = useState<RequestRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
-  const [selectedRow, setSelectedRow] = useState<ServiceRequestRow | null>(
+  const [selectedRow, setSelectedRow] = useState<RequestRow | null>(
     null
   );
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
@@ -201,24 +184,24 @@ export default function RequestsListing() {
   const [isWorkOrderToggleDialogOpen, setIsWorkOrderToggleDialogOpen] =
     useState(false);
   const [rowToToggleWorkOrder, setRowToToggleWorkOrder] =
-    useState<ServiceRequestRow | null>(null);
+    useState<RequestRow | null>(null);
   const [workOrderToggleAction, setWorkOrderToggleAction] = useState<
     'pause' | 'resume' | null
   >(null);
-  const [rowToDelete, setRowToDelete] = useState<ServiceRequestRow | null>(
+  const [rowToDelete, setRowToDelete] = useState<RequestRow | null>(
     null
   );
   const [isDeleting, setIsDeleting] = useState(false);
   const [isTogglingWorkOrder, setIsTogglingWorkOrder] = useState(false);
   const [workOrderToggleNotes, setWorkOrderToggleNotes] = useState('');
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
-  const [rowToReject, setRowToReject] = useState<ServiceRequestRow | null>(
+  const [rowToReject, setRowToReject] = useState<RequestRow | null>(
     null
   );
   const [isExecuteWorkOrderDialogOpen, setIsExecuteWorkOrderDialogOpen] =
     useState(false);
   const [rowToExecuteWorkOrder, setRowToExecuteWorkOrder] =
-    useState<ServiceRequestRow | null>(null);
+    useState<RequestRow | null>(null);
   const [rejectFeedback, setRejectFeedback] = useState('');
   const [isRejecting, setIsRejecting] = useState(false);
   const [isDialogDownloading, setIsDialogDownloading] = useState(false);
@@ -226,7 +209,7 @@ export default function RequestsListing() {
   const [sortKey, setSortKey] = useState<SortKey>('updatedAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
-  const hasIssuedWorkOrder = (row: ServiceRequestRow) =>
+  const hasIssuedWorkOrder = (row: RequestRow) =>
     row.status === 'converted_to_work_order' ||
     row.status === 'work_order_paused' ||
     row.status === 'work_order_completed';
@@ -280,21 +263,21 @@ export default function RequestsListing() {
     return errorMessage || fallback;
   };
 
-  const getApprovalStatusLabel = (row: ServiceRequestRow) => {
+  const getApprovalStatusLabel = (row: RequestRow) => {
     if (row.approvalStatus === 'approved') return 'Aprobada';
     if (row.approvalStatus === 'rejected') return 'Rechazada';
     if (row.status === 'submitted') return 'Pendiente';
     return '—';
   };
 
-  const isExpiredProforma = (row: ServiceRequestRow) => {
+  const isExpiredProforma = (row: RequestRow) => {
     if (row.status !== 'submitted') return false;
     const validUntilMs = getValidUntilMs(row.createdAtMs, row.validDays);
     if (!validUntilMs) return false;
     return validUntilMs < Date.now();
   };
 
-  const getRowStatusLabel = (row: ServiceRequestRow) => {
+  const getRowStatusLabel = (row: RequestRow) => {
     if (isExpiredProforma(row)) return 'Proforma vencida';
     if (row.status === 'submitted') {
       return row.approvalStatus === 'approved'
@@ -307,7 +290,7 @@ export default function RequestsListing() {
     return statusLabelMap[row.status];
   };
 
-  const getStatusDisplayLabel = (row: ServiceRequestRow) => {
+  const getStatusDisplayLabel = (row: RequestRow) => {
     if (isExpiredProforma(row)) return 'Proforma vencida';
     if (row.status === 'submitted') {
       return row.approvalStatus === 'approved'
@@ -342,7 +325,7 @@ export default function RequestsListing() {
   const dialogActionButtonClass =
     'h-[2.4rem] w-[2.4rem] cursor-pointer rounded-md border bg-background p-0 transition-colors duration-150 hover:bg-muted/60';
 
-  const getRequestDialogBanner = (row: ServiceRequestRow) => {
+  const getRequestDialogBanner = (row: RequestRow) => {
     if (row.status === 'work_order_completed') {
       return {
         className:
@@ -402,7 +385,7 @@ export default function RequestsListing() {
     return null;
   };
 
-  const openWorkOrderToggleDialog = (row: ServiceRequestRow) => {
+  const openWorkOrderToggleDialog = (row: RequestRow) => {
     const workOrderIssued = hasIssuedWorkOrder(row);
     if (!workOrderIssued) return;
 
@@ -420,7 +403,7 @@ export default function RequestsListing() {
       setIsTogglingWorkOrder(true);
       setPendingActionId(rowToToggleWorkOrder.id);
 
-      const nextStatus: ServiceRequestStatus =
+      const nextStatus: RequestStatus =
         workOrderToggleAction === 'resume'
           ? 'converted_to_work_order'
           : 'work_order_paused';
@@ -470,7 +453,7 @@ export default function RequestsListing() {
       setWorkOrderToggleAction(null);
       setWorkOrderToggleNotes('');
     } catch (error) {
-      console.error('[ServiceRequests] toggle action error', error);
+      console.error('[Requests] toggle action error', error);
       toast.error('No se pudo completar la acción de la orden de trabajo');
     } finally {
       setIsTogglingWorkOrder(false);
@@ -478,7 +461,7 @@ export default function RequestsListing() {
     }
   };
 
-  const handleWorkOrderAction = async (row: ServiceRequestRow) => {
+  const handleWorkOrderAction = async (row: RequestRow) => {
     if (row.status === 'draft') {
       toast.error('No se puede emitir una orden de trabajo desde un borrador');
       return;
@@ -504,7 +487,7 @@ export default function RequestsListing() {
         });
       }
     } catch (error) {
-      console.error('[ServiceRequests] action error', error);
+      console.error('[Requests] action error', error);
       const errorMessage =
         error instanceof Error && error.message.trim().length > 0
           ? error.message
@@ -515,7 +498,7 @@ export default function RequestsListing() {
     }
   };
 
-  const handleApproveRequest = async (row: ServiceRequestRow) => {
+  const handleApproveRequest = async (row: RequestRow) => {
     try {
       setPendingActionId(row.id);
       await approveProforma(row.id);
@@ -547,7 +530,7 @@ export default function RequestsListing() {
           : prev
       );
     } catch (error) {
-      console.error('[ServiceRequests] approve error', error);
+      console.error('[Requests] approve error', error);
       toast.error(
         getFriendlyErrorMessage(
           error,
@@ -559,7 +542,7 @@ export default function RequestsListing() {
     }
   };
 
-  const openExecuteWorkOrderDialog = (row: ServiceRequestRow) => {
+  const openExecuteWorkOrderDialog = (row: RequestRow) => {
     setRowToExecuteWorkOrder(row);
     setIsExecuteWorkOrderDialogOpen(true);
   };
@@ -571,7 +554,7 @@ export default function RequestsListing() {
     setRowToExecuteWorkOrder(null);
   };
 
-  const openRejectDialog = (row: ServiceRequestRow) => {
+  const openRejectDialog = (row: RequestRow) => {
     setRowToReject(row);
     setRejectFeedback(row.approvalFeedback || '');
     setIsRejectDialogOpen(true);
@@ -623,7 +606,7 @@ export default function RequestsListing() {
       setRowToReject(null);
       setRejectFeedback('');
     } catch (error) {
-      console.error('[ServiceRequests] reject error', error);
+      console.error('[Requests] reject error', error);
       toast.error(
         getFriendlyErrorMessage(error, 'No se pudo rechazar la proforma')
       );
@@ -647,7 +630,7 @@ export default function RequestsListing() {
         setSelectedRow(null);
       }
     } catch (error) {
-      console.error('[ServiceRequests] delete error', error);
+      console.error('[Requests] delete error', error);
       toast.error('No se pudo eliminar la solicitud');
     } finally {
       setIsDeleting(false);
@@ -686,7 +669,7 @@ export default function RequestsListing() {
     openWorkOrderToggleDialog(selectedRow);
   };
 
-  const buildProformaPreviewPayloadFromRow = (row: ServiceRequestRow) => {
+  const buildProformaPreviewPayloadFromRow = (row: RequestRow) => {
     const issuedAtMs = row.createdAtMs || Date.now();
     const validUntilMs = getValidUntilMs(row.createdAtMs, row.validDays);
 
@@ -776,7 +759,7 @@ export default function RequestsListing() {
       link.remove();
       toast.success('PDF de proforma descargado.');
     } catch (error) {
-      console.error('[ServiceRequests] download pdf error', error);
+      console.error('[Requests] download pdf error', error);
       toast.error('No se pudo descargar el PDF de la proforma.');
     } finally {
       setIsDialogDownloading(false);
@@ -792,21 +775,21 @@ export default function RequestsListing() {
     const unsubscribe = onSnapshot(
       requestsQuery,
       (snapshot) => {
-        const nextRows: ServiceRequestRow[] = snapshot.docs.map((docSnap) => {
+        const nextRows: RequestRow[] = snapshot.docs.map((docSnap) => {
           const value = docSnap.data() as Record<string, unknown>;
 
           const isWorkOrder = Boolean(value.isWorkOrder);
           const matrix = normalizeMatrixArray(value.matrix);
           const status =
-            (value.status as ServiceRequestStatus) ??
-            ('draft' as ServiceRequestStatus);
+            (value.status as RequestStatus) ??
+            ('draft' as RequestStatus);
 
           const rawApprovalStatus =
             typeof value.approval === 'object' && value.approval !== null
               ? (value.approval as { status?: unknown }).status
               : null;
 
-          const approvalStatus: ServiceRequestApprovalStatus | null =
+          const approvalStatus: RequestApprovalStatus | null =
             rawApprovalStatus === 'pending' ||
             rawApprovalStatus === 'approved' ||
             rawApprovalStatus === 'rejected'
@@ -1121,7 +1104,7 @@ export default function RequestsListing() {
         setLoading(false);
       },
       (error) => {
-        console.error('[ServiceRequests] load error', error);
+        console.error('[Requests] load error', error);
         setRows([]);
         setLoading(false);
       }

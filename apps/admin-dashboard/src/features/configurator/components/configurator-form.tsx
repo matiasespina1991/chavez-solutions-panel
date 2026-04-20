@@ -1174,7 +1174,7 @@ export default function ConfiguratorForm() {
         };
 
         setLoadedRequestStatus(
-          existing.serviceRequestStatus === 'work_order_paused'
+          existing.requestStatus === 'work_order_paused'
             ? 'paused'
             : existing.status
         );
@@ -2493,7 +2493,7 @@ export default function ConfiguratorForm() {
                             Combos de servicios
                           </h4>
                           <p className='text-muted-foreground text-xs'>
-                            Agregá uno o varios combos de servicios.
+                            Agrega uno o varios combos de servicios.
                           </p>
                         </div>
                         <Button
@@ -2599,7 +2599,7 @@ export default function ConfiguratorForm() {
                                     return (
                                       <div
                                         key={`${group.id}-${serviceId}`}
-                                        className='dark:bg-background rounded-xl border bg-white p-4'
+                                        className='dark:bg-background rounded-xl border bg-white p-6 pt-5'
                                       >
                                         <div className='flex items-start justify-between gap-2'>
                                           <div className='flex-1 space-y-2'>
@@ -2630,11 +2630,11 @@ export default function ConfiguratorForm() {
                                                 service.ID_MET_INTERNO ||
                                                 'Sin método'}
                                             </p>
-                                            <div className='grid grid-cols-1 gap-5 md:grid-cols-5 md:gap-6'>
-                                              <div className='space-y-1'>
+                                            <div className='mt-5 grid grid-cols-1 gap-5 md:grid-cols-5 md:gap-6'>
+                                              <div className='flex flex-col justify-end space-y-1'>
                                                 <label
                                                   htmlFor={`quantity-${scopedServiceId}`}
-                                                  className='text-muted-foreground text-xs leading-tight'
+                                                  className='text-muted-foreground text-[0.7rem] leading-tight'
                                                 >
                                                   Cantidad
                                                 </label>
@@ -2654,10 +2654,10 @@ export default function ConfiguratorForm() {
                                                   }
                                                 />
                                               </div>
-                                              <div className='space-y-1'>
+                                              <div className='flex flex-col justify-end space-y-1'>
                                                 <label
                                                   htmlFor={`range-min-${scopedServiceId}`}
-                                                  className='text-muted-foreground text-xs leading-tight'
+                                                  className='text-muted-foreground text-[0.7rem] leading-tight'
                                                 >
                                                   Rango mín. (
                                                   {service.UNIDAD_NORMA?.trim() ||
@@ -2680,10 +2680,10 @@ export default function ConfiguratorForm() {
                                                   placeholder='0.00'
                                                 />
                                               </div>
-                                              <div className='space-y-1'>
+                                              <div className='flex flex-col justify-end space-y-1'>
                                                 <label
                                                   htmlFor={`range-max-${scopedServiceId}`}
-                                                  className='text-muted-foreground text-xs leading-tight'
+                                                  className='text-muted-foreground text-[0.7rem] leading-tight'
                                                 >
                                                   Rango máx. (
                                                   {service.UNIDAD_NORMA?.trim() ||
@@ -2706,10 +2706,10 @@ export default function ConfiguratorForm() {
                                                   placeholder='0.00'
                                                 />
                                               </div>
-                                              <div className='space-y-1'>
+                                              <div className='flex flex-col justify-end space-y-1'>
                                                 <label
                                                   htmlFor={`price-${scopedServiceId}`}
-                                                  className='text-muted-foreground text-xs leading-tight'
+                                                  className='text-muted-foreground text-[0.7rem] leading-tight'
                                                 >
                                                   Precio (USD)
                                                 </label>
@@ -2741,10 +2741,10 @@ export default function ConfiguratorForm() {
                                                   />
                                                 </div>
                                               </div>
-                                              <div className='space-y-1'>
+                                              <div className='flex flex-col justify-end space-y-1'>
                                                 <label
                                                   htmlFor={`discount-${scopedServiceId}`}
-                                                  className='text-muted-foreground text-xs leading-tight'
+                                                  className='text-muted-foreground text-[0.7rem] leading-tight'
                                                 >
                                                   Descuento (USD)
                                                 </label>
@@ -2906,7 +2906,7 @@ export default function ConfiguratorForm() {
               Seleccionar matriz del nuevo combo
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Elegí una matriz para crear el nuevo combo de servicios.
+              Elige una matriz para crear el nuevo combo de servicios.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className='max-h-[52vh] space-y-2 overflow-y-auto'>

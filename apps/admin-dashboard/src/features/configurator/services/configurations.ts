@@ -11,6 +11,7 @@ import {
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from '@/lib/firebase';
 import { FIRESTORE_COLLECTIONS } from '@/constants/firestore';
+import { normalizeMatrixArray } from '@/lib/request-normalizers';
 import type {
   MatrixType as DomainMatrixType,
   RequestApprovalStatus as DomainRequestApprovalStatus,
@@ -21,11 +22,11 @@ import type {
 export type ConfigurationStatus = 'draft' | 'final';
 export type ConfigurationType = 'proforma' | 'work_order' | 'both';
 export type MatrixType = DomainMatrixType;
-export type ServiceRequestStatus = DomainRequestStatus;
-export type ServiceRequestApprovalStatus = DomainRequestApprovalStatus;
+export type RequestStatus = DomainRequestStatus;
+export type RequestApprovalStatus = DomainRequestApprovalStatus;
 
-export interface ServiceRequestApproval {
-  status: ServiceRequestApprovalStatus;
+export interface RequestApproval {
+  status: RequestApprovalStatus;
   feedback?: string;
   approvedAt?: any;
   approvedBy?: {
@@ -125,8 +126,8 @@ export interface ConfigurationDocument {
   createdAt?: any;
   updatedAt?: any;
   status: ConfigurationStatus;
-  serviceRequestStatus?: ServiceRequestStatus;
-  approvalStatus?: ServiceRequestApprovalStatus;
+  requestStatus?: RequestStatus;
+  approvalStatus?: RequestApprovalStatus;
   notes: string;
   client: ConfigurationClient;
   samples: ConfigurationSamples;
@@ -135,47 +136,27 @@ export interface ConfigurationDocument {
   pricing: ConfigurationPricing;
 }
 
-export interface ServiceRequestDocument
+export interface RequestDocument
   extends Omit<ConfigurationDocument, 'status'> {
   isWorkOrder: boolean;
-  status: ServiceRequestStatus;
-  approval?: ServiceRequestApproval | null;
+  status: RequestStatus;
+  approval?: RequestApproval | null;
   linkedWorkOrderId?: string | null;
 }
 
-const SERVICE_REQUEST_COLLECTION = FIRESTORE_COLLECTIONS.REQUESTS;
+const REQUESTS_COLLECTION = FIRESTORE_COLLECTIONS.REQUESTS;
 const WORK_ORDER_COLLECTION = FIRESTORE_COLLECTIONS.WORK_ORDERS;
 const SERVICES_COLLECTION = FIRESTORE_COLLECTIONS.SERVICES;
 
-const normalizeMatrixArray = (value: unknown): MatrixType[] => {
-  if (!Array.isArray(value)) return [];
-  const unique = new Set<MatrixType>();
-
-  value.forEach((entry) => {
-    if (typeof entry !== 'string') return;
-    const normalized = entry.trim().toLowerCase();
-    if (
-      normalized === 'water' ||
-      normalized === 'soil' ||
-      normalized === 'noise' ||
-      normalized === 'gases'
-    ) {
-      unique.add(normalized);
-    }
-  });
-
-  return Array.from(unique);
-};
-
-const toServiceRequestStatus = (
+const toRequestStatus = (
   status: ConfigurationStatus
-): ServiceRequestStatus => {
+): RequestStatus => {
   if (status === 'final') return 'submitted';
   return 'draft';
 };
 
 const toConfigurationStatus = (
-  status: ServiceRequestStatus
+  status: RequestStatus
 ): ConfigurationStatus => {
   if (
     status === 'submitted' ||
@@ -194,13 +175,13 @@ const toIsWorkOrder = (type: ConfigurationType): boolean => {
 export const createConfiguration = async (
   data: Omit<ConfigurationDocument, 'id' | 'createdAt' | 'updatedAt'>
 ) => {
-  const newDocRef = doc(collection(db, SERVICE_REQUEST_COLLECTION));
-  const { type, serviceRequestStatus, ...restData } = data;
+  const newDocRef = doc(collection(db, REQUESTS_COLLECTION));
+  const { type, ...restData } = data;
   const docData = {
     ...restData,
     matrix: normalizeMatrixArray(restData.matrix),
     isWorkOrder: toIsWorkOrder(type),
-    status: toServiceRequestStatus(data.status),
+    status: toRequestStatus(data.status),
     ...(data.status === 'final'
       ? {
           approval: {
@@ -221,7 +202,7 @@ export const updateConfiguration = async (
   id: string,
   data: Partial<ConfigurationDocument>
 ) => {
-  const docRef = doc(db, SERVICE_REQUEST_COLLECTION, id);
+  const docRef = doc(db, REQUESTS_COLLECTION, id);
   const currentSnapshot = await getDoc(docRef);
   const currentData = currentSnapshot.exists()
     ? (currentSnapshot.data() as {
@@ -229,13 +210,13 @@ export const updateConfiguration = async (
       })
     : null;
   const linkedWorkOrderId = currentData?.linkedWorkOrderId;
-  const { type, serviceRequestStatus, ...restData } = data;
+  const { type, ...restData } = data;
   const normalizedMatrix = normalizeMatrixArray(restData.matrix);
   const docData = {
     ...restData,
     ...(restData.matrix !== undefined ? { matrix: normalizedMatrix } : {}),
     ...(type ? { isWorkOrder: toIsWorkOrder(type) } : {}),
-    ...(data.status ? { status: toServiceRequestStatus(data.status) } : {}),
+    ...(data.status ? { status: toRequestStatus(data.status) } : {}),
     ...(data.status === 'final'
       ? {
           approval: {
@@ -267,17 +248,17 @@ export const updateConfiguration = async (
 export const getConfigurationById = async (
   id: string
 ): Promise<ConfigurationDocument | null> => {
-  const docRef = doc(db, SERVICE_REQUEST_COLLECTION, id);
+  const docRef = doc(db, REQUESTS_COLLECTION, id);
   const snapshot = await getDoc(docRef);
   if (!snapshot.exists()) return null;
-  const data = snapshot.data() as ServiceRequestDocument;
+  const data = snapshot.data() as RequestDocument;
   return {
     ...data,
     matrix: normalizeMatrixArray(data.matrix),
     id: snapshot.id,
     type: data.isWorkOrder ? 'both' : 'proforma',
     status: toConfigurationStatus(data.status),
-    serviceRequestStatus: data.status,
+    requestStatus: data.status,
     approvalStatus: data.approval?.status,
     services:
       typeof data.services === 'object' &&

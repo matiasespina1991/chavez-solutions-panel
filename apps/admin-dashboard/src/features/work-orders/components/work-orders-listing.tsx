@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/tooltip';
 import { completeWorkOrder } from '@/features/configurator/services/configurations';
 import { FIRESTORE_COLLECTIONS } from '@/constants/firestore';
+import { normalizeMatrixArray } from '@/lib/request-normalizers';
 import type {
   MatrixType as WorkOrderMatrix,
   WorkOrderListRow as WorkOrderRow,
@@ -74,19 +75,6 @@ const matrixLabelMap: Record<WorkOrderMatrix, string> = {
   soil: 'Suelo',
   noise: 'Ruido',
   gases: 'Gases'
-};
-
-const normalizeMatrixArray = (value: unknown): WorkOrderMatrix[] => {
-  if (!Array.isArray(value)) return [];
-  const unique = new Set<WorkOrderMatrix>();
-
-  value.forEach((entry) => {
-    if (entry === 'water' || entry === 'soil' || entry === 'noise' || entry === 'gases') {
-      unique.add(entry);
-    }
-  });
-
-  return Array.from(unique);
 };
 
 const formatMatrixLabel = (matrix: WorkOrderMatrix[]) =>

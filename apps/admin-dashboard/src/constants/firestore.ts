@@ -7,8 +7,5 @@ export const FIRESTORE_COLLECTIONS = {
   SERVICES_AUDIT: 'services_audit',
   SERVICES_HISTORY: 'services_history',
   SERVICES_HISTORY_META: 'services_history_meta',
-  SERVICES_DELETED_HISTORY: 'services_deleted_history',
-  MEDIA: 'media',
-  MEDIASETS: 'mediasets'
+  SERVICES_DELETED_HISTORY: 'services_deleted_history'
 } as const;
-

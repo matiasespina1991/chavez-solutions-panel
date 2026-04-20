@@ -34,7 +34,7 @@ El configurador crea o actualiza solicitudes de servicio (proforma y/o OT) en 4 
 ## Persistencia y cache local
 
 - En modo nuevo y edición, guarda borrador local en `localStorage` (clave `configurator:cache:*`).
-- Al guardar/ejecutar con éxito, limpia cache local y redirige a `/dashboard/service-requests`.
+- Al guardar/ejecutar con éxito, limpia cache local y redirige a `/dashboard/requests-list`.
 
 ## Decisiones de guardado
 

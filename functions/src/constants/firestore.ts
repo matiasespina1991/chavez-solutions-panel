@@ -8,7 +8,4 @@ export const FIRESTORE_COLLECTIONS = {
   SERVICES_HISTORY: 'services_history',
   SERVICES_HISTORY_META: 'services_history_meta',
   SERVICES_DELETED_HISTORY: 'services_deleted_history',
-  MEDIA: 'media',
-  MEDIASETS: 'mediasets'
 } as const;
-

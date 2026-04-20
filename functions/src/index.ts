@@ -12,7 +12,6 @@ export { onMailOutboxCreated } from './triggers/onMailOutboxCreated.js';
 // Callable functions
 export { generateDownloadUrl } from './callable/generateDownloadUrl.js';
 export { regenerateDownloadUrl } from './callable/regenerateDownloadUrl.js';
-export { validateDelete } from './callable/validateDelete.js';
 export { createWorkOrder } from './callable/createWorkOrder.js';
 export { approveProforma } from './callable/approveProforma.js';
 export { rejectProforma } from './callable/rejectProforma.js';

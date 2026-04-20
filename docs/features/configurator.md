@@ -2,7 +2,7 @@
 
 ## Resumen
 
-El configurador (`/dashboard/configurator`) crea y actualiza solicitudes de servicio (`service_requests`) usando un wizard de 4 pasos:
+El configurador (`/dashboard/configurator`) crea y actualiza solicitudes (`requests`) usando un wizard de 4 pasos:
 
 1. Cliente
 2. Servicios
@@ -52,7 +52,7 @@ El step **Servicios** queda en error si:
 
 ## Persistencia
 
-- Colección principal: `service_requests`
+- Colección principal: `requests`
 - Guardado como borrador (`draft`) o final (`submitted`)
 - Soporta edición por `requestId` en query params
 - Usa cache local por clave `configurator:cache:*`
