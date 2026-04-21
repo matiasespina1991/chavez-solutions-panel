@@ -1,4 +1,5 @@
 export declare const FIRESTORE_COLLECTIONS: {
+    readonly CONFIG: "config";
     readonly REQUESTS: "requests";
     readonly WORK_ORDERS: "work_orders";
     readonly SERVICES: "services";

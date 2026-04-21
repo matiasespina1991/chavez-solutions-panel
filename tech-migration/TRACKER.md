@@ -27,9 +27,9 @@
 |---|---|---|---|
 | SEC-2001 | approved | X-0004 | `cross-cutting/phase-2-security-and-access.md` |
 | SEC-2002 | approved | SEC-2001 | `cross-cutting/phase-2-security-and-access.md` |
-| SEC-2003 | todo | SEC-2002 | `cross-cutting/phase-2-security-and-access.md` |
+| SEC-2003 | approved | SEC-2002 | `cross-cutting/phase-2-security-and-access.md` |
 | SEC-2004 | approved | SEC-2002 | `cross-cutting/phase-2-security-and-access.md` |
-| SEC-2005 | todo | SEC-2001, SEC-2002, SEC-2003, SEC-2004 | `cross-cutting/phase-2-security-and-access.md` |
+| SEC-2005 | approved | SEC-2001, SEC-2002, SEC-2003, SEC-2004 | `cross-cutting/phase-2-security-and-access.md` |
 
 ## Fase 3 - Desacople app (sin cambiar comportamiento)
 

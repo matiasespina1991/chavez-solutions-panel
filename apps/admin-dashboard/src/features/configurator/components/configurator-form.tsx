@@ -353,7 +353,6 @@ export default function ConfiguratorForm() {
     }
   }, [requestedTab]);
 
-  const matrix = form.watch('matrix');
   const reference = form.watch('reference');
   const agreedCount = form.watch('samples.agreedCount');
   const clientWatch = form.watch('client');
@@ -386,8 +385,6 @@ export default function ConfiguratorForm() {
     samples: (() => {
       const samples = samplesWatch;
       if (!samples) return 'error';
-      const matrixValue = Array.isArray(matrix) ? matrix : [];
-      if (!matrixValue.length) return 'error';
       if (!samples.agreedCount || samples.agreedCount < 1) return 'error';
       if (!selectedServices.length) return 'error';
       const hasInvalidServiceInput = selectedServices.some((service) => {

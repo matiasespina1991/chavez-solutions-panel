@@ -2,6 +2,7 @@ import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import admin from 'firebase-admin';
 import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
 import type { LinkedWorkOrderRequestData } from '../types/requests.js';
+import { requirePermission } from '../guards/require-permission.js';
 
 const db = admin.firestore();
 
@@ -15,9 +16,7 @@ interface WorkOrderData {
 }
 
 export const pauseWorkOrder = onCall(async (req) => {
-  if (!req.auth) {
-    throw new HttpsError('unauthenticated', 'Authentication is required.');
-  }
+  await requirePermission(req, 'work_orders.pause_resume');
 
   const data = (req.data || {}) as PauseWorkOrderRequest;
   const sourceRequestId = data.sourceRequestId?.trim();

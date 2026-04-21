@@ -5,6 +5,7 @@ import type {
   ProformaRequestData,
   RequestStatus
 } from '../types/requests.js';
+import { requirePermission } from '../guards/require-permission.js';
 
 const db = admin.firestore();
 
@@ -26,9 +27,7 @@ const NON_REJECTABLE_STATUSES: RequestStatus[] = [
 ];
 
 export const rejectProforma = onCall(async (req) => {
-  if (!req.auth) {
-    throw new HttpsError('unauthenticated', 'Authentication is required.');
-  }
+  await requirePermission(req, 'requests.reject');
 
   const data = (req.data || {}) as RejectProformaRequest;
   const requestId = data.requestId?.trim();

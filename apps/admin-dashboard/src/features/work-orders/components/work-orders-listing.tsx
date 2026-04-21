@@ -44,12 +44,7 @@ import type {
   WorkOrderStatus
 } from '@/types/domain';
 import { db } from '@/lib/firebase';
-import {
-  collection,
-  onSnapshot,
-  orderBy,
-  query
-} from 'firebase/firestore';
+import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 import {
   IconDownload,
   IconDotsVertical,
@@ -80,7 +75,10 @@ const escapeHtml = (value: string) =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
 
-const buildPrintDocumentHtml = (title: string, bodyHtml: string) => `<!doctype html>
+const buildPrintDocumentHtml = (
+  title: string,
+  bodyHtml: string
+) => `<!doctype html>
 <html lang="es">
   <head>
     <meta charset="utf-8" />
@@ -134,10 +132,7 @@ const downloadHtml = (fileName: string, html: string) => {
 export default function WorkOrdersListing() {
   const router = useRouter();
   const [sourceRequestServicesById, setSourceRequestServicesById] = useState<
-    Record<
-      string,
-      WorkOrderRow['serviceItems']
-    >
+    Record<string, WorkOrderRow['serviceItems']>
   >({});
   const [rows, setRows] = useState<WorkOrderRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -152,7 +147,7 @@ export default function WorkOrdersListing() {
   const [isCompleting, setIsCompleting] = useState(false);
 
   const getStatusDisplayLabel = (row: WorkOrderRow) => {
-    if (row.status === 'paused') return '🟡 OT pausada';
+    if (row.status === 'paused') return '⏸️ OT pausada';
     if (row.status === 'issued') return '🟢 OT iniciada';
     if (row.status === 'completed') return '✅ Finalizada';
     if (row.status === 'cancelled') return '(Cancelada)';
@@ -253,7 +248,10 @@ export default function WorkOrdersListing() {
          ${
            selectedRow.serviceItems.length
              ? `<ul>${selectedRow.serviceItems
-                 .map((service) => `<li>${escapeHtml(service.parameterLabel)} (x${service.quantity})</li>`)
+                 .map(
+                   (service) =>
+                     `<li>${escapeHtml(service.parameterLabel)} (x${service.quantity})</li>`
+                 )
                  .join('')}</ul>`
              : '<p class="line">No hay servicios seleccionados.</p>'
          }
@@ -312,7 +310,10 @@ export default function WorkOrdersListing() {
            ${
              selectedRow.serviceItems.length
                ? `<ul>${selectedRow.serviceItems
-                   .map((service) => `<li>${escapeHtml(service.parameterLabel)} (x${service.quantity})</li>`)
+                   .map(
+                     (service) =>
+                       `<li>${escapeHtml(service.parameterLabel)} (x${service.quantity})</li>`
+                   )
                    .join('')}</ul>`
                : '<p class="line">No hay servicios seleccionados.</p>'
            }
@@ -332,16 +333,16 @@ export default function WorkOrdersListing() {
       const nextMap: Record<string, WorkOrderRow['serviceItems']> = {};
       snapshot.docs.forEach((docSnap) => {
         const value = docSnap.data() as Record<string, unknown>;
-      const rawServiceItems =
-        value.services &&
-        typeof value.services === 'object' &&
-        !Array.isArray(value.services)
-          ? (value.services as { items?: unknown[] }).items
-          : Array.isArray(value.services)
-            ? (value.services as unknown[])
-            : [];
-      const serviceItems = Array.isArray(rawServiceItems)
-        ? rawServiceItems.map((item, index) => {
+        const rawServiceItems =
+          value.services &&
+          typeof value.services === 'object' &&
+          !Array.isArray(value.services)
+            ? (value.services as { items?: unknown[] }).items
+            : Array.isArray(value.services)
+              ? (value.services as unknown[])
+              : [];
+        const serviceItems = Array.isArray(rawServiceItems)
+          ? rawServiceItems.map((item, index) => {
               const rowItem = item as {
                 serviceId?: string;
                 parameterId?: string;
@@ -376,10 +377,7 @@ export default function WorkOrdersListing() {
                 rangeMax: String(rowItem.rangeMax ?? ''),
                 quantity: Math.max(1, Number(rowItem.quantity ?? 1)),
                 unitPrice: Number(rowItem.unitPrice ?? 0),
-                discountAmount: Math.max(
-                  0,
-                  Number(rowItem.discountAmount ?? 0)
-                )
+                discountAmount: Math.max(0, Number(rowItem.discountAmount ?? 0))
               };
             })
           : [];
@@ -536,7 +534,9 @@ export default function WorkOrdersListing() {
                 };
                 return {
                   serviceId: String(
-                    rowItem.serviceId ?? rowItem.parameterId ?? `service-${index}`
+                    rowItem.serviceId ??
+                      rowItem.parameterId ??
+                      `service-${index}`
                   ),
                   parameterId: String(
                     rowItem.parameterId ?? rowItem.serviceId ?? `p-${index}`
@@ -785,7 +785,7 @@ export default function WorkOrdersListing() {
       </div>
 
       <div className='max-w-full overflow-x-hidden rounded-md border'>
-        <div className='max-h-[calc(100vh-240px)] overflow-y-auto overflow-x-hidden'>
+        <div className='max-h-[calc(100vh-240px)] overflow-x-hidden overflow-y-auto'>
           <table className='w-full table-fixed text-left text-sm'>
             <thead className='bg-muted text-muted-foreground sticky top-0 z-10'>
               <tr>
@@ -885,7 +885,7 @@ export default function WorkOrdersListing() {
                     </td>
                     <td
                       className={`w-[8rem] px-3 py-3 md:w-[11rem] md:px-4 ${
-                        row.status === 'paused' || row.status === 'cancelled'
+                        row.status === 'cancelled'
                           ? 'text-destructive'
                           : row.status === 'completed'
                             ? 'text-emerald-700 dark:text-white'
@@ -1143,7 +1143,9 @@ export default function WorkOrdersListing() {
                               className='border-t'
                             >
                               <td className='p-2'>{service.parameterLabel}</td>
-                              <td className='p-2 text-right'>{service.quantity}</td>
+                              <td className='p-2 text-right'>
+                                {service.quantity}
+                              </td>
                             </tr>
                           ))}
                         </tbody>

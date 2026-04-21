@@ -1,6 +1,7 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import admin from 'firebase-admin';
 import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
+import { requirePermission } from '../guards/require-permission.js';
 
 const db = admin.firestore();
 
@@ -24,9 +25,7 @@ const sanitizeText = (value: unknown) =>
   typeof value === 'string' ? value.trim() : '';
 
 export const saveWorkOrderLabAnalysis = onCall(async (req) => {
-  if (!req.auth) {
-    throw new HttpsError('unauthenticated', 'Authentication is required.');
-  }
+  await requirePermission(req, 'lab.save');
 
   const data = (req.data || {}) as SaveWorkOrderLabAnalysisRequest;
   const workOrderId = sanitizeText(data.workOrderId);

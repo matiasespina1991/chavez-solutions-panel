@@ -55,12 +55,7 @@ import type {
   RequestStatus
 } from '@/types/domain';
 import { auth, db } from '@/lib/firebase';
-import {
-  collection,
-  onSnapshot,
-  orderBy,
-  query
-} from 'firebase/firestore';
+import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 import {
   IconCircleCheckFilled,
   IconDownload,
@@ -112,9 +107,7 @@ export default function RequestsListing() {
   const [rows, setRows] = useState<RequestRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingActionId, setPendingActionId] = useState<string | null>(null);
-  const [selectedRow, setSelectedRow] = useState<RequestRow | null>(
-    null
-  );
+  const [selectedRow, setSelectedRow] = useState<RequestRow | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isWorkOrderToggleDialogOpen, setIsWorkOrderToggleDialogOpen] =
@@ -124,16 +117,12 @@ export default function RequestsListing() {
   const [workOrderToggleAction, setWorkOrderToggleAction] = useState<
     'pause' | 'resume' | null
   >(null);
-  const [rowToDelete, setRowToDelete] = useState<RequestRow | null>(
-    null
-  );
+  const [rowToDelete, setRowToDelete] = useState<RequestRow | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isTogglingWorkOrder, setIsTogglingWorkOrder] = useState(false);
   const [workOrderToggleNotes, setWorkOrderToggleNotes] = useState('');
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
-  const [rowToReject, setRowToReject] = useState<RequestRow | null>(
-    null
-  );
+  const [rowToReject, setRowToReject] = useState<RequestRow | null>(null);
   const [isExecuteWorkOrderDialogOpen, setIsExecuteWorkOrderDialogOpen] =
     useState(false);
   const [rowToExecuteWorkOrder, setRowToExecuteWorkOrder] =
@@ -237,9 +226,9 @@ export default function RequestsListing() {
       return '❌ Proforma rechazada';
     }
     if (row.status === 'draft') return '(Borrador)';
-    if (row.status === 'work_order_paused') return 'OT pausada';
+    if (row.status === 'work_order_paused') return '⏸️ OT pausada';
     if (row.status === 'work_order_completed') return '✅ Finalizada';
-    if (row.status === 'converted_to_work_order') return 'OT iniciada';
+    if (row.status === 'converted_to_work_order') return '🟢 OT iniciada';
     return 'Cancelada';
   };
 
@@ -390,7 +379,7 @@ export default function RequestsListing() {
       setWorkOrderToggleNotes('');
     } catch (error) {
       console.error('[Requests] toggle action error', error);
-      toast.error('No se pudo completar la acción de la orden de trabajo');
+      toast.error('No se pudo completar la acción.');
     } finally {
       setIsTogglingWorkOrder(false);
       setPendingActionId(null);
@@ -598,7 +587,15 @@ export default function RequestsListing() {
   const canApproveSelectedRow =
     selectedRow?.status === 'submitted' &&
     selectedRow.approvalStatus !== 'approved';
-  const canEditSelectedRow = selectedRow ? !hasIssuedWorkOrder(selectedRow) : false;
+  const canExecuteApprovedSelectedRow =
+    selectedRow?.status === 'submitted' &&
+    selectedRow.approvalStatus === 'approved' &&
+    !hasIssuedWorkOrder(selectedRow);
+  const canShowExecuteWorkOrderButton =
+    canApproveSelectedRow || canExecuteApprovedSelectedRow;
+  const canEditSelectedRow = selectedRow
+    ? !hasIssuedWorkOrder(selectedRow)
+    : false;
 
   const handleDialogResumeWorkOrder = () => {
     if (!selectedRow || selectedRow.status !== 'work_order_paused') return;
@@ -703,8 +700,7 @@ export default function RequestsListing() {
           const isWorkOrder = Boolean(value.isWorkOrder);
           const matrix = normalizeMatrixArray(value.matrix);
           const status =
-            (value.status as RequestStatus) ??
-            ('draft' as RequestStatus);
+            (value.status as RequestStatus) ?? ('draft' as RequestStatus);
 
           const rawApprovalStatus =
             typeof value.approval === 'object' && value.approval !== null
@@ -958,7 +954,9 @@ export default function RequestsListing() {
                           discountAmount?: number | null;
                         };
                         const unitPrice = Number(rowItem.unitPrice ?? 0);
-                        const discountAmount = Number(rowItem.discountAmount ?? 0);
+                        const discountAmount = Number(
+                          rowItem.discountAmount ?? 0
+                        );
                         return {
                           serviceId: String(
                             rowItem.serviceId ??
@@ -992,7 +990,8 @@ export default function RequestsListing() {
                           quantity: Math.max(1, Number(rowItem.quantity ?? 1)),
                           unitPrice: Number.isFinite(unitPrice) ? unitPrice : 0,
                           discountAmount:
-                            Number.isFinite(discountAmount) && discountAmount >= 0
+                            Number.isFinite(discountAmount) &&
+                            discountAmount >= 0
                               ? discountAmount
                               : 0
                         };
@@ -1077,6 +1076,19 @@ export default function RequestsListing() {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    if (!selectedRow) return;
+
+    const refreshedSelected = rows.find((row) => row.id === selectedRow.id);
+    if (!refreshedSelected) {
+      setIsViewDialogOpen(false);
+      setSelectedRow(null);
+      return;
+    }
+
+    setSelectedRow(refreshedSelected);
+  }, [rows, selectedRow]);
+
   const sortedRows = useMemo(() => {
     const collator = new Intl.Collator('es', {
       sensitivity: 'base',
@@ -1142,15 +1154,6 @@ export default function RequestsListing() {
     if (!query) return sortedRows;
 
     return sortedRows.filter((row) => {
-      const otLabel =
-        row.status === 'work_order_paused'
-          ? 'amarillo'
-          : row.status === 'work_order_completed'
-            ? 'verde suave'
-            : hasIssuedWorkOrder(row)
-              ? 'verde'
-              : 'rojo';
-
       const searchableParts = [
         row.reference,
         row.notes,
@@ -1172,7 +1175,6 @@ export default function RequestsListing() {
         String(row.subtotal),
         String(row.taxPercent),
         row.updatedAtLabel,
-        otLabel,
         ...row.sampleItems.flatMap((sample) => [
           sample.sampleCode,
           sample.sampleType
@@ -1368,9 +1370,7 @@ export default function RequestsListing() {
                     </td>
                     <td
                       className={`w-[8rem] px-3 py-3 md:w-[11rem] md:px-4 ${
-                        isProformaExpired || isWorkOrderPaused
-                          ? 'text-destructive'
-                          : ''
+                        isProformaExpired ? 'text-destructive' : ''
                       }`}
                     >
                       {getStatusDisplayLabel(row)}
@@ -1625,7 +1625,7 @@ export default function RequestsListing() {
                 </DialogDescription>
               </div>
               <div className='flex items-center gap-1'>
-                {selectedRow && canApproveSelectedRow ? (
+                {selectedRow && canShowExecuteWorkOrderButton ? (
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -1633,7 +1633,13 @@ export default function RequestsListing() {
                         variant='ghost'
                         size='icon'
                         className={`${dialogActionButtonClass} text-emerald-600 hover:text-emerald-600`}
-                        onClick={() => openExecuteWorkOrderDialog(selectedRow)}
+                        onClick={() => {
+                          if (canApproveSelectedRow) {
+                            openExecuteWorkOrderDialog(selectedRow);
+                            return;
+                          }
+                          void handleWorkOrderAction(selectedRow);
+                        }}
                         aria-label='Ejecutar orden de trabajo'
                         disabled={pendingActionId === selectedRow.id}
                       >
@@ -1727,7 +1733,9 @@ export default function RequestsListing() {
                         <button
                           type='button'
                           className='cursor-pointer text-blue-600 underline underline-offset-2 hover:text-blue-500'
-                          onClick={() => openExecuteWorkOrderDialog(selectedRow)}
+                          onClick={() =>
+                            openExecuteWorkOrderDialog(selectedRow)
+                          }
                         >
                           Ejecutar
                         </button>
@@ -1755,7 +1763,9 @@ export default function RequestsListing() {
                   </div>
                 ) : null}
                 <ProformaSummaryPanel
-                  typeLabel={selectedRow.isWorkOrder ? 'Proforma + OT' : 'Proforma'}
+                  typeLabel={
+                    selectedRow.isWorkOrder ? 'Proforma + OT' : 'Proforma'
+                  }
                   reference={selectedRow.reference}
                   workOrderExecutedByEmail={
                     selectedRow.approvalStatus === 'approved'
@@ -1763,10 +1773,15 @@ export default function RequestsListing() {
                       : null
                   }
                   validDaysLabel={
-                    selectedRow.validDays ? `${selectedRow.validDays} días` : '—'
+                    selectedRow.validDays
+                      ? `${selectedRow.validDays} días`
+                      : '—'
                   }
                   validUntilLabel={formatDate(
-                    getValidUntilMs(selectedRow.createdAtMs, selectedRow.validDays)
+                    getValidUntilMs(
+                      selectedRow.createdAtMs,
+                      selectedRow.validDays
+                    )
                   )}
                   client={{
                     businessName: selectedRow.client.businessName || '—',

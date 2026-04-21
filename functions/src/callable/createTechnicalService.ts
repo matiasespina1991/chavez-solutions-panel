@@ -5,6 +5,7 @@ import type {
   CreateTechnicalServiceRequest,
   CreateTechnicalServiceResponse,
 } from '../types/technical-services.js';
+import { requirePermission } from '../guards/require-permission.js';
 
 const db = admin.firestore();
 const SERVICES_COLLECTION = FIRESTORE_COLLECTIONS.SERVICES;
@@ -39,6 +40,7 @@ const toTrimmedString = (value: unknown): string => {
 
 export const createTechnicalService = onCall(
   async (req): Promise<CreateTechnicalServiceResponse> => {
+    await requirePermission(req, 'services_catalog.write');
     if (!req.auth?.uid) {
       throw new HttpsError('unauthenticated', 'Authentication is required.');
     }

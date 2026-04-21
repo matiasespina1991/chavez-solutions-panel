@@ -38,11 +38,11 @@
 - `risk`: high
 - `depends_on`: [SEC-2002]
 - `acceptance`:
-  - [ ] Callables criticos validan rol explicito.
-  - [ ] Errores de permiso estandarizados.
+  - [x] Callables criticos validan rol explicito (`approve/reject/delete proforma`, `create/pause/resume/complete OT`, `save lab analysis`, `services catalog create/edit/delete/import/history`).
+  - [x] Errores de permiso estandarizados (`permission-denied` via guard compartido).
 - `validation_commands`:
   - `cd functions && npx tsc --noEmit`
-- `status`: `todo`
+- `status`: `approved`
 
 ## SEC-2004
 
@@ -65,8 +65,8 @@
 - `risk`: low
 - `depends_on`: [SEC-2001, SEC-2002, SEC-2003, SEC-2004]
 - `acceptance`:
-  - [ ] Politica de acceso documentada.
-  - [ ] Checklist operativo de permisos disponible.
+  - [x] Politica de acceso documentada.
+  - [x] Checklist operativo de permisos disponible.
 - `validation_commands`:
   - `n/a (documental)`
-- `status`: `todo`
+- `status`: `approved`

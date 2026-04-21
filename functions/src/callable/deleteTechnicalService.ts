@@ -5,12 +5,14 @@ import type {
   DeleteTechnicalServiceRequest,
   DeleteTechnicalServiceResponse,
 } from '../types/technical-services.js';
+import { requirePermission } from '../guards/require-permission.js';
 
 const db = admin.firestore();
 const SERVICES_COLLECTION = FIRESTORE_COLLECTIONS.SERVICES;
 
 export const deleteTechnicalService = onCall(
   async (req): Promise<DeleteTechnicalServiceResponse> => {
+    await requirePermission(req, 'services_catalog.delete');
     if (!req.auth?.uid) {
       throw new HttpsError('unauthenticated', 'Authentication is required.');
     }

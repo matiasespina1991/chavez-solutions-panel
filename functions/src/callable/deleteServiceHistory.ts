@@ -1,6 +1,7 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import admin from 'firebase-admin';
 import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
+import { requirePermission } from '../guards/require-permission.js';
 
 const db = admin.firestore();
 const HISTORY_COLLECTION = FIRESTORE_COLLECTIONS.SERVICES_HISTORY;
@@ -57,9 +58,7 @@ const copyDocuments = async (
 };
 
 export const deleteServiceHistory = onCall(async (req) => {
-  if (!req.auth) {
-    throw new HttpsError('unauthenticated', 'Authentication is required.');
-  }
+  await requirePermission(req, 'services_catalog.delete');
 
   const { historyId } = req.data as { historyId?: string };
 

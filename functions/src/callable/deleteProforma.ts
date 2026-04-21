@@ -1,6 +1,7 @@
 import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import admin from 'firebase-admin';
 import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
+import { requirePermission } from '../guards/require-permission.js';
 
 const db = admin.firestore();
 
@@ -9,9 +10,7 @@ interface DeleteProformaPayload {
 }
 
 export const deleteProforma = onCall(async (req) => {
-  if (!req.auth) {
-    throw new HttpsError('unauthenticated', 'Authentication is required.');
-  }
+  await requirePermission(req, 'requests.delete');
 
   const data = (req.data || {}) as DeleteProformaPayload;
   const requestId = data.requestId?.trim();

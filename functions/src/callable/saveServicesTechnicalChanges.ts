@@ -6,6 +6,7 @@ import type {
   SaveServicesTechnicalChangesResponse,
   TechnicalServicePatchValue,
 } from '../types/technical-services.js';
+import { requirePermission } from '../guards/require-permission.js';
 
 const db = admin.firestore();
 const SERVICES_COLLECTION = FIRESTORE_COLLECTIONS.SERVICES;
@@ -73,6 +74,7 @@ const normalizePatchValue = (value: unknown): TechnicalServicePatchValue => {
 
 export const saveServicesTechnicalChanges = onCall(
   async (req): Promise<SaveServicesTechnicalChangesResponse> => {
+    await requirePermission(req, 'services_catalog.write');
     if (!req.auth?.uid) {
       throw new HttpsError('unauthenticated', 'Authentication is required.');
     }

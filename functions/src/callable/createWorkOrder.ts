@@ -3,6 +3,7 @@ import admin from 'firebase-admin';
 import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
 import type { RequestDocumentData, RequestStatus } from '../types/requests.js';
 import { normalizeMatrixArray } from '../utils/request-normalizers.js';
+import { requirePermission } from '../guards/require-permission.js';
 
 const db = admin.firestore();
 
@@ -25,9 +26,7 @@ const NON_EMITTABLE_STATUSES: RequestStatus[] = [
 ];
 
 export const createWorkOrder = onCall(async (req) => {
-  if (!req.auth) {
-    throw new HttpsError('unauthenticated', 'Authentication is required.');
-  }
+  await requirePermission(req, 'work_orders.execute');
 
   const data = (req.data || {}) as CreateWorkOrderRequest;
   const sourceRequestId = data.sourceRequestId?.trim();

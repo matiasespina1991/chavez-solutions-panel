@@ -2,6 +2,7 @@ import { HttpsError, onCall } from 'firebase-functions/v2/https';
 import admin from 'firebase-admin';
 import { FIRESTORE_COLLECTIONS } from '../constants/firestore.js';
 import type { ProformaRequestData, RequestStatus } from '../types/requests.js';
+import { requirePermission } from '../guards/require-permission.js';
 
 const db = admin.firestore();
 
@@ -24,9 +25,7 @@ const NON_APPROVABLE_STATUSES: RequestStatus[] = [
 ];
 
 export const approveProforma = onCall(async (req) => {
-  if (!req.auth) {
-    throw new HttpsError('unauthenticated', 'Authentication is required.');
-  }
+  await requirePermission(req, 'requests.approve');
 
   const data = (req.data || {}) as ApproveProformaRequest;
   const requestId = data.requestId?.trim();
