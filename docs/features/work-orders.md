@@ -19,7 +19,6 @@ La vista `/dashboard/work-orders` opera sobre `work_orders` y centraliza seguimi
 - Referencia
 - Estado
 - Cliente
-- Matriz
 - Servicios
 - Total
 - Última Actualización

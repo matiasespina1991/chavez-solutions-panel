@@ -62,6 +62,11 @@ El step **Servicios** queda en error si:
 
 La emisión de orden de trabajo se hace vía callable backend (`createWorkOrder`) desde el flujo de solicitudes, con validaciones de aprobación.
 
+Notas actuales:
+
+- Si la solicitud está `submitted` y ya `approved` pero todavía sin OT emitida, se permite ejecutar OT desde el resumen de solicitud en `requests-list`.
+- La autorización final de emisión/pausa/reanudación/completado se valida en backend por permisos (no solo por estado visual de UI).
+
 ## Estado actual relevante
 
 - Tabs actuales: **Cliente → Servicios → Datos → Resumen**.
