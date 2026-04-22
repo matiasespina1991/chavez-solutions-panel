@@ -45,6 +45,9 @@
   - Micro-slice 4: acciones del header del dialogo de resumen extraidas a `features/requests/components/request-summary-actions.tsx`.
   - Micro-slice 5: banner/CTA del resumen de solicitud extraido a `features/requests/components/request-summary-banner.tsx`.
   - Micro-slice 6: dialogo de "Aprobar y ejecutar OT" extraido a `features/requests/components/request-execute-work-order-dialog.tsx`.
+  - Micro-slice 7: dialogo de pausar/reanudar OT extraido a `features/requests/components/request-work-order-toggle-dialog.tsx`.
+  - Micro-slice 8: dialogo de rechazo de proforma extraido a `features/requests/components/request-reject-dialog.tsx`.
+  - Micro-slice 9: dialogo de eliminacion de solicitud extraido a `features/requests/components/request-delete-dialog.tsx`.
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
   - `cd apps/admin-dashboard && npm run build`

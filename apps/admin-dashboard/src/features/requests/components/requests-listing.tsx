@@ -3,17 +3,6 @@
 import { DataTableSkeleton } from '@/components/ui/table/data-table-skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle
-} from '@/components/ui/alert-dialog';
 import {
   Dialog,
   DialogContent,
@@ -68,8 +57,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { ProformaSummaryPanel } from '@/features/proformas/components/proforma-summary-panel';
 import { RequestExecuteWorkOrderDialog } from '@/features/requests/components/request-execute-work-order-dialog';
+import { RequestDeleteDialog } from '@/features/requests/components/request-delete-dialog';
+import { RequestRejectDialog } from '@/features/requests/components/request-reject-dialog';
 import { RequestSummaryActions } from '@/features/requests/components/request-summary-actions';
 import { RequestSummaryBanner } from '@/features/requests/components/request-summary-banner';
+import { RequestWorkOrderToggleDialog } from '@/features/requests/components/request-work-order-toggle-dialog';
 import { getFriendlyRequestErrorMessage } from '@/features/requests/lib/request-errors';
 import { buildProformaPreviewPayloadFromRequestRow } from '@/features/requests/lib/request-preview';
 import { showCallableErrorToast } from '@/lib/callable-toast';
@@ -128,7 +120,6 @@ export default function RequestsListing() {
   const [sortKey, setSortKey] = useState<SortKey>('updatedAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
-
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
       setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
@@ -146,7 +137,6 @@ export default function RequestsListing() {
 
   const dialogActionButtonClass =
     'h-[2.4rem] w-[2.4rem] cursor-pointer rounded-md border bg-background p-0 transition-colors duration-150 hover:bg-muted/60';
-
 
   const openWorkOrderToggleDialog = (row: RequestRow) => {
     const workOrderIssued = hasIssuedWorkOrder(row);
@@ -1536,8 +1526,11 @@ export default function RequestsListing() {
         onConfirm={handleConfirmExecuteWorkOrder}
       />
 
-      <AlertDialog
+      <RequestWorkOrderToggleDialog
         open={isWorkOrderToggleDialogOpen}
+        isTogglingWorkOrder={isTogglingWorkOrder}
+        workOrderToggleAction={workOrderToggleAction}
+        workOrderToggleNotes={workOrderToggleNotes}
         onOpenChange={(open) => {
           if (isTogglingWorkOrder) return;
           setIsWorkOrderToggleDialogOpen(open);
@@ -1547,91 +1540,25 @@ export default function RequestsListing() {
             setWorkOrderToggleNotes('');
           }
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {workOrderToggleAction === 'resume'
-                ? 'Confirmar reanudación de orden de trabajo'
-                : 'Confirmar pausa de orden de trabajo'}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {workOrderToggleAction === 'resume'
-                ? '¿Está seguro de que desea reanudar esta orden de trabajo?'
-                : '¿Está seguro de que desea pausar esta orden de trabajo?'}
-            </AlertDialogDescription>
-            <div className='space-y-2 pt-1'>
-              <label className='text-sm font-medium'>Notas</label>
-              <Textarea
-                value={workOrderToggleNotes}
-                onChange={(event) =>
-                  setWorkOrderToggleNotes(event.target.value)
-                }
-                placeholder='Ingrese notas para la solicitud y la orden de trabajo'
-                rows={4}
-                disabled={isTogglingWorkOrder}
-              />
-            </div>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              className='cursor-pointer'
-              disabled={isTogglingWorkOrder}
-            >
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              className='cursor-pointer bg-black text-white hover:bg-black/90 disabled:bg-black disabled:text-white'
-              onClick={handleConfirmWorkOrderToggle}
-              disabled={isTogglingWorkOrder}
-            >
-              {isTogglingWorkOrder
-                ? workOrderToggleAction === 'resume'
-                  ? 'Reanudando…'
-                  : 'Pausando…'
-                : workOrderToggleAction === 'resume'
-                  ? 'Reanudar orden de trabajo'
-                  : 'Pausar'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        onNotesChange={setWorkOrderToggleNotes}
+        onConfirm={handleConfirmWorkOrderToggle}
+      />
 
-      <AlertDialog
+      <RequestDeleteDialog
         open={isDeleteDialogOpen}
+        isDeleting={isDeleting}
         onOpenChange={(open) => {
           if (isDeleting) return;
           setIsDeleteDialogOpen(open);
           if (!open) setRowToDelete(null);
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              Confirmar eliminación de solicitud
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              ¿Está seguro de que desea eliminar esta solicitud? Esta acción la
-              removerá y no podrá deshacerse.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className='cursor-pointer' disabled={isDeleting}>
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              className='bg-destructive hover:bg-destructive/90 cursor-pointer text-white'
-              onClick={handleDeleteRequest}
-              disabled={isDeleting}
-            >
-              {isDeleting ? 'Eliminando…' : 'Eliminar Solicitud'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        onConfirm={handleDeleteRequest}
+      />
 
-      <AlertDialog
+      <RequestRejectDialog
         open={isRejectDialogOpen}
+        isRejecting={isRejecting}
+        rejectFeedback={rejectFeedback}
         onOpenChange={(open) => {
           if (isRejecting) return;
           setIsRejectDialogOpen(open);
@@ -1640,42 +1567,9 @@ export default function RequestsListing() {
             setRejectFeedback('');
           }
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Rechazar proforma</AlertDialogTitle>
-            <AlertDialogDescription>
-              Indique el motivo de rechazo para devolver la solicitud a
-              borrador.
-            </AlertDialogDescription>
-            <div className='space-y-2 pt-1'>
-              <label className='text-sm font-medium'>Motivo de rechazo</label>
-              <Textarea
-                value={rejectFeedback}
-                onChange={(event) => setRejectFeedback(event.target.value)}
-                placeholder='Escriba el motivo de rechazo'
-                rows={4}
-                disabled={isRejecting}
-              />
-            </div>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              className='cursor-pointer'
-              disabled={isRejecting}
-            >
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              className='bg-destructive hover:bg-destructive/90 disabled:bg-destructive cursor-pointer text-white disabled:text-white'
-              onClick={handleConfirmRejectRequest}
-              disabled={isRejecting}
-            >
-              {isRejecting ? 'Rechazando…' : 'Rechazar proforma'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        onRejectFeedbackChange={setRejectFeedback}
+        onConfirm={handleConfirmRejectRequest}
+      />
     </div>
   );
 }
