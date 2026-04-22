@@ -1,25 +1,10 @@
 'use client';
 
-import { DataTableSkeleton } from '@/components/ui/table/data-table-skeleton';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle
-} from '@/components/ui/alert-dialog';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle
-} from '@/components/ui/dialog';
+import { WorkOrdersListingSearch } from '@/features/work-orders/components/work-orders-listing-search';
+import { WorkOrdersListingState } from '@/features/work-orders/components/work-orders-listing-state';
+import { WorkOrderSummaryDialog } from '@/features/work-orders/components/work-order-summary-dialog';
+import { WorkOrderCompleteDialog } from '@/features/work-orders/components/work-order-complete-dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,10 +33,7 @@ import type {
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 import {
-  IconDownload,
   IconDotsVertical,
-  IconPrinter,
-  IconSearch
 } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -195,37 +177,6 @@ export default function WorkOrdersListing() {
   const getSortIndicator = (key: SortKey) => {
     if (sortKey !== key) return '';
     return sortDirection === 'asc' ? ' ↑' : ' ↓';
-  };
-
-  const dialogActionButtonClass =
-    'h-[2.4rem] w-[2.4rem] cursor-pointer rounded-md border bg-background p-0 transition-colors duration-150 hover:bg-muted/60';
-
-  const getWorkOrderDialogBanner = (row: WorkOrderRow) => {
-    if (row.status === 'completed') {
-      return {
-        className:
-          'mb-[1rem] rounded-md border border-emerald-600/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300',
-        text: 'Orden de trabajo finalizada. ✅'
-      };
-    }
-
-    if (row.status === 'paused') {
-      return {
-        className:
-          'mb-[1rem] rounded-md border border-yellow-500/40 bg-yellow-400/15 px-3 py-2 text-sm text-yellow-800 dark:text-yellow-300',
-        text: 'Orden de trabajo pausada.'
-      };
-    }
-
-    if (row.status === 'cancelled') {
-      return {
-        className:
-          'mb-[1rem] rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive',
-        text: 'Orden de trabajo cancelada.'
-      };
-    }
-
-    return null;
   };
 
   const handleDialogDownload = () => {
@@ -748,48 +699,16 @@ export default function WorkOrdersListing() {
     [visibleRows.length]
   );
 
-  if (loading) {
-    return (
-      <DataTableSkeleton
-        columnCount={9}
-        rowCount={8}
-        filterCount={0}
-        withViewOptions={false}
-        withPagination={false}
-        cellWidths={[
-          '12rem',
-          '14rem',
-          '6rem',
-          '6rem',
-          '6rem',
-          '8rem',
-          '12rem',
-          '14rem',
-          '3rem'
-        ]}
-      />
-    );
-  }
-
-  if (!hasRows) {
-    return (
-      <div className='text-muted-foreground rounded-md border p-8 text-center text-sm'>
-        Aún no hay órdenes de trabajo registradas.
-      </div>
-    );
+  if (loading || !hasRows) {
+    return <WorkOrdersListingState loading={loading} hasRows={hasRows} />;
   }
 
   return (
     <div className='space-y-3'>
-      <div className='relative max-w-[19.5rem]'>
-        <Input
-          value={searchQuery}
-          onChange={(event) => setSearchQuery(event.target.value)}
-          placeholder='Buscar en todas las órdenes de trabajo...'
-          className='pr-10'
-        />
-        <IconSearch className='text-muted-foreground pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2' />
-      </div>
+      <WorkOrdersListingSearch
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
+      />
 
       <div className='max-w-full overflow-x-hidden rounded-md border'>
         <div className='max-h-[calc(100vh-240px)] overflow-x-hidden overflow-y-auto'>
@@ -1008,199 +927,24 @@ export default function WorkOrdersListing() {
         </div>
       </div>
 
-      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent
-          className='max-h-[90vh] gap-0 overflow-hidden p-0 sm:max-w-3xl'
-          onOpenAutoFocus={(event) => event.preventDefault()}
-        >
-          <DialogHeader className='bg-background shrink-0 border-b px-6 py-4 pr-12'>
-            <div className='flex items-start justify-between gap-3'>
-              <div>
-                <DialogTitle>Resumen de orden de trabajo</DialogTitle>
-                <DialogDescription>
-                  Vista consolidada de cliente, servicios y costos.
-                </DialogDescription>
-              </div>
-              <div className='flex items-center gap-1'>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type='button'
-                      variant='ghost'
-                      size='icon'
-                      className={dialogActionButtonClass}
-                      onClick={handleDialogDownload}
-                      aria-label='Descargar orden de trabajo'
-                    >
-                      <IconDownload className='h-4 w-4' />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Descargar orden de trabajo</TooltipContent>
-                </Tooltip>
+      <WorkOrderSummaryDialog
+        open={isViewDialogOpen}
+        selectedRow={selectedRow}
+        onOpenChange={setIsViewDialogOpen}
+        onDownload={handleDialogDownload}
+        onPrint={handleDialogPrint}
+      />
 
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type='button'
-                      variant='ghost'
-                      size='icon'
-                      className={dialogActionButtonClass}
-                      onClick={handleDialogPrint}
-                      aria-label='Imprimir orden de trabajo'
-                    >
-                      <IconPrinter className='h-4 w-4' />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Imprimir orden de trabajo</TooltipContent>
-                </Tooltip>
-              </div>
-            </div>
-          </DialogHeader>
-
-          {selectedRow && (
-            <div className='max-h-[calc(90vh-88px)] overflow-y-auto overscroll-none'>
-              <div className='space-y-5 px-6 py-5'>
-                {getWorkOrderDialogBanner(selectedRow) ? (
-                  <div
-                    className={`${getWorkOrderDialogBanner(selectedRow)?.className} mx-0 mt-0`}
-                  >
-                    {getWorkOrderDialogBanner(selectedRow)?.text}
-                  </div>
-                ) : null}
-
-                {selectedRow.notes?.trim() ? (
-                  <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
-                    <h4 className='text-muted-foreground font-semibold'>
-                      Notas
-                    </h4>
-                    <p className='whitespace-pre-wrap'>{selectedRow.notes}</p>
-                  </div>
-                ) : null}
-
-                <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
-                  <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
-                    <h4 className='text-muted-foreground font-semibold'>
-                      Datos Generales
-                    </h4>
-                    <p>
-                      <span className='font-medium'>N° OT:</span>{' '}
-                      {selectedRow.workOrderNumber}
-                    </p>
-                    <p>
-                      <span className='font-medium'>Referencia origen:</span>{' '}
-                      {selectedRow.sourceReference}
-                    </p>
-                  </div>
-                  <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
-                    <h4 className='text-muted-foreground font-semibold'>
-                      Cliente
-                    </h4>
-                    <p>
-                      <span className='font-medium'>Razón Social:</span>{' '}
-                      {selectedRow.client.businessName || '—'}
-                    </p>
-                    <p>
-                      <span className='font-medium'>RUC:</span>{' '}
-                      {selectedRow.client.taxId || '—'}
-                    </p>
-                    <p>
-                      <span className='font-medium'>Contacto:</span>{' '}
-                      {selectedRow.client.contactName || '—'}
-                    </p>
-                  </div>
-                </div>
-
-                <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
-                  <h4 className='text-muted-foreground font-semibold'>
-                    Servicios ({selectedRow.serviceItems.length})
-                  </h4>
-                  <div className='space-y-1'>
-                    {selectedRow.serviceItems.length > 0 ? (
-                      selectedRow.serviceItems.map((service, index) => (
-                        <p
-                          key={`${service.serviceId}-${index}`}
-                          className='text-sm'
-                        >
-                          {service.parameterLabel}
-                        </p>
-                      ))
-                    ) : (
-                      <p className='text-sm'>No hay servicios seleccionados.</p>
-                    )}
-                  </div>
-                </div>
-
-                {selectedRow.serviceItems.length > 0 ? (
-                  <div className='space-y-2 rounded-md border p-4'>
-                    <h4 className='text-muted-foreground font-semibold'>
-                      Detalle de servicios
-                    </h4>
-                    <div className='overflow-x-auto rounded-md border'>
-                      <table className='w-full text-left text-sm'>
-                        <thead className='bg-muted text-muted-foreground'>
-                          <tr>
-                            <th className='p-2'>Parámetro</th>
-                            <th className='p-2 text-right'>Cantidad</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {selectedRow.serviceItems.map((service, index) => (
-                            <tr
-                              key={`${service.serviceId}-${index}`}
-                              className='border-t'
-                            >
-                              <td className='p-2'>{service.parameterLabel}</td>
-                              <td className='p-2 text-right'>
-                                {service.quantity}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog
+      <WorkOrderCompleteDialog
         open={isCompleteDialogOpen}
+        isCompleting={isCompleting}
         onOpenChange={(open) => {
           if (isCompleting) return;
           setIsCompleteDialogOpen(open);
           if (!open) setRowToComplete(null);
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              Confirmar finalización de orden de trabajo
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              ¿Está seguro de que desea finalizar esta orden de trabajo? Esta
-              acción actualizará también la solicitud vinculada como finalizada.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              className='cursor-pointer'
-              disabled={isCompleting}
-            >
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              className='cursor-pointer'
-              onClick={handleConfirmCompleteWorkOrder}
-              disabled={isCompleting}
-            >
-              {isCompleting ? 'Finalizando…' : 'Finalizar orden de trabajo'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        onConfirm={handleConfirmCompleteWorkOrder}
+      />
     </div>
   );
 }

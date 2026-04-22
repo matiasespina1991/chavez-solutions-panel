@@ -55,6 +55,12 @@
   - Micro-slice 14: realtime/sincronizacion de solicitudes (suscripcion Firestore + resincronizacion de fila seleccionada) extraido a `features/requests/hooks/use-requests-realtime.ts`.
   - Micro-slice 15: estado y handlers de acciones (aprobar/rechazar/eliminar/emitir-pausar-reanudar/descargar) extraidos a `features/requests/hooks/use-request-actions.ts`.
   - Micro-slice 16: `use-request-actions` desacoplado en hooks por responsabilidad: `use-work-order-actions.tsx`, `use-request-moderation-actions.ts` y `use-request-download-action.ts`.
+  - Micro-slice 17: view-model del resumen de solicitud (flags de permisos/estado, `handleDialogEdit`, `approverLabel`, `nowLabel`) extraido a `features/requests/hooks/use-request-summary-view-model.ts`.
+  - Micro-slice 18: estados de carga/empty desacoplados de `requests-listing.tsx` en `features/requests/components/requests-listing-state.tsx`.
+  - Micro-slice 19: barra de busqueda desacoplada de `requests-listing.tsx` en `features/requests/components/requests-listing-search.tsx`.
+  - Micro-slice 20: callbacks de acciones de tabla (abrir resumen/editar/emitir OT/rechazar/pausar-eliminar) desacoplados de `requests-listing.tsx` en `features/requests/hooks/use-request-list-table-actions.ts`.
+  - Micro-slice 21: composicion de dialogs de solicitudes (resumen, ejecutar OT, pausar/reanudar, rechazar, eliminar) desacoplada de `requests-listing.tsx` en `features/requests/components/requests-listing-dialogs.tsx`.
+  - Micro-slice 22: action-bar de header de dialogos universalizada en `components/ui/dialog-header-actions.tsx` y reutilizada en resumen de solicitudes + resumen de ordenes de trabajo.
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
   - `cd apps/admin-dashboard && npm run build`
@@ -69,9 +75,15 @@
 - `depends_on`: [CT-1003]
 - `acceptance`:
   - [ ] Work orders desacoplado sin regresion.
+- `notes`:
+  - Micro-slice 1: action-bar de header de dialogo de resumen migrada a componente compartido `components/ui/dialog-header-actions.tsx`.
+  - Micro-slice 2: estados de carga/empty desacoplados de `work-orders-listing.tsx` en `features/work-orders/components/work-orders-listing-state.tsx`.
+  - Micro-slice 3: barra de busqueda desacoplada de `work-orders-listing.tsx` en `features/work-orders/components/work-orders-listing-search.tsx`.
+  - Micro-slice 4: dialogo de resumen de OT (header, banner, notas y detalle de servicios) desacoplado de `work-orders-listing.tsx` en `features/work-orders/components/work-order-summary-dialog.tsx`.
+  - Micro-slice 5: dialogo de confirmacion de finalizacion de OT desacoplado de `work-orders-listing.tsx` en `features/work-orders/components/work-order-complete-dialog.tsx`.
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
-- `status`: `todo`
+- `status`: `in_progress`
 
 ## APP-3005
 

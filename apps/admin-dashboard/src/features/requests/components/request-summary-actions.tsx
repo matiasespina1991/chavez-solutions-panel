@@ -1,9 +1,7 @@
-import { Button } from '@/components/ui/button';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger
-} from '@/components/ui/tooltip';
+  DialogHeaderActions,
+  type DialogHeaderAction
+} from '@/components/ui/dialog-header-actions';
 import type { RequestListRow as RequestRow } from '@/types/domain';
 import {
   IconDownload,
@@ -19,7 +17,6 @@ interface RequestSummaryActionsProps {
   canEditSelectedRow: boolean;
   pendingActionId: string | null;
   isDialogDownloading: boolean;
-  dialogActionButtonClass: string;
   onOpenExecuteWorkOrderDialog: (row: RequestRow) => void;
   onWorkOrderAction: (row: RequestRow) => void;
   onEdit: () => void;
@@ -34,104 +31,71 @@ export function RequestSummaryActions({
   canEditSelectedRow,
   pendingActionId,
   isDialogDownloading,
-  dialogActionButtonClass,
   onOpenExecuteWorkOrderDialog,
   onWorkOrderAction,
   onEdit,
   onDownload,
   onDelete
 }: RequestSummaryActionsProps) {
-  return (
-    <div className='flex items-center gap-1'>
-      {selectedRow && canShowExecuteWorkOrderButton ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              type='button'
-              variant='ghost'
-              size='icon'
-              className={`${dialogActionButtonClass} text-emerald-600 hover:text-emerald-600`}
-              onClick={() => {
-                if (canApproveSelectedRow) {
-                  onOpenExecuteWorkOrderDialog(selectedRow);
-                  return;
-                }
-                onWorkOrderAction(selectedRow);
-              }}
-              aria-label='Ejecutar orden de trabajo'
-              disabled={pendingActionId === selectedRow.id}
-            >
-              <IconPlayerPlayFilled className='h-4 w-4' />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Ejecutar orden de trabajo</TooltipContent>
-        </Tooltip>
-      ) : null}
+  const actions: DialogHeaderAction[] = [];
 
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span className='inline-flex'>
-            <Button
-              type='button'
-              variant='ghost'
-              size='icon'
-              className={dialogActionButtonClass}
-              onClick={onEdit}
-              aria-label='Editar solicitud'
-              disabled={!canEditSelectedRow}
-            >
-              <IconPencil className='h-4 w-4' />
-            </Button>
+  if (selectedRow && canShowExecuteWorkOrderButton) {
+    actions.push({
+      id: 'execute-work-order',
+      icon: <IconPlayerPlayFilled className='h-4 w-4' />,
+      tooltip: 'Ejecutar orden de trabajo',
+      ariaLabel: 'Ejecutar orden de trabajo',
+      onClick: () => {
+        if (canApproveSelectedRow) {
+          onOpenExecuteWorkOrderDialog(selectedRow);
+          return;
+        }
+        onWorkOrderAction(selectedRow);
+      },
+      disabled: pendingActionId === selectedRow.id,
+      className: 'text-emerald-600 hover:text-emerald-600'
+    });
+  }
+
+  actions.push({
+    id: 'edit-request',
+    icon: <IconPencil className='h-4 w-4' />,
+    tooltip: canEditSelectedRow
+      ? 'Editar solicitud...'
+      : 'No se puede editar una orden de trabajo ya emitida',
+    ariaLabel: 'Editar solicitud',
+    onClick: onEdit,
+    disabled: !canEditSelectedRow
+  });
+
+  actions.push({
+    id: 'download-request',
+    icon: (
+      <span className='relative inline-flex h-4 w-4 items-center justify-center'>
+        <IconDownload className='h-4 w-4' />
+        {isDialogDownloading ? (
+          <span className='absolute inset-0 inline-flex items-center justify-center'>
+            <span className='border-primary h-3 w-3 animate-spin rounded-full border-2 border-t-transparent' />
           </span>
-        </TooltipTrigger>
-        <TooltipContent>
-          {canEditSelectedRow
-            ? 'Editar solicitud...'
-            : 'No se puede editar una orden de trabajo ya emitida'}
-        </TooltipContent>
-      </Tooltip>
+        ) : null}
+      </span>
+    ),
+    tooltip: 'Descargar solicitud',
+    ariaLabel: 'Descargar solicitud',
+    onClick: onDownload,
+    disabled: isDialogDownloading,
+    className: isDialogDownloading ? 'text-muted-foreground' : undefined
+  });
 
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            type='button'
-            variant='ghost'
-            size='icon'
-            className={`${dialogActionButtonClass} ${
-              isDialogDownloading ? 'text-muted-foreground' : ''
-            }`}
-            onClick={onDownload}
-            aria-label='Descargar solicitud'
-            disabled={isDialogDownloading}
-          >
-            <span className='relative inline-flex h-4 w-4 items-center justify-center'>
-              <IconDownload className='h-4 w-4' />
-              {isDialogDownloading ? (
-                <span className='absolute inset-0 inline-flex items-center justify-center'>
-                  <span className='border-primary h-3 w-3 animate-spin rounded-full border-2 border-t-transparent' />
-                </span>
-              ) : null}
-            </span>
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>Descargar solicitud</TooltipContent>
-      </Tooltip>
+  actions.push({
+    id: 'delete-request',
+    icon: <IconTrash className='h-4 w-4' />,
+    tooltip: 'Eliminar solicitud',
+    ariaLabel: 'Eliminar solicitud',
+    onClick: onDelete,
+    className:
+      'text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10'
+  });
 
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            type='button'
-            variant='ghost'
-            size='icon'
-            className={`${dialogActionButtonClass} text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10`}
-            onClick={onDelete}
-            aria-label='Eliminar solicitud'
-          >
-            <IconTrash className='h-4 w-4' />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>Eliminar solicitud</TooltipContent>
-      </Tooltip>
-    </div>
-  );
+  return <DialogHeaderActions actions={actions} />;
 }

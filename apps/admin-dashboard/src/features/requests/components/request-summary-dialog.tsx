@@ -23,7 +23,6 @@ interface RequestSummaryDialogProps {
   canEditSelectedRow: boolean;
   pendingActionId: string | null;
   isDialogDownloading: boolean;
-  dialogActionButtonClass: string;
   onOpenChange: (open: boolean) => void;
   onOpenExecuteWorkOrderDialog: (row: RequestRow) => void;
   onWorkOrderAction: (row: RequestRow) => void;
@@ -41,7 +40,6 @@ export function RequestSummaryDialog({
   canEditSelectedRow,
   pendingActionId,
   isDialogDownloading,
-  dialogActionButtonClass,
   onOpenChange,
   onOpenExecuteWorkOrderDialog,
   onWorkOrderAction,
@@ -71,7 +69,6 @@ export function RequestSummaryDialog({
               canEditSelectedRow={canEditSelectedRow}
               pendingActionId={pendingActionId}
               isDialogDownloading={isDialogDownloading}
-              dialogActionButtonClass={dialogActionButtonClass}
               onOpenExecuteWorkOrderDialog={onOpenExecuteWorkOrderDialog}
               onWorkOrderAction={onWorkOrderAction}
               onEdit={onEdit}
