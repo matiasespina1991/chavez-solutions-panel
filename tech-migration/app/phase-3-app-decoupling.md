@@ -53,7 +53,8 @@
   - Micro-slice 12: dialogo de resumen de solicitud (header, acciones, banner y panel de proforma) extraido a `features/requests/components/request-summary-dialog.tsx`.
   - Micro-slice 13: view-model de ordenamiento/filtro/visibilidad extraido a `features/requests/hooks/use-requests-list-view-model.ts`.
   - Micro-slice 14: realtime/sincronizacion de solicitudes (suscripcion Firestore + resincronizacion de fila seleccionada) extraido a `features/requests/hooks/use-requests-realtime.ts`.
-  - Micro-slice 15: estado y handlers de acciones (aprobar/rechazar/eliminar/emitir-pausar-reanudar/descargar) extraidos a `features/requests/hooks/use-request-actions.tsx`.
+  - Micro-slice 15: estado y handlers de acciones (aprobar/rechazar/eliminar/emitir-pausar-reanudar/descargar) extraidos a `features/requests/hooks/use-request-actions.ts`.
+  - Micro-slice 16: `use-request-actions` desacoplado en hooks por responsabilidad: `use-work-order-actions.tsx`, `use-request-moderation-actions.ts` y `use-request-download-action.ts`.
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
   - `cd apps/admin-dashboard && npm run build`

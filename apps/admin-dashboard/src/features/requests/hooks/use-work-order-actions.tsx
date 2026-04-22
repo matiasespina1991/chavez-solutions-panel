@@ -1,18 +1,13 @@
 import {
   approveProforma,
   createWorkOrderFromRequest,
-  deleteProforma,
-  generateProformaPreviewPdf,
   pauseWorkOrderFromRequest,
-  rejectProforma,
-  resumeWorkOrderFromRequest,
-  toProformaPreviewServiceLine
+  resumeWorkOrderFromRequest
 } from '@/features/configurator/services/configurations';
-import { auth } from '@/lib/firebase';
-import { showCallableErrorToast } from '@/lib/callable-toast';
 import { getFriendlyRequestErrorMessage } from '@/features/requests/lib/request-errors';
-import { buildProformaPreviewPayloadFromRequestRow } from '@/features/requests/lib/request-preview';
 import { hasIssuedWorkOrder } from '@/features/requests/lib/request-status';
+import { showCallableErrorToast } from '@/lib/callable-toast';
+import { auth } from '@/lib/firebase';
 import type {
   RequestListRow as RequestRow,
   RequestStatus
@@ -21,17 +16,14 @@ import { IconCircleCheckFilled } from '@tabler/icons-react';
 import { useState, type Dispatch, type SetStateAction } from 'react';
 import { toast } from 'sonner';
 
-interface UseRequestActionsParams {
+interface UseWorkOrderActionsParams {
   selectedRow: RequestRow | null;
   setRows: Dispatch<SetStateAction<RequestRow[]>>;
   setSelectedRow: Dispatch<SetStateAction<RequestRow | null>>;
-  onCloseSummaryDialog: () => void;
+  setPendingActionId: Dispatch<SetStateAction<string | null>>;
 }
 
-interface UseRequestActionsResult {
-  pendingActionId: string | null;
-  isDeleteDialogOpen: boolean;
-  setIsDeleteDialogOpen: Dispatch<SetStateAction<boolean>>;
+interface UseWorkOrderActionsResult {
   isWorkOrderToggleDialogOpen: boolean;
   setIsWorkOrderToggleDialogOpen: Dispatch<SetStateAction<boolean>>;
   rowToToggleWorkOrder: RequestRow | null;
@@ -40,43 +32,26 @@ interface UseRequestActionsResult {
   setWorkOrderToggleAction: Dispatch<SetStateAction<'pause' | 'resume' | null>>;
   workOrderToggleNotes: string;
   setWorkOrderToggleNotes: Dispatch<SetStateAction<string>>;
-  isDeleting: boolean;
   isTogglingWorkOrder: boolean;
-  isRejectDialogOpen: boolean;
-  setIsRejectDialogOpen: Dispatch<SetStateAction<boolean>>;
-  setRowToDelete: Dispatch<SetStateAction<RequestRow | null>>;
-  rowToReject: RequestRow | null;
-  setRowToReject: Dispatch<SetStateAction<RequestRow | null>>;
   isExecuteWorkOrderDialogOpen: boolean;
   setIsExecuteWorkOrderDialogOpen: Dispatch<SetStateAction<boolean>>;
   rowToExecuteWorkOrder: RequestRow | null;
   setRowToExecuteWorkOrder: Dispatch<SetStateAction<RequestRow | null>>;
-  rejectFeedback: string;
-  setRejectFeedback: Dispatch<SetStateAction<string>>;
-  isRejecting: boolean;
-  isDialogDownloading: boolean;
   openWorkOrderToggleDialog: (row: RequestRow) => void;
   handleConfirmWorkOrderToggle: () => Promise<void>;
   handleWorkOrderAction: (row: RequestRow) => Promise<void>;
   handleApproveRequest: (row: RequestRow) => Promise<void>;
   openExecuteWorkOrderDialog: (row: RequestRow) => void;
   handleConfirmExecuteWorkOrder: () => Promise<void>;
-  openRejectDialog: (row: RequestRow) => void;
-  handleConfirmRejectRequest: () => Promise<void>;
-  handleDeleteRequest: () => Promise<void>;
-  handleDialogDelete: () => void;
   handleDialogResumeWorkOrder: () => void;
-  handleDialogDownload: () => Promise<void>;
 }
 
-export const useRequestActions = ({
+export const useWorkOrderActions = ({
   selectedRow,
   setRows,
   setSelectedRow,
-  onCloseSummaryDialog
-}: UseRequestActionsParams): UseRequestActionsResult => {
-  const [pendingActionId, setPendingActionId] = useState<string | null>(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  setPendingActionId
+}: UseWorkOrderActionsParams): UseWorkOrderActionsResult => {
   const [isWorkOrderToggleDialogOpen, setIsWorkOrderToggleDialogOpen] =
     useState(false);
   const [rowToToggleWorkOrder, setRowToToggleWorkOrder] =
@@ -84,19 +59,12 @@ export const useRequestActions = ({
   const [workOrderToggleAction, setWorkOrderToggleAction] = useState<
     'pause' | 'resume' | null
   >(null);
-  const [rowToDelete, setRowToDelete] = useState<RequestRow | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [isTogglingWorkOrder, setIsTogglingWorkOrder] = useState(false);
   const [workOrderToggleNotes, setWorkOrderToggleNotes] = useState('');
-  const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
-  const [rowToReject, setRowToReject] = useState<RequestRow | null>(null);
   const [isExecuteWorkOrderDialogOpen, setIsExecuteWorkOrderDialogOpen] =
     useState(false);
   const [rowToExecuteWorkOrder, setRowToExecuteWorkOrder] =
     useState<RequestRow | null>(null);
-  const [rejectFeedback, setRejectFeedback] = useState('');
-  const [isRejecting, setIsRejecting] = useState(false);
-  const [isDialogDownloading, setIsDialogDownloading] = useState(false);
 
   const openWorkOrderToggleDialog = (row: RequestRow) => {
     const workOrderIssued = hasIssuedWorkOrder(row);
@@ -273,138 +241,12 @@ export const useRequestActions = ({
     setRowToExecuteWorkOrder(null);
   };
 
-  const openRejectDialog = (row: RequestRow) => {
-    setRowToReject(row);
-    setRejectFeedback(row.approvalFeedback || '');
-    setIsRejectDialogOpen(true);
-  };
-
-  const handleConfirmRejectRequest = async () => {
-    if (!rowToReject) return;
-
-    const feedback = rejectFeedback.trim();
-
-    if (!feedback) {
-      toast.error('Debe ingresar un motivo de rechazo.');
-      return;
-    }
-
-    try {
-      setIsRejecting(true);
-      setPendingActionId(rowToReject.id);
-
-      await rejectProforma(rowToReject.id, feedback);
-
-      toast.success(`Proforma ${rowToReject.reference} rechazada`);
-
-      setRows((prev) =>
-        prev.map((entry) =>
-          entry.id === rowToReject.id
-            ? {
-                ...entry,
-                status: 'draft',
-                approvalStatus: 'rejected',
-                approvalFeedback: feedback
-              }
-            : entry
-        )
-      );
-
-      setSelectedRow((prev) =>
-        prev && prev.id === rowToReject.id
-          ? {
-              ...prev,
-              status: 'draft',
-              approvalStatus: 'rejected',
-              approvalFeedback: feedback
-            }
-          : prev
-      );
-
-      setIsRejectDialogOpen(false);
-      setRowToReject(null);
-      setRejectFeedback('');
-    } catch (error) {
-      console.error('[Requests] reject error', error);
-      showCallableErrorToast(
-        getFriendlyRequestErrorMessage(error, 'No se pudo rechazar la proforma')
-      );
-    } finally {
-      setIsRejecting(false);
-      setPendingActionId(null);
-    }
-  };
-
-  const handleDeleteRequest = async () => {
-    if (!rowToDelete) return;
-
-    try {
-      setIsDeleting(true);
-      await deleteProforma(rowToDelete.id);
-      toast.success('Solicitud eliminada correctamente');
-      setIsDeleteDialogOpen(false);
-      setRowToDelete(null);
-      if (selectedRow?.id === rowToDelete.id) {
-        onCloseSummaryDialog();
-        setSelectedRow(null);
-      }
-    } catch (error) {
-      console.error('[Requests] delete error', error);
-      showCallableErrorToast(
-        getFriendlyRequestErrorMessage(error, 'No se pudo eliminar la solicitud')
-      );
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const handleDialogDelete = () => {
-    if (!selectedRow) return;
-    setRowToDelete(selectedRow);
-    setIsDeleteDialogOpen(true);
-  };
-
   const handleDialogResumeWorkOrder = () => {
     if (!selectedRow || selectedRow.status !== 'work_order_paused') return;
     openWorkOrderToggleDialog(selectedRow);
   };
 
-  const handleDialogDownload = async () => {
-    if (!selectedRow) return;
-
-    try {
-      setIsDialogDownloading(true);
-      const result = await generateProformaPreviewPdf(
-        buildProformaPreviewPayloadFromRequestRow(
-          selectedRow,
-          toProformaPreviewServiceLine
-        )
-      );
-
-      const link = document.createElement('a');
-      link.href = result.downloadURL;
-      link.download = result.fileName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      toast.success('PDF de proforma descargado.');
-    } catch (error) {
-      console.error('[Requests] download pdf error', error);
-      showCallableErrorToast(
-        getFriendlyRequestErrorMessage(
-          error,
-          'No se pudo descargar el PDF de la proforma.'
-        )
-      );
-    } finally {
-      setIsDialogDownloading(false);
-    }
-  };
-
   return {
-    pendingActionId,
-    isDeleteDialogOpen,
-    setIsDeleteDialogOpen,
     isWorkOrderToggleDialogOpen,
     setIsWorkOrderToggleDialogOpen,
     rowToToggleWorkOrder,
@@ -413,32 +255,17 @@ export const useRequestActions = ({
     setWorkOrderToggleAction,
     workOrderToggleNotes,
     setWorkOrderToggleNotes,
-    isDeleting,
     isTogglingWorkOrder,
-    isRejectDialogOpen,
-    setIsRejectDialogOpen,
-    setRowToDelete,
-    rowToReject,
-    setRowToReject,
     isExecuteWorkOrderDialogOpen,
     setIsExecuteWorkOrderDialogOpen,
     rowToExecuteWorkOrder,
     setRowToExecuteWorkOrder,
-    rejectFeedback,
-    setRejectFeedback,
-    isRejecting,
-    isDialogDownloading,
     openWorkOrderToggleDialog,
     handleConfirmWorkOrderToggle,
     handleWorkOrderAction,
     handleApproveRequest,
     openExecuteWorkOrderDialog,
     handleConfirmExecuteWorkOrder,
-    openRejectDialog,
-    handleConfirmRejectRequest,
-    handleDeleteRequest,
-    handleDialogDelete,
-    handleDialogResumeWorkOrder,
-    handleDialogDownload
+    handleDialogResumeWorkOrder
   };
 };
