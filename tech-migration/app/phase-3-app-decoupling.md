@@ -44,6 +44,7 @@
   - Micro-slice 3: armado de payload preview PDF extraido a `features/requests/lib/request-preview.ts`.
   - Micro-slice 4: acciones del header del dialogo de resumen extraidas a `features/requests/components/request-summary-actions.tsx`.
   - Micro-slice 5: banner/CTA del resumen de solicitud extraido a `features/requests/components/request-summary-banner.tsx`.
+  - Micro-slice 6: dialogo de "Aprobar y ejecutar OT" extraido a `features/requests/components/request-execute-work-order-dialog.tsx`.
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
   - `cd apps/admin-dashboard && npm run build`

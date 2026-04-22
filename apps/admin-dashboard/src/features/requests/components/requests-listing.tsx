@@ -67,6 +67,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { ProformaSummaryPanel } from '@/features/proformas/components/proforma-summary-panel';
+import { RequestExecuteWorkOrderDialog } from '@/features/requests/components/request-execute-work-order-dialog';
 import { RequestSummaryActions } from '@/features/requests/components/request-summary-actions';
 import { RequestSummaryBanner } from '@/features/requests/components/request-summary-banner';
 import { getFriendlyRequestErrorMessage } from '@/features/requests/lib/request-errors';
@@ -1503,8 +1504,23 @@ export default function RequestsListing() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog
+      <RequestExecuteWorkOrderDialog
         open={isExecuteWorkOrderDialogOpen}
+        rowToExecuteWorkOrder={rowToExecuteWorkOrder}
+        pendingActionId={pendingActionId}
+        approverLabel={
+          auth.currentUser?.displayName ||
+          auth.currentUser?.email ||
+          'Usuario autenticado'
+        }
+        nowLabel={new Date().toLocaleString('es-EC', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        })}
         onOpenChange={(open) => {
           if (
             rowToExecuteWorkOrder &&
@@ -1517,72 +1533,8 @@ export default function RequestsListing() {
             setRowToExecuteWorkOrder(null);
           }
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              Confirmar ejecución de orden de trabajo
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              ¿Desea aprobar esta proforma y dar ejecución a una orden de
-              trabajo?
-            </AlertDialogDescription>
-            <div className='bg-muted/30 mt-2 space-y-2 rounded-md border p-3 text-sm'>
-              <p>
-                <span className='text-muted-foreground'>Proforma:</span>{' '}
-                <span className='font-medium'>
-                  {rowToExecuteWorkOrder?.reference ?? '—'}
-                </span>
-              </p>
-              <p>
-                <span className='text-muted-foreground'>Aprobador:</span>{' '}
-                <span className='font-medium'>
-                  {auth.currentUser?.displayName ||
-                    auth.currentUser?.email ||
-                    'Usuario autenticado'}
-                </span>
-              </p>
-              <p>
-                <span className='text-muted-foreground'>Fecha:</span>{' '}
-                <span className='font-medium'>
-                  {new Date().toLocaleString('es-EC', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false
-                  })}
-                </span>
-              </p>
-            </div>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              className='cursor-pointer'
-              disabled={
-                !!rowToExecuteWorkOrder &&
-                pendingActionId === rowToExecuteWorkOrder.id
-              }
-            >
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              className='cursor-pointer bg-emerald-600 text-white hover:bg-emerald-600/90 disabled:bg-emerald-600 disabled:text-white'
-              onClick={handleConfirmExecuteWorkOrder}
-              disabled={
-                !rowToExecuteWorkOrder ||
-                pendingActionId === rowToExecuteWorkOrder.id
-              }
-            >
-              {rowToExecuteWorkOrder &&
-              pendingActionId === rowToExecuteWorkOrder.id
-                ? 'Ejecutando…'
-                : 'Aprobar y ejecutar'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        onConfirm={handleConfirmExecuteWorkOrder}
+      />
 
       <AlertDialog
         open={isWorkOrderToggleDialogOpen}
