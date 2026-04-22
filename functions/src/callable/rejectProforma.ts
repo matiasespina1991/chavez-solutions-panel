@@ -35,13 +35,16 @@ export const rejectProforma = onCall(async (req) => {
     typeof data.feedback === 'string' ? data.feedback.trim() : '';
 
   if (!requestId) {
-    throw new HttpsError('invalid-argument', 'requestId is required.');
+    throw new HttpsError('invalid-argument', 'requestId is required.', {
+      reason: 'REQUEST_ID_REQUIRED'
+    });
   }
 
   if (!feedback) {
     throw new HttpsError(
       'invalid-argument',
-      'feedback is required to reject a proforma.'
+      'feedback is required to reject a proforma.',
+      { reason: 'REJECT_FEEDBACK_REQUIRED' }
     );
   }
 
@@ -51,7 +54,9 @@ export const rejectProforma = onCall(async (req) => {
     const requestSnap = await tx.get(requestRef);
 
     if (!requestSnap.exists) {
-      throw new HttpsError('not-found', 'Request not found.');
+      throw new HttpsError('not-found', 'Request not found.', {
+        reason: 'REQUEST_NOT_FOUND'
+      });
     }
 
     const requestData = requestSnap.data() as ProformaRequestData;
@@ -63,14 +68,16 @@ export const rejectProforma = onCall(async (req) => {
     ) {
       throw new HttpsError(
         'failed-precondition',
-        'This proforma cannot be rejected in its current status.'
+        'This proforma cannot be rejected in its current status.',
+        { reason: 'REQUEST_NOT_REJECTABLE_STATUS' }
       );
     }
 
     if (requestData.status !== 'submitted') {
       throw new HttpsError(
         'failed-precondition',
-        'Only submitted proformas can be rejected.'
+        'Only submitted proformas can be rejected.',
+        { reason: 'REQUEST_ONLY_SUBMITTED_REJECTABLE' }
       );
     }
 

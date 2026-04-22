@@ -17,6 +17,10 @@ import {
   X
 } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  getGenericCallableErrorMessage,
+} from '@/lib/callable-errors';
+import { showCallableErrorToast } from '@/lib/callable-toast';
 
 import { db } from '@/lib/firebase';
 import { FIRESTORE_COLLECTIONS } from '@/constants/firestore';
@@ -772,13 +776,9 @@ export function ServicesCatalogPanel() {
     } catch (error) {
       console.error('[ServicesCatalog] delete service error', error);
       const message =
-        error &&
-        typeof error === 'object' &&
-        'message' in error &&
-        typeof error.message === 'string'
-          ? error.message
-          : 'No se pudo eliminar el servicio.';
-      toast.error(message);
+        getGenericCallableErrorMessage(error) ??
+        'No se pudo eliminar el servicio.';
+      showCallableErrorToast(message);
     } finally {
       setIsDeletingService(false);
     }
@@ -870,13 +870,9 @@ export function ServicesCatalogPanel() {
     } catch (error) {
       console.error('[ServicesCatalog] save error', error);
       const message =
-        error &&
-        typeof error === 'object' &&
-        'message' in error &&
-        typeof error.message === 'string'
-          ? error.message
-          : 'No se pudieron guardar los cambios.';
-      toast.error(message);
+        getGenericCallableErrorMessage(error) ??
+        'No se pudieron guardar los cambios.';
+      showCallableErrorToast(message);
     } finally {
       setIsSaving(false);
     }
@@ -1135,13 +1131,9 @@ export function ServicesCatalogPanel() {
       } catch (error) {
         console.error('[ServicesCatalog] update service error', error);
         const message =
-          error &&
-          typeof error === 'object' &&
-          'message' in error &&
-          typeof error.message === 'string'
-            ? error.message
-            : 'No se pudo actualizar el servicio técnico.';
-        toast.error(message);
+          getGenericCallableErrorMessage(error) ??
+          'No se pudo actualizar el servicio técnico.';
+        showCallableErrorToast(message);
       } finally {
         setIsCreatingService(false);
       }
@@ -1167,13 +1159,9 @@ export function ServicesCatalogPanel() {
     } catch (error) {
       console.error('[ServicesCatalog] create service error', error);
       const message =
-        error &&
-        typeof error === 'object' &&
-        'message' in error &&
-        typeof error.message === 'string'
-          ? error.message
-          : 'No se pudo crear el servicio técnico.';
-      toast.error(message);
+        getGenericCallableErrorMessage(error) ??
+        'No se pudo crear el servicio técnico.';
+      showCallableErrorToast(message);
     } finally {
       setIsCreatingService(false);
     }

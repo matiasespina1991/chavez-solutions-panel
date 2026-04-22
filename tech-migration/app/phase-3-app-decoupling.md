@@ -33,15 +33,21 @@
 
 - `id`: APP-3003
 - `scope`: particionar `requests-listing.tsx` (tabla, resumen modal, acciones estado, adapters).
-- `files`: `apps/admin-dashboard/src/features/requests/components/**`
+- `files`: `apps/admin-dashboard/src/features/requests/components/**`, `apps/admin-dashboard/src/features/requests/lib/**`
 - `risk`: high
 - `depends_on`: [CT-1003]
 - `acceptance`:
   - [ ] Componentes desacoplados por responsabilidad.
+- `notes`:
+  - Micro-slice 1: helpers puros de estado/fechas/banners extraidos a `features/requests/lib/request-status.ts`.
+  - Micro-slice 2: mapeo de errores amigables extraido a `features/requests/lib/request-errors.ts`.
+  - Micro-slice 3: armado de payload preview PDF extraido a `features/requests/lib/request-preview.ts`.
+  - Micro-slice 4: acciones del header del dialogo de resumen extraidas a `features/requests/components/request-summary-actions.tsx`.
+  - Micro-slice 5: banner/CTA del resumen de solicitud extraido a `features/requests/components/request-summary-banner.tsx`.
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
   - `cd apps/admin-dashboard && npm run build`
-- `status`: `todo`
+- `status`: `in_progress`
 
 ## APP-3004
 
@@ -82,4 +88,3 @@
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
 - `status`: `todo`
-

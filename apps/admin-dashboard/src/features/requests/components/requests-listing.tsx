@@ -48,7 +48,6 @@ import {
   firestoreTimestampToMs,
   formatFirestoreTimestamp
 } from '@/lib/firestore-timestamps';
-import { REQUEST_STATUS_LABEL_MAP } from '@/lib/status-labels';
 import type {
   RequestApprovalStatus,
   RequestListRow as RequestRow,
@@ -58,9 +57,7 @@ import { auth, db } from '@/lib/firebase';
 import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 import {
   IconCircleCheckFilled,
-  IconDownload,
   IconDotsVertical,
-  IconPencil,
   IconPlayerPauseFilled,
   IconPlayerPlayFilled,
   IconSearch,
@@ -70,6 +67,21 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { ProformaSummaryPanel } from '@/features/proformas/components/proforma-summary-panel';
+import { RequestSummaryActions } from '@/features/requests/components/request-summary-actions';
+import { RequestSummaryBanner } from '@/features/requests/components/request-summary-banner';
+import { getFriendlyRequestErrorMessage } from '@/features/requests/lib/request-errors';
+import { buildProformaPreviewPayloadFromRequestRow } from '@/features/requests/lib/request-preview';
+import { showCallableErrorToast } from '@/lib/callable-toast';
+import {
+  formatDate,
+  getApprovalStatusLabel,
+  getRequestDialogBanner,
+  getRowStatusLabel,
+  getStatusDisplayLabel,
+  getValidUntilMs,
+  hasIssuedWorkOrder,
+  isExpiredProforma
+} from '@/features/requests/lib/request-status';
 
 type SortKey =
   | 'reference'
@@ -82,25 +94,6 @@ type SortKey =
   | 'updatedAt';
 
 type SortDirection = 'asc' | 'desc';
-
-const getValidUntilMs = (createdAtMs: number, validDays: number | null) => {
-  if (!createdAtMs || !validDays || validDays <= 0) return null;
-  return createdAtMs + validDays * 24 * 60 * 60 * 1000;
-};
-
-const formatDate = (valueMs: number | null) => {
-  if (!valueMs) return '—';
-  return new Date(valueMs).toLocaleDateString('es-EC');
-};
-
-const formatDateLabel = (valueMs: number | null) => {
-  if (!valueMs) return '—';
-  return new Date(valueMs).toLocaleDateString('es-EC', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  });
-};
 
 export default function RequestsListing() {
   const router = useRouter();
@@ -134,103 +127,6 @@ export default function RequestsListing() {
   const [sortKey, setSortKey] = useState<SortKey>('updatedAt');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
-  const hasIssuedWorkOrder = (row: RequestRow) =>
-    row.status === 'converted_to_work_order' ||
-    row.status === 'work_order_paused' ||
-    row.status === 'work_order_completed';
-
-  const getFriendlyErrorMessage = (error: unknown, fallback: string) => {
-    const errorMessage =
-      error instanceof Error && error.message.trim().length > 0
-        ? error.message
-        : '';
-
-    if (
-      errorMessage.includes(
-        'Service request must be approved before generating a work order.'
-      )
-    ) {
-      return 'La proforma debe estar aprobada antes de emitir una orden de trabajo.';
-    }
-
-    if (errorMessage.includes('Draft service requests cannot be approved.')) {
-      return 'No se puede aprobar una solicitud en borrador.';
-    }
-
-    if (
-      errorMessage.includes(
-        'This service request cannot be approved in its current status.'
-      )
-    ) {
-      return 'No se puede aprobar esta solicitud en su estado actual.';
-    }
-
-    if (
-      errorMessage.includes('feedback is required to reject a service request.')
-    ) {
-      return 'Debe ingresar un motivo de rechazo.';
-    }
-
-    if (
-      errorMessage.includes(
-        'This service request cannot be rejected in its current status.'
-      )
-    ) {
-      return 'No se puede rechazar esta solicitud en su estado actual.';
-    }
-
-    if (
-      errorMessage.includes('Only submitted service requests can be rejected.')
-    ) {
-      return 'Solo se pueden rechazar proformas enviadas.';
-    }
-
-    return errorMessage || fallback;
-  };
-
-  const getApprovalStatusLabel = (row: RequestRow) => {
-    if (row.approvalStatus === 'approved') return 'Aprobada';
-    if (row.approvalStatus === 'rejected') return 'Rechazada';
-    if (row.status === 'submitted') return 'Pendiente';
-    return '—';
-  };
-
-  const isExpiredProforma = (row: RequestRow) => {
-    if (row.status !== 'submitted') return false;
-    const validUntilMs = getValidUntilMs(row.createdAtMs, row.validDays);
-    if (!validUntilMs) return false;
-    return validUntilMs < Date.now();
-  };
-
-  const getRowStatusLabel = (row: RequestRow) => {
-    if (isExpiredProforma(row)) return 'Proforma vencida';
-    if (row.status === 'submitted') {
-      return row.approvalStatus === 'approved'
-        ? 'Proforma aprobada'
-        : 'Proforma lista';
-    }
-    if (row.status === 'draft' && row.approvalStatus === 'rejected') {
-      return 'Proforma rechazada';
-    }
-    return REQUEST_STATUS_LABEL_MAP[row.status];
-  };
-
-  const getStatusDisplayLabel = (row: RequestRow) => {
-    if (isExpiredProforma(row)) return 'Proforma vencida';
-    if (row.status === 'submitted') {
-      return row.approvalStatus === 'approved'
-        ? 'Proforma aprobada'
-        : '🟡 Proforma lista';
-    }
-    if (row.status === 'draft' && row.approvalStatus === 'rejected') {
-      return '❌ Proforma rechazada';
-    }
-    if (row.status === 'draft') return '(Borrador)';
-    if (row.status === 'work_order_paused') return '⏸️ OT pausada';
-    if (row.status === 'work_order_completed') return '✅ Finalizada';
-    if (row.status === 'converted_to_work_order') return '🟢 OT iniciada';
-    return 'Cancelada';
-  };
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -250,65 +146,6 @@ export default function RequestsListing() {
   const dialogActionButtonClass =
     'h-[2.4rem] w-[2.4rem] cursor-pointer rounded-md border bg-background p-0 transition-colors duration-150 hover:bg-muted/60';
 
-  const getRequestDialogBanner = (row: RequestRow) => {
-    if (row.status === 'work_order_completed') {
-      return {
-        className:
-          'rounded-md border border-emerald-600/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300',
-        text: 'Orden de trabajo finalizada. ✅'
-      };
-    }
-
-    if (row.status === 'work_order_paused') {
-      return {
-        className:
-          'rounded-md border border-yellow-500/40 bg-yellow-400/15 px-3 py-2 text-sm text-yellow-800 dark:text-yellow-300',
-        text: 'Orden de trabajo pausada.'
-      };
-    }
-
-    if (row.status === 'submitted' && row.approvalStatus !== 'approved') {
-      return {
-        className:
-          'rounded-md border border-amber-500/40 bg-amber-400/15 px-3 py-2 text-sm text-amber-800 dark:text-amber-300',
-        text: 'Proforma lista. Preparada para'
-      };
-    }
-
-    if (row.status === 'submitted' && row.approvalStatus === 'approved') {
-      return {
-        className:
-          'rounded-md border border-emerald-600/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300',
-        text: 'Proforma aprobada. Lista para emitir OT.'
-      };
-    }
-
-    if (row.status === 'cancelled') {
-      return {
-        className:
-          'rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive',
-        text: 'Solicitud cancelada.'
-      };
-    }
-
-    if (row.status === 'draft' && row.approvalStatus === 'rejected') {
-      return {
-        className:
-          'rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive',
-        text: 'Proforma rechazada. Revise el motivo y edite la solicitud.'
-      };
-    }
-
-    if (row.status === 'draft') {
-      return {
-        className:
-          'rounded-md border border-slate-500/30 bg-slate-500/10 px-3 py-2 text-sm text-slate-700 dark:text-slate-300',
-        text: 'Borrador.'
-      };
-    }
-
-    return null;
-  };
 
   const openWorkOrderToggleDialog = (row: RequestRow) => {
     const workOrderIssued = hasIssuedWorkOrder(row);
@@ -379,7 +216,9 @@ export default function RequestsListing() {
       setWorkOrderToggleNotes('');
     } catch (error) {
       console.error('[Requests] toggle action error', error);
-      toast.error('No se pudo completar la acción.');
+      showCallableErrorToast(
+        getFriendlyRequestErrorMessage(error, 'No se pudo completar la acción.')
+      );
     } finally {
       setIsTogglingWorkOrder(false);
       setPendingActionId(null);
@@ -413,11 +252,12 @@ export default function RequestsListing() {
       }
     } catch (error) {
       console.error('[Requests] action error', error);
-      const errorMessage =
-        error instanceof Error && error.message.trim().length > 0
-          ? error.message
-          : 'No se pudo completar la acción de la orden de trabajo';
-      toast.error(errorMessage);
+      showCallableErrorToast(
+        getFriendlyRequestErrorMessage(
+          error,
+          'No se pudo completar la acción de la orden de trabajo'
+        )
+      );
     } finally {
       setPendingActionId(null);
     }
@@ -459,8 +299,8 @@ export default function RequestsListing() {
       );
     } catch (error) {
       console.error('[Requests] approve error', error);
-      toast.error(
-        getFriendlyErrorMessage(
+      showCallableErrorToast(
+        getFriendlyRequestErrorMessage(
           error,
           'No se pudo ejecutar la orden de trabajo'
         )
@@ -535,8 +375,8 @@ export default function RequestsListing() {
       setRejectFeedback('');
     } catch (error) {
       console.error('[Requests] reject error', error);
-      toast.error(
-        getFriendlyErrorMessage(error, 'No se pudo rechazar la proforma')
+      showCallableErrorToast(
+        getFriendlyRequestErrorMessage(error, 'No se pudo rechazar la proforma')
       );
     } finally {
       setIsRejecting(false);
@@ -559,7 +399,9 @@ export default function RequestsListing() {
       }
     } catch (error) {
       console.error('[Requests] delete error', error);
-      toast.error('No se pudo eliminar la solicitud');
+      showCallableErrorToast(
+        getFriendlyRequestErrorMessage(error, 'No se pudo eliminar la solicitud')
+      );
     } finally {
       setIsDeleting(false);
     }
@@ -602,72 +444,16 @@ export default function RequestsListing() {
     openWorkOrderToggleDialog(selectedRow);
   };
 
-  const buildProformaPreviewPayloadFromRow = (row: RequestRow) => {
-    const issuedAtMs = row.createdAtMs || Date.now();
-    const validUntilMs = getValidUntilMs(row.createdAtMs, row.validDays);
-
-    return {
-      reference: row.reference,
-      matrixLabels: [],
-      validDays: row.validDays,
-      issuedAtLabel: formatDateLabel(issuedAtMs),
-      validUntilLabel: formatDateLabel(validUntilMs),
-      client: {
-        businessName: row.client.businessName || '',
-        taxId: row.client.taxId || '',
-        contactName: row.client.contactName || '',
-        address: row.client.address || '',
-        city: row.client.city || '',
-        email: row.client.email || '',
-        phone: row.client.phone || '',
-        mobile: ''
-      },
-      services: row.serviceItems.map((service) =>
-        toProformaPreviewServiceLine({
-          tableLabel: service.tableLabel,
-          label: service.parameterLabel,
-          parameterId: service.parameterId,
-          unit: service.unit,
-          method: service.method,
-          rangeMin: service.rangeMin,
-          rangeMax: service.rangeMax,
-          quantity: service.quantity,
-          unitPrice: service.unitPrice,
-          discountAmount: service.discountAmount
-        })
-      ),
-      serviceGroups: row.serviceGroups.map((group, groupIndex) => ({
-        name: group.name || `Combo ${groupIndex + 1}`,
-        items: group.items.map((item) =>
-          toProformaPreviewServiceLine({
-            tableLabel: item.tableLabel,
-            label: item.parameterLabel,
-            parameterId: item.parameterId,
-            unit: item.unit,
-            method: item.method,
-            rangeMin: item.rangeMin,
-            rangeMax: item.rangeMax,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            discountAmount: item.discountAmount
-          })
-        )
-      })),
-      pricing: {
-        subtotal: row.subtotal ?? 0,
-        taxPercent: row.taxPercent ?? 15,
-        total: row.total ?? 0
-      }
-    };
-  };
-
   const handleDialogDownload = async () => {
     if (!selectedRow) return;
 
     try {
       setIsDialogDownloading(true);
       const result = await generateProformaPreviewPdf(
-        buildProformaPreviewPayloadFromRow(selectedRow)
+        buildProformaPreviewPayloadFromRequestRow(
+          selectedRow,
+          toProformaPreviewServiceLine
+        )
       );
 
       const link = document.createElement('a');
@@ -679,7 +465,12 @@ export default function RequestsListing() {
       toast.success('PDF de proforma descargado.');
     } catch (error) {
       console.error('[Requests] download pdf error', error);
-      toast.error('No se pudo descargar el PDF de la proforma.');
+      showCallableErrorToast(
+        getFriendlyRequestErrorMessage(
+          error,
+          'No se pudo descargar el PDF de la proforma.'
+        )
+      );
     } finally {
       setIsDialogDownloading(false);
     }
@@ -1440,7 +1231,7 @@ export default function RequestsListing() {
                             {!isWorkOrderCompleted ? (
                               <>
                                 {workOrderIssued && !isWorkOrderPaused ? (
-                                  <Tooltip>
+                                  <Tooltip delayDuration={2000}>
                                     <TooltipTrigger asChild>
                                       <span className='block'>
                                         <DropdownMenuItem
@@ -1624,144 +1415,37 @@ export default function RequestsListing() {
                   Vista consolidada de cliente, muestras, análisis y costos.
                 </DialogDescription>
               </div>
-              <div className='flex items-center gap-1'>
-                {selectedRow && canShowExecuteWorkOrderButton ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type='button'
-                        variant='ghost'
-                        size='icon'
-                        className={`${dialogActionButtonClass} text-emerald-600 hover:text-emerald-600`}
-                        onClick={() => {
-                          if (canApproveSelectedRow) {
-                            openExecuteWorkOrderDialog(selectedRow);
-                            return;
-                          }
-                          void handleWorkOrderAction(selectedRow);
-                        }}
-                        aria-label='Ejecutar orden de trabajo'
-                        disabled={pendingActionId === selectedRow.id}
-                      >
-                        <IconPlayerPlayFilled className='h-4 w-4' />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Ejecutar orden de trabajo</TooltipContent>
-                  </Tooltip>
-                ) : null}
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className='inline-flex'>
-                      <Button
-                        type='button'
-                        variant='ghost'
-                        size='icon'
-                        className={dialogActionButtonClass}
-                        onClick={handleDialogEdit}
-                        aria-label='Editar solicitud'
-                        disabled={!canEditSelectedRow}
-                      >
-                        <IconPencil className='h-4 w-4' />
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {canEditSelectedRow
-                      ? 'Editar solicitud...'
-                      : 'No se puede editar una orden de trabajo ya emitida'}
-                  </TooltipContent>
-                </Tooltip>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type='button'
-                      variant='ghost'
-                      size='icon'
-                      className={`${dialogActionButtonClass} ${
-                        isDialogDownloading ? 'text-muted-foreground' : ''
-                      }`}
-                      onClick={handleDialogDownload}
-                      aria-label='Descargar solicitud'
-                      disabled={isDialogDownloading}
-                    >
-                      <span className='relative inline-flex h-4 w-4 items-center justify-center'>
-                        <IconDownload className='h-4 w-4' />
-                        {isDialogDownloading ? (
-                          <span className='absolute inset-0 inline-flex items-center justify-center'>
-                            <span className='border-primary h-3 w-3 animate-spin rounded-full border-2 border-t-transparent' />
-                          </span>
-                        ) : null}
-                      </span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Descargar solicitud</TooltipContent>
-                </Tooltip>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type='button'
-                      variant='ghost'
-                      size='icon'
-                      className={`${dialogActionButtonClass} text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10`}
-                      onClick={handleDialogDelete}
-                      aria-label='Eliminar solicitud'
-                    >
-                      <IconTrash className='h-4 w-4' />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Eliminar solicitud</TooltipContent>
-                </Tooltip>
-              </div>
+              <RequestSummaryActions
+                selectedRow={selectedRow}
+                canShowExecuteWorkOrderButton={canShowExecuteWorkOrderButton}
+                canApproveSelectedRow={canApproveSelectedRow}
+                canEditSelectedRow={canEditSelectedRow}
+                pendingActionId={pendingActionId}
+                isDialogDownloading={isDialogDownloading}
+                dialogActionButtonClass={dialogActionButtonClass}
+                onOpenExecuteWorkOrderDialog={openExecuteWorkOrderDialog}
+                onWorkOrderAction={(row) => {
+                  void handleWorkOrderAction(row);
+                }}
+                onEdit={handleDialogEdit}
+                onDownload={() => {
+                  void handleDialogDownload();
+                }}
+                onDelete={handleDialogDelete}
+              />
             </div>
           </DialogHeader>
 
           {selectedRow && (
             <div className='max-h-[calc(90vh-88px)] overflow-y-auto overscroll-none'>
               <div className='space-y-5 px-6 py-5'>
-                {getRequestDialogBanner(selectedRow) ? (
-                  <div
-                    className={`${getRequestDialogBanner(selectedRow)?.className} mx-0 mt-0 flex items-center justify-start gap-1`}
-                  >
-                    {selectedRow.status === 'submitted' &&
-                    selectedRow.approvalStatus !== 'approved' ? (
-                      <span>
-                        Proforma lista. Preparada para ejecutar orden de
-                        trabajo.{' '}
-                        <button
-                          type='button'
-                          className='cursor-pointer text-blue-600 underline underline-offset-2 hover:text-blue-500'
-                          onClick={() =>
-                            openExecuteWorkOrderDialog(selectedRow)
-                          }
-                        >
-                          Ejecutar
-                        </button>
-                      </span>
-                    ) : (
-                      <span>{getRequestDialogBanner(selectedRow)?.text}</span>
-                    )}
-                    {selectedRow.status === 'draft' ? (
-                      <button
-                        type='button'
-                        className='cursor-pointer text-blue-600 underline underline-offset-2 hover:text-blue-500'
-                        onClick={handleDialogEdit}
-                      >
-                        Editar
-                      </button>
-                    ) : selectedRow.status === 'work_order_paused' ? (
-                      <button
-                        type='button'
-                        className='cursor-pointer text-blue-600 underline underline-offset-2 hover:text-blue-500'
-                        onClick={handleDialogResumeWorkOrder}
-                      >
-                        Reanudar
-                      </button>
-                    ) : null}
-                  </div>
-                ) : null}
+                <RequestSummaryBanner
+                  row={selectedRow}
+                  banner={getRequestDialogBanner(selectedRow)}
+                  onExecute={openExecuteWorkOrderDialog}
+                  onEdit={handleDialogEdit}
+                  onResume={handleDialogResumeWorkOrder}
+                />
                 <ProformaSummaryPanel
                   typeLabel={
                     selectedRow.isWorkOrder ? 'Proforma + OT' : 'Proforma'

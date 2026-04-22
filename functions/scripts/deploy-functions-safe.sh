@@ -8,6 +8,7 @@ cd "$ROOT_DIR"
 PROJECT_ID="${1:-}"
 MAX_RETRIES="${MAX_RETRIES:-3}"
 BASE_BACKOFF_SECONDS="${BASE_BACKOFF_SECONDS:-20}"
+BATCH_SIZE="${BATCH_SIZE:-5}"
 
 echo "==> Building functions..."
 if ! npm run build; then
@@ -28,21 +29,31 @@ if [ "${#FUNCTION_NAMES[@]}" -eq 0 ]; then
 fi
 
 echo "==> Functions to deploy (${#FUNCTION_NAMES[@]}): ${FUNCTION_NAMES[*]}"
+echo "==> Batch size: ${BATCH_SIZE}"
 
 FAILED=()
 
-for FUNCTION_NAME in "${FUNCTION_NAMES[@]}"; do
+for ((i = 0; i < ${#FUNCTION_NAMES[@]}; i += BATCH_SIZE)); do
+  BATCH=("${FUNCTION_NAMES[@]:i:BATCH_SIZE}")
+  DEPLOY_TARGETS=""
+  for FUNCTION_NAME in "${BATCH[@]}"; do
+    if [ -n "$DEPLOY_TARGETS" ]; then
+      DEPLOY_TARGETS+=","
+    fi
+    DEPLOY_TARGETS+="functions:${FUNCTION_NAME}"
+  done
+
   ATTEMPT=1
   SUCCESS=0
 
   while [ "$ATTEMPT" -le "$MAX_RETRIES" ]; do
     echo
-    echo "==> Deploying ${FUNCTION_NAME} (attempt ${ATTEMPT}/${MAX_RETRIES})"
+    echo "==> Deploying batch (${ATTEMPT}/${MAX_RETRIES}): ${BATCH[*]}"
 
     if [ -n "$PROJECT_ID" ]; then
-      firebase deploy --project "$PROJECT_ID" --only "functions:${FUNCTION_NAME}"
+      firebase deploy --project "$PROJECT_ID" --only "$DEPLOY_TARGETS"
     else
-      firebase deploy --only "functions:${FUNCTION_NAME}"
+      firebase deploy --only "$DEPLOY_TARGETS"
     fi
 
     EXIT_CODE=$?
@@ -53,7 +64,7 @@ for FUNCTION_NAME in "${FUNCTION_NAMES[@]}"; do
 
     if [ "$ATTEMPT" -lt "$MAX_RETRIES" ]; then
       BACKOFF=$((BASE_BACKOFF_SECONDS * ATTEMPT))
-      echo "Deploy failed for ${FUNCTION_NAME}. Retrying in ${BACKOFF}s..."
+      echo "Deploy failed for batch (${BATCH[*]}). Retrying in ${BACKOFF}s..."
       sleep "$BACKOFF"
     fi
 
@@ -61,7 +72,7 @@ for FUNCTION_NAME in "${FUNCTION_NAMES[@]}"; do
   done
 
   if [ "$SUCCESS" -ne 1 ]; then
-    FAILED+=("$FUNCTION_NAME")
+    FAILED+=("${BATCH[@]}")
   fi
 done
 

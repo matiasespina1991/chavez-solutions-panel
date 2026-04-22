@@ -33,6 +33,8 @@ import {
 } from '@/components/ui/tooltip';
 import { completeWorkOrder } from '@/features/configurator/services/configurations';
 import { FIRESTORE_COLLECTIONS } from '@/constants/firestore';
+import { getGenericCallableErrorMessage } from '@/lib/callable-errors';
+import { showCallableErrorToast } from '@/lib/callable-toast';
 import { normalizeMatrixArray } from '@/lib/request-normalizers';
 import {
   firestoreTimestampToMs,
@@ -168,7 +170,12 @@ export default function WorkOrdersListing() {
       setRowToComplete(null);
     } catch (error) {
       console.error('[WorkOrders] complete action error', error);
-      toast.error('No se pudo finalizar la orden de trabajo');
+      const genericErrorMessage = getGenericCallableErrorMessage(error);
+      const fallbackMessage =
+        error instanceof Error && error.message.trim().length > 0
+          ? error.message
+          : 'No se pudo finalizar la orden de trabajo';
+      showCallableErrorToast(genericErrorMessage ?? fallbackMessage);
     } finally {
       setIsCompleting(false);
       setPendingActionId(null);

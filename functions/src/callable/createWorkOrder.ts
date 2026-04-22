@@ -32,7 +32,9 @@ export const createWorkOrder = onCall(async (req) => {
   const sourceRequestId = data.sourceRequestId?.trim();
 
   if (!sourceRequestId) {
-    throw new HttpsError('invalid-argument', 'sourceRequestId is required.');
+    throw new HttpsError('invalid-argument', 'sourceRequestId is required.', {
+      reason: 'REQUEST_ID_REQUIRED'
+    });
   }
 
   const sourceRequestRef = db
@@ -43,7 +45,9 @@ export const createWorkOrder = onCall(async (req) => {
     const sourceSnap = await tx.get(sourceRequestRef);
 
     if (!sourceSnap.exists) {
-      throw new HttpsError('not-found', 'Service request not found.');
+      throw new HttpsError('not-found', 'Service request not found.', {
+        reason: 'REQUEST_NOT_FOUND'
+      });
     }
 
     const source = sourceSnap.data() as RequestDocumentData;
@@ -69,14 +73,16 @@ export const createWorkOrder = onCall(async (req) => {
     ) {
       throw new HttpsError(
         'failed-precondition',
-        'This service request is not eligible to generate a work order.'
+        'This service request is not eligible to generate a work order.',
+        { reason: 'REQUEST_NOT_EMITTABLE' }
       );
     }
 
     if (source.approval?.status !== 'approved') {
       throw new HttpsError(
         'failed-precondition',
-        'Service request must be approved before generating a work order.'
+        'Service request must be approved before generating a work order.',
+        { reason: 'REQUEST_NOT_APPROVED' }
       );
     }
 

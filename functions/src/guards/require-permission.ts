@@ -129,14 +129,19 @@ export const requirePermission = async (
   permission: AppPermission
 ): Promise<AppUserRole> => {
   if (!req.auth) {
-    throw new HttpsError('unauthenticated', 'Authentication is required.');
+    throw new HttpsError(
+      'unauthenticated',
+      'Authentication is required to execute this action.',
+      { reason: 'AUTH_REQUIRED' }
+    );
   }
 
   const role = await resolveUserRole(req);
   if (!role) {
     throw new HttpsError(
       'permission-denied',
-      'Your current user role does not grant you permission to execute this task.'
+      'Your current user role does not grant permission for this action.',
+      { reason: 'USER_ROLE_NOT_CONFIGURED', permission }
     );
   }
 
@@ -146,7 +151,8 @@ export const requirePermission = async (
   if (!allowedRoles.some((allowedRole) => allowedRole === role)) {
     throw new HttpsError(
       'permission-denied',
-      `Role "${role}" cannot execute permission "${permission}".`
+      'Your current user role does not grant permission for this action.',
+      { reason: 'PERMISSION_NOT_GRANTED', permission, role }
     );
   }
 

@@ -33,7 +33,9 @@ export const approveProforma = onCall(async (req) => {
     typeof data.feedback === 'string' ? data.feedback.trim() : undefined;
 
   if (!requestId) {
-    throw new HttpsError('invalid-argument', 'requestId is required.');
+    throw new HttpsError('invalid-argument', 'requestId is required.', {
+      reason: 'REQUEST_ID_REQUIRED'
+    });
   }
 
   const requestRef = db.collection(FIRESTORE_COLLECTIONS.REQUESTS).doc(requestId);
@@ -42,7 +44,9 @@ export const approveProforma = onCall(async (req) => {
     const requestSnap = await tx.get(requestRef);
 
     if (!requestSnap.exists) {
-      throw new HttpsError('not-found', 'Request not found.');
+      throw new HttpsError('not-found', 'Request not found.', {
+        reason: 'REQUEST_NOT_FOUND'
+      });
     }
 
     const requestData = requestSnap.data() as ProformaRequestData;
@@ -54,14 +58,16 @@ export const approveProforma = onCall(async (req) => {
     ) {
       throw new HttpsError(
         'failed-precondition',
-        'This proforma cannot be approved in its current status.'
+        'This proforma cannot be approved in its current status.',
+        { reason: 'REQUEST_NOT_APPROVABLE_STATUS' }
       );
     }
 
     if (requestData.status === 'draft') {
       throw new HttpsError(
         'failed-precondition',
-        'Draft proformas cannot be approved.'
+        'Draft proformas cannot be approved.',
+        { reason: 'REQUEST_DRAFT_NOT_APPROVABLE' }
       );
     }
 
