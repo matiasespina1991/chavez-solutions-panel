@@ -48,6 +48,12 @@
   - Micro-slice 7: dialogo de pausar/reanudar OT extraido a `features/requests/components/request-work-order-toggle-dialog.tsx`.
   - Micro-slice 8: dialogo de rechazo de proforma extraido a `features/requests/components/request-reject-dialog.tsx`.
   - Micro-slice 9: dialogo de eliminacion de solicitud extraido a `features/requests/components/request-delete-dialog.tsx`.
+  - Micro-slice 10: tabla/listado de solicitudes (headers, filas y menu de acciones) extraido a `features/requests/components/request-list-table.tsx`.
+  - Micro-slice 11: adaptador de normalizacion Firestore `doc -> RequestRow` extraido a `features/requests/lib/request-row-adapter.ts`.
+  - Micro-slice 12: dialogo de resumen de solicitud (header, acciones, banner y panel de proforma) extraido a `features/requests/components/request-summary-dialog.tsx`.
+  - Micro-slice 13: view-model de ordenamiento/filtro/visibilidad extraido a `features/requests/hooks/use-requests-list-view-model.ts`.
+  - Micro-slice 14: realtime/sincronizacion de solicitudes (suscripcion Firestore + resincronizacion de fila seleccionada) extraido a `features/requests/hooks/use-requests-realtime.ts`.
+  - Micro-slice 15: estado y handlers de acciones (aprobar/rechazar/eliminar/emitir-pausar-reanudar/descargar) extraidos a `features/requests/hooks/use-request-actions.tsx`.
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
   - `cd apps/admin-dashboard && npm run build`

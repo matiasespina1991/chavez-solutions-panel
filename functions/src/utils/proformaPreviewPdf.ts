@@ -156,6 +156,12 @@ const formatMoneyCompact = (value: number | null | undefined): string => {
   return `$${normalized.toFixed(2)}`;
 };
 
+const formatDiscountCompact = (value: number | null | undefined): string => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '-';
+  if (Math.abs(value) < 0.005) return '-';
+  return `-${formatMoneyCompact(value)}`;
+};
+
 const escapeHtml = (value: string): string =>
   value
     .replace(/&/g, '&amp;')
@@ -193,7 +199,7 @@ const buildProformaPreviewHtml = (payload: ProformaPreviewPayload): string => {
         <td>${escapeHtml(service.method || '-')}</td>
         <td>${service.quantity || 0}</td>
         <td>${formatMoneyCompact(service.unitPrice)}</td>
-        <td>-${formatMoneyCompact(service.discountAmount)}</td>
+        <td>${formatDiscountCompact(service.discountAmount)}</td>
         <td>${formatMoneyCompact(service.subtotal)}</td>
       </tr>`
         )
@@ -342,7 +348,7 @@ const buildProformaPreviewHtml = (payload: ProformaPreviewPayload): string => {
           <th style="width:22%">Parámetros</th>
           <th style="width:11%">Unidades</th>
           <th style="width:16%">Rango ofertado</th>
-          <th style="width:19%">Método de ensayo o técnica</th>
+          <th style="width:19%">Método de ensayo / técnica</th>
           <th class="nowrap" style="width:8%">Cantidad</th>
           <th style="width:9%">Precio</th>
           <th style="width:7%">Desc.</th>

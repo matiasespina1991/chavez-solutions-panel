@@ -19,8 +19,12 @@ export const deleteProforma = onCall(async (req) => {
     throw new HttpsError('invalid-argument', 'requestId is required.');
   }
 
-  const sourceRef = db.collection(FIRESTORE_COLLECTIONS.REQUESTS).doc(requestId);
-  const deletedRef = db.collection(FIRESTORE_COLLECTIONS.DELETED_REQUESTS).doc(requestId);
+  const sourceRef = db
+    .collection(FIRESTORE_COLLECTIONS.REQUESTS)
+    .doc(requestId);
+  const deletedRef = db
+    .collection(FIRESTORE_COLLECTIONS.DELETED_REQUESTS)
+    .doc(requestId);
 
   await db.runTransaction(async (tx) => {
     const sourceSnap = await tx.get(sourceRef);
@@ -39,7 +43,9 @@ export const deleteProforma = onCall(async (req) => {
     let workOrderRef: FirebaseFirestore.DocumentReference | null = null;
 
     if (linkedWorkOrderId) {
-      workOrderRef = db.collection(FIRESTORE_COLLECTIONS.WORK_ORDERS).doc(linkedWorkOrderId);
+      workOrderRef = db
+        .collection(FIRESTORE_COLLECTIONS.WORK_ORDERS)
+        .doc(linkedWorkOrderId);
       const workOrderSnap = await tx.get(workOrderRef);
       if (!workOrderSnap.exists) {
         workOrderRef = null;
@@ -63,9 +69,9 @@ export const deleteProforma = onCall(async (req) => {
         {
           status: 'cancelled',
           cancellationReason: 'request_deleted_by_admin',
-          notes: 'Proforma eliminada por administrador',
+          notes: 'Eliminada por administrador',
           cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         },
         { merge: true }
       );
@@ -77,14 +83,14 @@ export const deleteProforma = onCall(async (req) => {
       deletedAt: admin.firestore.FieldValue.serverTimestamp(),
       deletedBy: {
         uid: req.auth?.uid ?? null,
-        email: req.auth?.token?.email ?? null
-      }
+        email: req.auth?.token?.email ?? null,
+      },
     });
 
     tx.delete(sourceRef);
   });
 
   return {
-    deletedRequestId: requestId
+    deletedRequestId: requestId,
   };
 });
