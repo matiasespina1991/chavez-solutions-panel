@@ -1,0 +1,27 @@
+files=326
+errors=39380
+warnings=115
+fixable_errors=37471
+fixable_warnings=0
+
+top_rules:
+ 28379 @stylistic/indent
+  3366 @stylistic/object-curly-spacing
+  1653 @stylistic/comma-dangle
+   671 import-x/extensions
+   508 @stylistic/operator-linebreak
+   501 @stylistic/arrow-parens
+   455 @typescript-eslint/naming-convention
+   412 @stylistic/function-paren-newline
+   345 @typescript-eslint/no-restricted-types
+   322 curly
+   308 @stylistic/multiline-ternary
+   243 import-x/order
+   233 @typescript-eslint/prefer-nullish-coalescing
+   217 @typescript-eslint/consistent-type-definitions
+   172 @typescript-eslint/no-confusing-void-expression
+   132 @stylistic/indent-binary-ops
+   130 unicorn/prevent-abbreviations
+   115 @typescript-eslint/no-unsafe-type-assertion
+   112 @stylistic/padding-line-between-statements
+    94 @typescript-eslint/consistent-type-imports
