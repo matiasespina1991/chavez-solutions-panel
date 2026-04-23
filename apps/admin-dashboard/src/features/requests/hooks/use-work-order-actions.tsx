@@ -3,7 +3,7 @@ import {
   createWorkOrderFromRequest,
   pauseWorkOrderFromRequest,
   resumeWorkOrderFromRequest
-} from '@/features/configurator/services/configurations';
+} from '@/features/requests/services/request-actions';
 import { getFriendlyRequestErrorMessage } from '@/features/requests/lib/request-errors';
 import { hasIssuedWorkOrder } from '@/features/requests/lib/request-status';
 import { showCallableErrorToast } from '@/lib/callable-toast';

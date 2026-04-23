@@ -1,4 +1,5 @@
 export const FIRESTORE_COLLECTIONS = {
+  CONFIG: 'config',
   REQUESTS: 'requests',
   WORK_ORDERS: 'work_orders',
   SERVICES: 'services',

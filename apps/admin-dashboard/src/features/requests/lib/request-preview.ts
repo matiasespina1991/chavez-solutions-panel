@@ -3,7 +3,7 @@ import type {
   ProformaPreviewLineSource,
   ProformaPreviewPdfPayload,
   ProformaPreviewPdfServiceLine
-} from '@/features/configurator/services/configurations';
+} from '@/features/requests/services/request-preview';
 import { getValidUntilMs, formatDateLabel } from './request-status';
 
 type ToPreviewServiceLine = (

@@ -1,4 +1,4 @@
-import { completeWorkOrder } from '@/features/configurator/services/configurations';
+import { completeWorkOrder } from '@/features/work-orders/services/work-order-actions';
 import { getGenericCallableErrorMessage } from '@/lib/callable-errors';
 import { showCallableErrorToast } from '@/lib/callable-toast';
 import {

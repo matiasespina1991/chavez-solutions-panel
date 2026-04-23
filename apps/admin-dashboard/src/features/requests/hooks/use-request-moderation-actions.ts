@@ -1,7 +1,7 @@
 import {
   deleteProforma,
   rejectProforma
-} from '@/features/configurator/services/configurations';
+} from '@/features/requests/services/request-actions';
 import { getFriendlyRequestErrorMessage } from '@/features/requests/lib/request-errors';
 import { showCallableErrorToast } from '@/lib/callable-toast';
 import type { RequestListRow as RequestRow } from '@/types/domain';

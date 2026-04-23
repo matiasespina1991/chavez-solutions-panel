@@ -127,8 +127,12 @@
 - `risk`: medium
 - `depends_on`: [APP-3001, APP-3003, APP-3004, APP-3005]
 - `acceptance`:
-  - [ ] Capa de servicios por dominio introducida.
-  - [ ] `configurations.ts` deja de ser punto de acoplamiento global.
+  - [x] Capa de servicios por dominio introducida.
+  - [x] `configurations.ts` deja de ser punto de acoplamiento global.
+- `notes`:
+  - Micro-slice 1: capa de servicios por dominio introducida para `requests` y `work-orders` con entrypoints propios en `features/requests/services/request-actions.ts`, `features/requests/services/request-preview.ts` y `features/work-orders/services/work-order-actions.ts`.
+  - Micro-slice 2: hooks/libs de `requests` y `work-orders` migrados a importar servicios de su dominio (ya no dependen directo de `features/configurator/services/configurations.ts`).
+  - Micro-slice 3: implementación de callables y contratos movida a dominio (`features/requests/services/request-callables.ts`, `features/requests/services/request-preview-callables.ts`, `features/work-orders/services/work-order-callables.ts`) para eliminar dependencia indirecta con `configurations.ts`.
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
-- `status`: `todo`
+- `status`: `approved`

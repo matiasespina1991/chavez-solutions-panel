@@ -1,7 +1,7 @@
 import {
   generateProformaPreviewPdf,
   toProformaPreviewServiceLine
-} from '@/features/configurator/services/configurations';
+} from '@/features/requests/services/request-preview';
 import { getFriendlyRequestErrorMessage } from '@/features/requests/lib/request-errors';
 import { buildProformaPreviewPayloadFromRequestRow } from '@/features/requests/lib/request-preview';
 import { showCallableErrorToast } from '@/lib/callable-toast';

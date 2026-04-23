@@ -40,7 +40,7 @@
 | APP-3003 | approved | CT-1003 | `app/phase-3-app-decoupling.md` |
 | APP-3004 | approved | CT-1003 | `app/phase-3-app-decoupling.md` |
 | APP-3005 | approved | CT-1003, CT-1006 | `app/phase-3-app-decoupling.md` |
-| APP-3006 | todo | APP-3001, APP-3003, APP-3004, APP-3005 | `app/phase-3-app-decoupling.md` |
+| APP-3006 | approved | APP-3001, APP-3003, APP-3004, APP-3005 | `app/phase-3-app-decoupling.md` |
 
 ## Fase 4 - Documentacion viva y limpieza
 
