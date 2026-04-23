@@ -8,12 +8,15 @@
 - `risk`: high (archivo muy grande y flujo critico).
 - `depends_on`: [CT-1003, CT-1006]
 - `acceptance`:
-  - [ ] Componente principal reducido de tamano y responsabilidad.
-  - [ ] Sin cambio de comportamiento observable.
+  - [x] Componente principal reducido de tamano y responsabilidad.
+  - [x] Sin cambio de comportamiento observable.
+- `notes`:
+  - Micro-slice 1: contrato del formulario (schema zod, tipos, constantes de tabs/filtros y `createDefaultFormValues`) extraido de `configurator-form.tsx` a `features/configurator/lib/configurator-form-model.ts`.
+  - Micro-slice 2: dialogs auxiliares (selector de matriz, eliminar combo/servicio, enviar email, limpiar datos) desacoplados de `configurator-form.tsx` en `features/configurator/components/configurator-common-dialogs.tsx`.
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
   - `cd apps/admin-dashboard && npm run build`
-- `status`: `todo`
+- `status`: `approved`
 
 ## APP-3002
 
@@ -23,11 +26,14 @@
 - `risk`: medium
 - `depends_on`: [APP-3001]
 - `acceptance`:
-  - [ ] Logica de seleccion fuera de componentes UI.
-  - [ ] Tests/validacion manual de seleccion intacta.
+  - [x] Logica de seleccion fuera de componentes UI.
+  - [x] Tests/validacion manual de seleccion intacta.
+- `notes`:
+  - Micro-slice 1: filtro/busqueda/opciones y contadores del dialogo de servicios extraidos a `features/configurator/hooks/use-configurator-service-dialog.ts` (reduce logica UI embebida en `configurator-form.tsx`).
+  - Micro-slice 2: estado + handlers de seleccion de servicios (combos, filtros activos, seleccion masiva, edicion, eliminacion y actualizacion de items) extraidos a `features/configurator/hooks/use-configurator-service-selection-state.ts`.
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
-- `status`: `todo`
+- `status`: `approved`
 
 ## APP-3003
 
@@ -37,7 +43,7 @@
 - `risk`: high
 - `depends_on`: [CT-1003]
 - `acceptance`:
-  - [ ] Componentes desacoplados por responsabilidad.
+  - [x] Componentes desacoplados por responsabilidad.
 - `notes`:
   - Micro-slice 1: helpers puros de estado/fechas/banners extraidos a `features/requests/lib/request-status.ts`.
   - Micro-slice 2: mapeo de errores amigables extraido a `features/requests/lib/request-errors.ts`.
@@ -64,7 +70,7 @@
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
   - `cd apps/admin-dashboard && npm run build`
-- `status`: `in_progress`
+- `status`: `approved`
 
 ## APP-3004
 
@@ -74,16 +80,24 @@
 - `risk`: high
 - `depends_on`: [CT-1003]
 - `acceptance`:
-  - [ ] Work orders desacoplado sin regresion.
+  - [x] Work orders desacoplado sin regresion.
 - `notes`:
   - Micro-slice 1: action-bar de header de dialogo de resumen migrada a componente compartido `components/ui/dialog-header-actions.tsx`.
   - Micro-slice 2: estados de carga/empty desacoplados de `work-orders-listing.tsx` en `features/work-orders/components/work-orders-listing-state.tsx`.
   - Micro-slice 3: barra de busqueda desacoplada de `work-orders-listing.tsx` en `features/work-orders/components/work-orders-listing-search.tsx`.
   - Micro-slice 4: dialogo de resumen de OT (header, banner, notas y detalle de servicios) desacoplado de `work-orders-listing.tsx` en `features/work-orders/components/work-order-summary-dialog.tsx`.
   - Micro-slice 5: dialogo de confirmacion de finalizacion de OT desacoplado de `work-orders-listing.tsx` en `features/work-orders/components/work-order-complete-dialog.tsx`.
+  - Micro-slice 6: tabla/listado de OT (thead, filas, acciones y empty-state de busqueda) desacoplada de `work-orders-listing.tsx` en `features/work-orders/components/work-orders-list-table.tsx`.
+  - Micro-slice 7: view-model de ordenamiento/filtro/visibilidad extraido a `features/work-orders/hooks/use-work-orders-list-view-model.ts`.
+  - Micro-slice 8: realtime/sincronizacion Firestore (requests + work_orders) extraido a `features/work-orders/hooks/use-work-orders-realtime.ts`.
+  - Micro-slice 9: handlers de acciones OT (finalizar, descargar, imprimir) extraidos a `features/work-orders/hooks/use-work-order-actions.ts`.
+  - Micro-slice 10: adaptador de normalizacion Firestore `doc -> WorkOrderRow` + fallback de servicios extraido a `features/work-orders/lib/work-order-row-adapter.ts`.
+  - Micro-slice 11: utilidades de estado OT y tokens de busqueda extraidas a `features/work-orders/lib/work-order-status.ts`.
+  - Micro-slice 12: utilidades de preview/impresion/descarga OT extraidas a `features/work-orders/lib/work-order-preview.ts`.
+  - Micro-slice 13: `work-orders-listing.tsx` reducido a composicion/orquestacion de hooks + componentes.
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
-- `status`: `in_progress`
+- `status`: `approved`
 
 ## APP-3005
 
@@ -93,10 +107,17 @@
 - `risk`: high
 - `depends_on`: [CT-1003, CT-1006]
 - `acceptance`:
-  - [ ] Panel catalogo dividido en modulos mantenibles.
+  - [x] Panel catalogo dividido en modulos mantenibles.
+- `notes`:
+  - Micro-slice 1: tipos/constantes/modelos/normalizadores del panel movidos de `services-catalog-panel.tsx` a `features/services-catalog/lib/services-catalog-panel-model.ts`.
+  - Micro-slice 2: dialogs de confirmacion (descartar, eliminar masivo, eliminar individual) desacoplados de `services-catalog-panel.tsx` en `features/services-catalog/components/services-catalog-confirm-dialogs.tsx`.
+  - Micro-slice 3: barra de filtros (busqueda, toggle de vista resumida y contador de resultados/cambios) desacoplada de `services-catalog-panel.tsx` en `features/services-catalog/components/services-catalog-filters-bar.tsx`.
+  - Micro-slice 4: tabla editable (thead/tbody/skeleton, seleccion masiva, celdas editables con autocomplete, acciones por fila y paginacion) desacoplada de `services-catalog-panel.tsx` en `features/services-catalog/components/services-catalog-table.tsx`.
+  - Micro-slice 5: dialogo create/edit de servicio (secciones, campos, validaciones, autocomplete y CTA de guardado) desacoplado de `services-catalog-panel.tsx` en `features/services-catalog/components/services-catalog-create-dialog.tsx`.
+  - Micro-slice 6: barra de acciones superior (agregar/editar/deseleccionar, eliminar masivo, guardar cambios) desacoplada de `services-catalog-panel.tsx` en `features/services-catalog/components/services-catalog-toolbar-actions.tsx`.
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
-- `status`: `todo`
+- `status`: `approved`
 
 ## APP-3006
 

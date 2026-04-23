@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { toast } from 'sonner';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -89,171 +88,23 @@ import {
   ImportedServiceDocument,
   listImportedServices
 } from '../services/configurations';
+import { ConfiguratorCommonDialogs } from '@/features/configurator/components/configurator-common-dialogs';
 import { ProformaSummaryPanel } from '@/features/proformas/components/proforma-summary-panel';
 import { IconFilterPlus } from '@tabler/icons-react';
 import { cn } from '@/lib/utils';
-
-const formSchema = z.object({
-  type: z.literal('proforma'),
-  matrix: z.array(z.string()),
-  reference: z.string().min(1, 'Referencia es requerida'),
-  createdAt: z.date().optional(),
-  validDays: z.number().optional(),
-  notes: z.string().optional(),
-  client: z.object({
-    businessName: z.string().min(1, 'Razón social es requerida'),
-    taxId: z.string().min(1, 'RUC es requerido'),
-    contactName: z.string().min(1, 'Persona de contacto es requerida'),
-    contactRole: z.string().nullable().optional(),
-    email: z.string().email('Email inválido'),
-    phone: z.string().min(1, 'Teléfono es requerido'),
-    address: z.string().min(1, 'Dirección es requerida'),
-    city: z.string().min(1, 'Ciudad es requerida')
-  }),
-  samples: z.object({
-    agreedCount: z.number().min(1, 'Mínimo 1 muestra'),
-    additionalCount: z.number().default(0),
-    executedCount: z.number().default(1),
-    items: z.array(
-      z.object({
-        sampleCode: z.string().optional().default(''),
-        sampleType: z.string().optional().default(''),
-        takenAt: z.date().nullable().optional(),
-        notes: z.string().default('')
-      })
-    )
-  }),
-  services: z.object({
-    items: z.array(
-      z.object({
-        serviceId: z.string(),
-        parameterId: z.string(),
-        parameterLabel: z.string(),
-        tableLabel: z.string().nullable(),
-        unit: z.string().nullable(),
-        method: z.string().nullable(),
-        rangeMin: z.string(),
-        rangeMax: z.string(),
-        quantity: z.number().min(1),
-        unitPrice: z.number().nullable(),
-        discountAmount: z.number().nullable()
-      })
-    ),
-    grouped: z.array(
-      z.object({
-        name: z.string(),
-        items: z.array(
-          z.object({
-            serviceId: z.string(),
-            parameterId: z.string(),
-            parameterLabel: z.string(),
-            tableLabel: z.string().nullable(),
-            unit: z.string().nullable(),
-            method: z.string().nullable(),
-            rangeMin: z.string(),
-            rangeMax: z.string(),
-            quantity: z.number().min(1),
-            unitPrice: z.number().nullable(),
-            discountAmount: z.number().nullable()
-          })
-        )
-      })
-    )
-  }),
-  analyses: z.object({
-    applyMode: z.enum(['all_samples', 'by_sample']),
-    items: z.array(
-      z.object({
-        parameterId: z.string(),
-        parameterLabelEs: z.string(),
-        unit: z.string(),
-        method: z.string(),
-        rangeOffered: z.string(),
-        isAccredited: z.boolean(),
-        turnaround: z.enum(['standard', 'urgent']),
-        unitPrice: z.number().nullable(),
-        discountAmount: z.number().nullable().optional(),
-        appliesToSampleCodes: z.array(z.string()).nullable()
-      })
-    )
-  }),
-  pricing: z.object({
-    currency: z.literal('USD'),
-    subtotal: z.number().nullable(),
-    taxPercent: z.number().nullable(),
-    total: z.number().nullable(),
-    validDays: z.number().nullable()
-  })
-});
-
-type FormValues = z.infer<typeof formSchema>;
-type ConfiguratorTab = 'client' | 'samples' | 'type' | 'summary';
-type DialogFilterKey = 'matEnsayo' | 'norma' | 'tabla' | 'tecnica';
-type DialogFilters = Record<DialogFilterKey, string[]>;
-type ServiceFilterOption = { value: string; count: number };
-
-const DIALOG_FILTER_LABELS: Record<DialogFilterKey, string> = {
-  matEnsayo: 'Material de ensayo',
-  norma: 'Norma',
-  tabla: 'Tabla',
-  tecnica: 'Técnica'
-};
-
-const TAB_ORDER: ConfiguratorTab[] = ['client', 'samples', 'type', 'summary'];
-
-type SelectedService = ImportedServiceDocument & {
-  quantity: number;
-  rangeMin: string;
-  rangeMax: string;
-  unitPrice: number | null;
-  discountAmount: number | null;
-};
-
-type SelectedServiceGroup = {
-  id: string;
-  name: string;
-  items: SelectedService[];
-};
-
-const createDefaultFormValues = (): FormValues => ({
-  type: 'proforma',
-  matrix: [],
-  reference: `PR-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000)}`,
-  createdAt: new Date(),
-  validDays: 30,
-  notes: '',
-  client: {
-    businessName: '',
-    taxId: '',
-    contactName: '',
-    contactRole: '',
-    email: '',
-    phone: '',
-    address: '',
-    city: ''
-  },
-  samples: {
-    agreedCount: 1,
-    additionalCount: 0,
-    executedCount: 1,
-    items: []
-  },
-  services: {
-    items: [],
-    grouped: []
-  },
-  analyses: {
-    applyMode: 'all_samples',
-    items: []
-  },
-  pricing: {
-    currency: 'USD',
-    subtotal: 0,
-    taxPercent: 15,
-    total: 0,
-    validDays: 30
-  }
-});
+import {
+  createDefaultFormValues,
+  DIALOG_FILTER_LABELS,
+  formSchema,
+  TAB_ORDER,
+  type ConfiguratorTab,
+  type DialogFilterKey,
+  type FormValues,
+  type SelectedService,
+  type SelectedServiceGroup
+} from '@/features/configurator/lib/configurator-form-model';
+import { useConfiguratorServiceDialog } from '@/features/configurator/hooks/use-configurator-service-dialog';
+import { useConfiguratorServiceSelectionState } from '@/features/configurator/hooks/use-configurator-service-selection-state';
 
 export default function ConfiguratorForm() {
   const router = useRouter();
@@ -272,52 +123,118 @@ export default function ConfiguratorForm() {
     'draft' | 'final' | 'paused' | null
   >(null);
   const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
-  const [isMatrixSelectorDialogOpen, setIsMatrixSelectorDialogOpen] =
-    useState(false);
-  const [isServicesDialogOpen, setIsServicesDialogOpen] = useState(false);
-  const [activeComboMatrix, setActiveComboMatrix] = useState<string | null>(
-    null
-  );
-  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [availableServices, setAvailableServices] = useState<
     ImportedServiceDocument[]
   >([]);
   const [isLoadingAvailableServices, setIsLoadingAvailableServices] =
     useState(false);
-  const [dialogFilters, setDialogFilters] = useState<DialogFilters>({
-    matEnsayo: [],
-    norma: [],
-    tabla: [],
-    tecnica: []
+
+  const getServiceId = (service: ImportedServiceDocument) =>
+    service.ID_CONFIG_PARAMETRO || service.id;
+
+  const getMatEnsayoLabel = (service: ImportedServiceDocument) => {
+    const value = service.ID_MAT_ENSAYO?.trim();
+    return value && value.length > 0 ? value : 'Sin material de ensayo';
+  };
+
+  const getMatrizLabel = (service: ImportedServiceDocument) => {
+    const value = service.ID_MATRIZ?.trim();
+    return value && value.length > 0 ? value : 'Sin matriz';
+  };
+
+  const normalizeRangeValue = (raw: string) => {
+    const value = raw.trim();
+    if (!value) return '';
+
+    const hasComma = value.includes(',');
+    const hasDot = value.includes('.');
+
+    if (hasComma && hasDot && /^\d{1,3}(,\d{3})+(\.\d+)?$/.test(value)) {
+      return value.replace(/,/g, '');
+    }
+
+    if (hasComma && hasDot && /^\d{1,3}(\.\d{3})+(,\d+)?$/.test(value)) {
+      return value.replace(/\./g, '').replace(',', '.');
+    }
+
+    if (hasComma && hasDot) {
+      return value.replace(/,/g, '');
+    }
+
+    if (hasComma && !hasDot) {
+      return value.replace(',', '.');
+    }
+
+    return value;
+  };
+
+  const toSelectedService = (
+    service: ImportedServiceDocument,
+    overrides?: Partial<SelectedService>
+  ): SelectedService => {
+    return {
+      ...service,
+      quantity: overrides?.quantity ?? 1,
+      rangeMin:
+        typeof overrides?.rangeMin === 'string'
+          ? normalizeRangeValue(overrides.rangeMin)
+          : '',
+      rangeMax:
+        typeof overrides?.rangeMax === 'string'
+          ? normalizeRangeValue(overrides.rangeMax)
+          : '',
+      unitPrice: overrides?.unitPrice ?? null,
+      discountAmount: overrides?.discountAmount ?? null
+    };
+  };
+
+  const {
+    isMatrixSelectorDialogOpen,
+    setIsMatrixSelectorDialogOpen,
+    isServicesDialogOpen,
+    activeComboMatrix,
+    editingGroupId,
+    dialogFilters,
+    dialogSearchTerm,
+    setDialogSearchTerm,
+    dialogSelectedServiceIds,
+    dialogLockedServiceIds,
+    lockedServiceCursorHint,
+    setLockedServiceCursorHint,
+    isAddFilterDropdownOpen,
+    setIsAddFilterDropdownOpen,
+    isAppliedFiltersExpanded,
+    setIsAppliedFiltersExpanded,
+    groupToDelete,
+    setGroupToDelete,
+    serviceToDelete,
+    setServiceToDelete,
+    serviceGroups,
+    setServiceGroups,
+    selectedServices,
+    handleOpenMatrixSelectorDialog,
+    handleSelectComboMatrix,
+    handleEditGroupServices,
+    handleToggleDialogFilterValue,
+    handleSelectAllVisibleToggle,
+    handleClearDialogFilters,
+    handleRemoveDialogFilterValue,
+    handleToggleServiceSelection,
+    handleAddServicesToForm,
+    handleUpdateGroupName,
+    handleOpenRemoveGroupDialog,
+    handleConfirmRemoveGroup,
+    handleOpenRemoveService,
+    handleConfirmRemoveService,
+    handleUpdateServiceField,
+    handleServicesDialogOpenChange
+  } = useConfiguratorServiceSelectionState({
+    availableServices,
+    getServiceId,
+    getMatrizLabel,
+    toSelectedService
   });
-  const [dialogSearchTerm, setDialogSearchTerm] = useState('');
-  const [dialogSelectedServiceIds, setDialogSelectedServiceIds] = useState<
-    string[]
-  >([]);
-  const [dialogLockedServiceIds, setDialogLockedServiceIds] = useState<
-    string[]
-  >([]);
-  const [lockedServiceCursorHint, setLockedServiceCursorHint] = useState<{
-    visible: boolean;
-    x: number;
-    y: number;
-  }>({ visible: false, x: 0, y: 0 });
-  const [isAddFilterDropdownOpen, setIsAddFilterDropdownOpen] = useState(false);
-  const [isAppliedFiltersExpanded, setIsAppliedFiltersExpanded] =
-    useState(true);
-  const [groupToDelete, setGroupToDelete] =
-    useState<SelectedServiceGroup | null>(null);
-  const [serviceToDelete, setServiceToDelete] = useState<{
-    groupId: string;
-    serviceId: string;
-  } | null>(null);
-  const [serviceGroups, setServiceGroups] = useState<SelectedServiceGroup[]>(
-    []
-  );
-  const selectedServices = useMemo(
-    () => serviceGroups.flatMap((group) => group.items),
-    [serviceGroups]
-  );
+
   const dialogComboTitle = useMemo(() => {
     if (editingGroupId) {
       const editingGroup = serviceGroups.find(
@@ -419,83 +336,21 @@ export default function ConfiguratorForm() {
     tabStatus.client === 'ok' &&
     tabStatus.samples === 'ok';
 
-  const getServiceId = (service: ImportedServiceDocument) =>
-    service.ID_CONFIG_PARAMETRO || service.id;
-
-  const getMatEnsayoLabel = (service: ImportedServiceDocument) => {
-    const value = service.ID_MAT_ENSAYO?.trim();
-    return value && value.length > 0 ? value : 'Sin material de ensayo';
-  };
-
-  const getMatrizLabel = (service: ImportedServiceDocument) => {
-    const value = service.ID_MATRIZ?.trim();
-    return value && value.length > 0 ? value : 'Sin matriz';
-  };
-
-  const getNormaLabel = (service: ImportedServiceDocument) => {
-    const value = service.ID_NORMA?.trim();
-    return value && value.length > 0 ? value : 'Sin norma';
-  };
-
-  const getTablaLabel = (service: ImportedServiceDocument) => {
-    const value = service.ID_TABLA_NORMA?.trim();
-    return value && value.length > 0 ? value : 'Sin tabla';
-  };
-
-  const getTecnicaLabel = (service: ImportedServiceDocument) => {
-    const value = service.ID_TECNICA?.trim();
-    return value && value.length > 0 ? value : 'Sin técnica';
-  };
-
-  const normalizeRangeValue = (raw: string) => {
-    const value = raw.trim();
-    if (!value) return '';
-
-    const hasComma = value.includes(',');
-    const hasDot = value.includes('.');
-
-    // 1,234.56 -> 1234.56
-    if (hasComma && hasDot && /^\d{1,3}(,\d{3})+(\.\d+)?$/.test(value)) {
-      return value.replace(/,/g, '');
-    }
-
-    // 1.234,56 -> 1234.56
-    if (hasComma && hasDot && /^\d{1,3}(\.\d{3})+(,\d+)?$/.test(value)) {
-      return value.replace(/\./g, '').replace(',', '.');
-    }
-
-    // 0,000.0000 (formato mixto raro del CSV) -> 0.0000
-    if (hasComma && hasDot) {
-      return value.replace(/,/g, '');
-    }
-
-    // 0,25 -> 0.25
-    if (hasComma && !hasDot) {
-      return value.replace(',', '.');
-    }
-
-    return value;
-  };
-
-  const toSelectedService = (
-    service: ImportedServiceDocument,
-    overrides?: Partial<SelectedService>
-  ): SelectedService => {
-    return {
-      ...service,
-      quantity: overrides?.quantity ?? 1,
-      rangeMin:
-        typeof overrides?.rangeMin === 'string'
-          ? normalizeRangeValue(overrides.rangeMin)
-          : '',
-      rangeMax:
-        typeof overrides?.rangeMax === 'string'
-          ? normalizeRangeValue(overrides.rangeMax)
-          : '',
-      unitPrice: overrides?.unitPrice ?? null,
-      discountAmount: overrides?.discountAmount ?? null
-    };
-  };
+  const {
+    filteredAvailableServices,
+    matrixOptionsForCombo,
+    activeDialogFiltersCount,
+    dialogFilterOptionsByKey,
+    visibleServiceIds,
+    selectedDialogServiceLabels,
+    areAllVisibleSelected
+  } = useConfiguratorServiceDialog({
+    availableServices,
+    activeComboMatrix,
+    dialogFilters,
+    dialogSearchTerm,
+    dialogSelectedServiceIds
+  });
 
   const formatRange = (service: SelectedService) => {
     const lower = service.rangeMin.trim();
@@ -541,226 +396,6 @@ export default function ConfiguratorForm() {
       discountAmount: service.discountAmount,
       appliesToSampleCodes: null
     }));
-
-  const matrixScopedAvailableServices = useMemo(() => {
-    if (!activeComboMatrix) return availableServices;
-    return availableServices.filter(
-      (service) => getMatrizLabel(service) === activeComboMatrix
-    );
-  }, [availableServices, activeComboMatrix]);
-
-  const serviceMatchesDialogFilters = (
-    service: ImportedServiceDocument,
-    excludeKey?: DialogFilterKey
-  ) => {
-    const matEnsayoLabel = getMatEnsayoLabel(service);
-    const normaLabel = getNormaLabel(service);
-    const tablaLabel = getTablaLabel(service);
-    const tecnicaLabel = getTecnicaLabel(service);
-
-    if (
-      excludeKey !== 'matEnsayo' &&
-      dialogFilters.matEnsayo.length > 0 &&
-      !dialogFilters.matEnsayo.includes(matEnsayoLabel)
-    ) {
-      return false;
-    }
-
-    if (
-      excludeKey !== 'norma' &&
-      dialogFilters.norma.length > 0 &&
-      !dialogFilters.norma.includes(normaLabel)
-    ) {
-      return false;
-    }
-
-    if (
-      excludeKey !== 'tabla' &&
-      dialogFilters.tabla.length > 0 &&
-      !dialogFilters.tabla.includes(tablaLabel)
-    ) {
-      return false;
-    }
-
-    if (
-      excludeKey !== 'tecnica' &&
-      dialogFilters.tecnica.length > 0 &&
-      !dialogFilters.tecnica.includes(tecnicaLabel)
-    ) {
-      return false;
-    }
-
-    return true;
-  };
-
-  const filteredAvailableServices = useMemo(() => {
-    const normalizedSearch = dialogSearchTerm.trim().toLowerCase();
-
-    const filtered = matrixScopedAvailableServices.filter((service) => {
-      const matEnsayoLabel = getMatEnsayoLabel(service);
-      const normaLabel = getNormaLabel(service);
-      const tablaLabel = getTablaLabel(service);
-      const tecnicaLabel = getTecnicaLabel(service);
-
-      if (
-        dialogFilters.matEnsayo.length > 0 &&
-        !dialogFilters.matEnsayo.includes(matEnsayoLabel)
-      ) {
-        return false;
-      }
-
-      if (
-        dialogFilters.norma.length > 0 &&
-        !dialogFilters.norma.includes(normaLabel)
-      ) {
-        return false;
-      }
-
-      if (
-        dialogFilters.tabla.length > 0 &&
-        !dialogFilters.tabla.includes(tablaLabel)
-      ) {
-        return false;
-      }
-
-      if (
-        dialogFilters.tecnica.length > 0 &&
-        !dialogFilters.tecnica.includes(tecnicaLabel)
-      ) {
-        return false;
-      }
-
-      if (!normalizedSearch) return true;
-
-      const searchHaystack = [
-        service.ID_PARAMETRO,
-        service.ID_MATRIZ,
-        service.ID_MAT_ENSAYO,
-        service.ID_NORMA,
-        service.ID_TABLA_NORMA,
-        service.UNIDAD_NORMA,
-        service.UNIDAD_INTERNO,
-        service.ID_TECNICA,
-        service.ID_MET_REFERENCIA,
-        service.ID_MET_INTERNO,
-        service.ID_CONFIG_PARAMETRO
-      ]
-        .filter((value): value is string => typeof value === 'string')
-        .join(' ')
-        .toLowerCase();
-
-      return searchHaystack.includes(normalizedSearch);
-    });
-
-    return filtered.sort((a, b) => {
-      const aLabel = (
-        a.ID_PARAMETRO ||
-        a.ID_CONFIG_PARAMETRO ||
-        a.id ||
-        ''
-      ).trim();
-      const bLabel = (
-        b.ID_PARAMETRO ||
-        b.ID_CONFIG_PARAMETRO ||
-        b.id ||
-        ''
-      ).trim();
-      const primary = aLabel.localeCompare(bLabel, 'es', {
-        sensitivity: 'base',
-        numeric: true
-      });
-      if (primary !== 0) return primary;
-      const aId = (a.ID_CONFIG_PARAMETRO || a.id || '').trim();
-      const bId = (b.ID_CONFIG_PARAMETRO || b.id || '').trim();
-      return aId.localeCompare(bId, 'es', {
-        sensitivity: 'base',
-        numeric: true
-      });
-    });
-  }, [matrixScopedAvailableServices, dialogFilters, dialogSearchTerm]);
-
-  const matrixOptionsForCombo = useMemo(() => {
-    const counts = new Map<string, number>();
-    availableServices.forEach((service) => {
-      const label = getMatrizLabel(service);
-      counts.set(label, (counts.get(label) || 0) + 1);
-    });
-
-    return Array.from(counts.entries())
-      .map(([value, count]) => ({ value, count }))
-      .sort((a, b) => a.value.localeCompare(b.value, 'es'));
-  }, [availableServices]);
-
-  const activeDialogFiltersCount =
-    dialogFilters.matEnsayo.length +
-    dialogFilters.norma.length +
-    dialogFilters.tabla.length +
-    dialogFilters.tecnica.length;
-
-  const dialogFilterOptionsByKey: Record<
-    DialogFilterKey,
-    ServiceFilterOption[]
-  > = useMemo(() => {
-    const readLabelByKey: Record<
-      DialogFilterKey,
-      (service: ImportedServiceDocument) => string
-    > = {
-      matEnsayo: getMatEnsayoLabel,
-      norma: getNormaLabel,
-      tabla: getTablaLabel,
-      tecnica: getTecnicaLabel
-    };
-
-    const next = {} as Record<DialogFilterKey, ServiceFilterOption[]>;
-
-    (Object.keys(DIALOG_FILTER_LABELS) as DialogFilterKey[]).forEach((key) => {
-      const labelReader = readLabelByKey[key];
-      const counts = new Map<string, number>();
-
-      // Keep all options visible for this matrix scope, even if current count is 0.
-      matrixScopedAvailableServices.forEach((service) => {
-        const label = labelReader(service);
-        if (!counts.has(label)) counts.set(label, 0);
-      });
-
-      // Count only options available with the currently applied filters (excluding this key).
-      matrixScopedAvailableServices.forEach((service) => {
-        if (!serviceMatchesDialogFilters(service, key)) return;
-        const label = labelReader(service);
-        counts.set(label, (counts.get(label) || 0) + 1);
-      });
-
-      next[key] = Array.from(counts.entries())
-        .map(([value, count]) => ({ value, count }))
-        .sort((a, b) => a.value.localeCompare(b.value, 'es'));
-    });
-
-    return next;
-  }, [matrixScopedAvailableServices, dialogFilters]);
-
-  const visibleServiceIds = useMemo(
-    () => filteredAvailableServices.map((service) => getServiceId(service)),
-    [filteredAvailableServices]
-  );
-
-  const selectedDialogServiceLabels = useMemo(() => {
-    const catalogById = new Map(
-      availableServices.map((service) => [
-        getServiceId(service),
-        `${service.ID_PARAMETRO || getServiceId(service)} (${getMatEnsayoLabel(service)})`
-      ])
-    );
-
-    return dialogSelectedServiceIds.map(
-      (serviceId) => catalogById.get(serviceId) || serviceId
-    );
-  }, [availableServices, dialogSelectedServiceIds]);
-
-  const areAllVisibleSelected =
-    visibleServiceIds.length > 0 &&
-    visibleServiceIds.every((serviceId) =>
-      dialogSelectedServiceIds.includes(serviceId)
-    );
 
   const mapSelectedServicesToDocument = (
     services: SelectedService[]
@@ -1496,280 +1131,6 @@ export default function ConfiguratorForm() {
 
   const handleExecuteClick = () => {
     form.handleSubmit((data) => onSubmit(data, 'final'))();
-  };
-
-  const handleOpenMatrixSelectorDialog = () => {
-    setIsMatrixSelectorDialogOpen(true);
-  };
-
-  const handleSelectComboMatrix = (matrixLabel: string) => {
-    setEditingGroupId(null);
-    setActiveComboMatrix(matrixLabel);
-    setDialogSelectedServiceIds([]);
-    setDialogLockedServiceIds([]);
-    setDialogFilters({
-      matEnsayo: [],
-      norma: [],
-      tabla: [],
-      tecnica: []
-    });
-    setDialogSearchTerm('');
-    setIsMatrixSelectorDialogOpen(false);
-    setIsServicesDialogOpen(true);
-  };
-
-  const handleEditGroupServices = (
-    group: SelectedServiceGroup,
-    matrixLabel: string | null
-  ) => {
-    const currentServiceIds = group.items.map((service) =>
-      getServiceId(service)
-    );
-    setEditingGroupId(group.id);
-    setActiveComboMatrix(matrixLabel);
-    setDialogSelectedServiceIds(currentServiceIds);
-    setDialogLockedServiceIds(currentServiceIds);
-    setDialogFilters({
-      matEnsayo: [],
-      norma: [],
-      tabla: [],
-      tecnica: []
-    });
-    setDialogSearchTerm('');
-    setIsServicesDialogOpen(true);
-  };
-
-  const handleToggleDialogFilterValue = (
-    key: DialogFilterKey,
-    value: string
-  ) => {
-    setDialogFilters((prev) => ({
-      ...prev,
-      [key]: prev[key].includes(value) ? [] : [value]
-    }));
-    setIsAddFilterDropdownOpen(false);
-    setIsAppliedFiltersExpanded(false);
-  };
-
-  const handleSelectAllVisibleToggle = (checked: boolean) => {
-    if (visibleServiceIds.length === 0) return;
-    const lockedSet = new Set(dialogLockedServiceIds);
-
-    if (checked) {
-      setDialogSelectedServiceIds((prev) =>
-        Array.from(new Set([...prev, ...visibleServiceIds]))
-      );
-      return;
-    }
-
-    const visibleSet = new Set(visibleServiceIds);
-    setDialogSelectedServiceIds((prev) =>
-      prev.filter(
-        (serviceId) => !visibleSet.has(serviceId) || lockedSet.has(serviceId)
-      )
-    );
-  };
-
-  const handleClearDialogFilters = () => {
-    setDialogFilters({
-      matEnsayo: [],
-      norma: [],
-      tabla: [],
-      tecnica: []
-    });
-    setDialogSearchTerm('');
-  };
-
-  const handleRemoveDialogFilterValue = (
-    key: DialogFilterKey,
-    value: string
-  ) => {
-    setDialogFilters((prev) => ({
-      ...prev,
-      [key]: prev[key].filter((entry) => entry !== value)
-    }));
-  };
-
-  const handleToggleServiceSelection = (serviceId: string) => {
-    if (dialogLockedServiceIds.includes(serviceId)) return;
-    setDialogSelectedServiceIds((prev) =>
-      prev.includes(serviceId)
-        ? prev.filter((id) => id !== serviceId)
-        : [...prev, serviceId]
-    );
-  };
-
-  const handleAddServicesToForm = () => {
-    if (dialogSelectedServiceIds.length === 0) return;
-
-    const selectedSet = new Set(dialogSelectedServiceIds);
-    const nextGroupServicesFromCatalog = availableServices
-      .filter((service) => selectedSet.has(getServiceId(service)))
-      .map((service) => toSelectedService(service));
-
-    if (nextGroupServicesFromCatalog.length === 0) {
-      setIsServicesDialogOpen(false);
-      return;
-    }
-
-    if (editingGroupId) {
-      setServiceGroups((prev) =>
-        prev.map((group) => {
-          if (group.id !== editingGroupId) return group;
-
-          const currentById = new Map(
-            group.items.map((service) => [getServiceId(service), service])
-          );
-          const nextItems = nextGroupServicesFromCatalog.map((service) => {
-            const serviceId = getServiceId(service);
-            const currentItem = currentById.get(serviceId);
-            return currentItem ? { ...currentItem } : service;
-          });
-
-          return { ...group, items: nextItems };
-        })
-      );
-      setEditingGroupId(null);
-      setDialogLockedServiceIds([]);
-    } else {
-      const newGroupId = `combo-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-
-      setServiceGroups((prev) => [
-        ...prev,
-        {
-          id: newGroupId,
-          name:
-            typeof activeComboMatrix === 'string' && activeComboMatrix.trim()
-              ? activeComboMatrix
-              : `Combo ${prev.length + 1}`,
-          items: nextGroupServicesFromCatalog
-        }
-      ]);
-    }
-    setActiveComboMatrix(null);
-    setIsServicesDialogOpen(false);
-  };
-
-  const handleUpdateGroupName = (groupId: string, value: string) => {
-    setServiceGroups((prev) =>
-      prev.map((group) =>
-        group.id === groupId ? { ...group, name: value } : group
-      )
-    );
-  };
-
-  const handleOpenRemoveGroupDialog = (group: SelectedServiceGroup) => {
-    setGroupToDelete(group);
-  };
-
-  const handleConfirmRemoveGroup = () => {
-    if (!groupToDelete) return;
-    setServiceGroups((prev) =>
-      prev.filter((group) => group.id !== groupToDelete.id)
-    );
-    setGroupToDelete(null);
-  };
-
-  const handleRemoveService = (groupId: string, serviceId: string) => {
-    setServiceGroups((prev) =>
-      prev
-        .map((group) => {
-          if (group.id !== groupId) return group;
-          return {
-            ...group,
-            items: group.items.filter(
-              (service) => getServiceId(service) !== serviceId
-            )
-          };
-        })
-        .filter((group) => group.items.length > 0)
-    );
-  };
-
-  const handleOpenRemoveService = (
-    groupId: string,
-    service: SelectedService
-  ) => {
-    const rangeMin = (service.rangeMin ?? '').trim();
-    const rangeMax = (service.rangeMax ?? '').trim();
-    const discountIsFilled =
-      typeof service.discountAmount === 'number' &&
-      Number.isFinite(service.discountAmount);
-
-    if (!rangeMin && !rangeMax && !discountIsFilled) {
-      handleRemoveService(groupId, getServiceId(service));
-      return;
-    }
-
-    setServiceToDelete({
-      groupId,
-      serviceId: getServiceId(service)
-    });
-  };
-
-  const handleConfirmRemoveService = () => {
-    if (!serviceToDelete) return;
-    handleRemoveService(serviceToDelete.groupId, serviceToDelete.serviceId);
-    setServiceToDelete(null);
-  };
-
-  const handleUpdateServiceField = (
-    groupId: string,
-    serviceId: string,
-    field:
-      | 'quantity'
-      | 'rangeMin'
-      | 'rangeMax'
-      | 'unitPrice'
-      | 'discountAmount',
-    value: string
-  ) => {
-    setServiceGroups((prev) =>
-      prev.map((group) => {
-        if (group.id !== groupId) return group;
-
-        const updatedItems = group.items.map((service) => {
-          if (getServiceId(service) !== serviceId) return service;
-
-          if (field === 'quantity') {
-            const parsed = Number(value);
-            return {
-              ...service,
-              quantity:
-                Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 1
-            };
-          }
-
-          if (field === 'unitPrice') {
-            if (!value.trim()) {
-              return { ...service, unitPrice: null };
-            }
-            const parsed = Number(value);
-            return {
-              ...service,
-              unitPrice: Number.isFinite(parsed) ? parsed : service.unitPrice
-            };
-          }
-
-          if (field === 'discountAmount') {
-            if (!value.trim()) {
-              return { ...service, discountAmount: null };
-            }
-            const parsed = Number(value);
-            return {
-              ...service,
-              discountAmount: Number.isFinite(parsed)
-                ? parsed
-                : service.discountAmount
-            };
-          }
-
-          return { ...service, [field]: value };
-        });
-
-        return { ...group, items: updatedItems };
-      })
-    );
   };
 
   const summaryNotes = (form.getValues('notes') || '').trim();
@@ -2851,108 +2212,36 @@ export default function ConfiguratorForm() {
         </Tabs>
       </div>
 
-      <AlertDialog
-        open={isMatrixSelectorDialogOpen}
-        onOpenChange={setIsMatrixSelectorDialogOpen}
-      >
-        <AlertDialogContent className='w-[92vw] max-w-[520px]'>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              Seleccionar matriz del nuevo combo
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Elige una matriz para crear el nuevo combo de servicios.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className='max-h-[52vh] space-y-2 overflow-y-auto'>
-            {matrixOptionsForCombo.map((option) => (
-              <Button
-                key={option.value}
-                type='button'
-                variant='outline'
-                className='w-full justify-between'
-                onClick={() => handleSelectComboMatrix(option.value)}
-              >
-                <span className='truncate text-left'>{option.value}</span>
-                <span className='text-muted-foreground ml-3 text-xs'>
-                  {option.count}
-                </span>
-              </Button>
-            ))}
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel className='cursor-pointer'>
-              Cancelar
-            </AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog
-        open={Boolean(groupToDelete)}
-        onOpenChange={(open) => {
-          if (!open) setGroupToDelete(null);
-        }}
-      >
-        <AlertDialogContent className='w-[92vw] max-w-[460px]'>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Eliminar combo</AlertDialogTitle>
-            <AlertDialogDescription>
-              ¿Deseas eliminar el combo "{groupToDelete?.name || 'Combo'}"?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className='cursor-pointer'>
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              className='cursor-pointer bg-black text-white hover:bg-black/90'
-              onClick={handleConfirmRemoveGroup}
-            >
-              Eliminar combo
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog
-        open={Boolean(serviceToDelete)}
-        onOpenChange={(open) => {
-          if (!open) setServiceToDelete(null);
-        }}
-      >
-        <AlertDialogContent className='w-[92vw] max-w-[460px]'>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Eliminar servicio</AlertDialogTitle>
-            <AlertDialogDescription>
-              Este servicio tiene datos cargados. ¿Estás seguro de que deseas
-              eliminarlo?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className='cursor-pointer'>
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              className='cursor-pointer bg-black text-white hover:bg-black/90'
-              onClick={handleConfirmRemoveService}
-            >
-              Eliminar servicio
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfiguratorCommonDialogs
+        isMatrixSelectorDialogOpen={isMatrixSelectorDialogOpen}
+        setIsMatrixSelectorDialogOpen={setIsMatrixSelectorDialogOpen}
+        matrixOptionsForCombo={matrixOptionsForCombo}
+        activeComboMatrix={activeComboMatrix}
+        handleSelectComboMatrix={handleSelectComboMatrix}
+        isLoadingAvailableServices={isLoadingAvailableServices}
+        groupToDelete={groupToDelete}
+        setGroupToDelete={setGroupToDelete}
+        handleConfirmRemoveGroup={handleConfirmRemoveGroup}
+        serviceToDelete={serviceToDelete}
+        setServiceToDelete={setServiceToDelete}
+        handleConfirmRemoveService={handleConfirmRemoveService}
+        isSendEmailDialogOpen={isSendEmailDialogOpen}
+        setIsSendEmailDialogOpen={setIsSendEmailDialogOpen}
+        recipientEmail={recipientEmail}
+        setRecipientEmail={setRecipientEmail}
+        referenceLabel={referenceLabel}
+        clientBusinessName={form.getValues('client.businessName') || ''}
+        summaryTotal={summaryTotal}
+        isSendingPreviewEmail={isSendingPreviewEmail}
+        handleSendPreviewEmail={handleSendPreviewEmail}
+        isClearDialogOpen={isClearDialogOpen}
+        setIsClearDialogOpen={setIsClearDialogOpen}
+        handleConfirmClearCurrentData={handleConfirmClearCurrentData}
+      />
 
       <AlertDialog
         open={isServicesDialogOpen}
-        onOpenChange={(open) => {
-          setIsServicesDialogOpen(open);
-          if (!open) {
-            setActiveComboMatrix(null);
-            setEditingGroupId(null);
-            setDialogLockedServiceIds([]);
-          }
-        }}
+        onOpenChange={handleServicesDialogOpenChange}
       >
         <AlertDialogContent className='flex h-[88vh] max-h-[88vh] w-[96vw] max-w-[1100px] flex-col overflow-x-hidden sm:max-w-[1100px]'>
           <AlertDialogHeader>
@@ -3188,7 +2477,10 @@ export default function ConfiguratorForm() {
                   <Checkbox
                     checked={areAllVisibleSelected}
                     onCheckedChange={(checked) =>
-                      handleSelectAllVisibleToggle(checked === true)
+                      handleSelectAllVisibleToggle(
+                        checked === true,
+                        visibleServiceIds
+                      )
                     }
                     disabled={filteredAvailableServices.length === 0}
                     className='cursor-pointer'
@@ -3351,94 +2643,6 @@ export default function ConfiguratorForm() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog
-        open={isSendEmailDialogOpen}
-        onOpenChange={setIsSendEmailDialogOpen}
-      >
-        <AlertDialogContent className='max-w-[34rem]'>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Enviar proforma por email</AlertDialogTitle>
-            <AlertDialogDescription>
-              Se enviará la proforma en PDF con el resumen actual.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-
-          <div className='space-y-3'>
-            <div className='space-y-1'>
-              <label
-                htmlFor='send-proforma-email'
-                className='text-sm font-medium'
-              >
-                Email de destino
-              </label>
-              <Input
-                id='send-proforma-email'
-                type='email'
-                value={recipientEmail}
-                onChange={(event) => setRecipientEmail(event.target.value)}
-                placeholder='Email de destino'
-              />
-            </div>
-            <div className='space-y-1 rounded-md border p-3 text-sm'>
-              <p>
-                <span className='font-medium'>Referencia:</span>{' '}
-                {referenceLabel}
-              </p>
-              <p>
-                <span className='font-medium'>Cliente:</span>{' '}
-                {form.getValues('client.businessName') || '—'}
-              </p>
-              <p>
-                <span className='font-medium'>Total estimado:</span> $
-                {summaryTotal.toFixed(2)}
-              </p>
-            </div>
-          </div>
-
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              className='cursor-pointer'
-              disabled={isSendingPreviewEmail}
-            >
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              className='cursor-pointer bg-black text-white hover:bg-black/90'
-              onClick={handleSendPreviewEmail}
-              disabled={isSendingPreviewEmail}
-            >
-              <span className='inline-flex items-center gap-2'>
-                <Send className='h-4 w-4' />
-                {isSendingPreviewEmail ? 'Enviando...' : 'Enviar'}
-              </span>
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={isClearDialogOpen} onOpenChange={setIsClearDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar vaciado de datos</AlertDialogTitle>
-            <AlertDialogDescription>
-              ¿Está seguro de que desea vaciar los datos actualmente cargados en
-              este configurador? Esta acción eliminará la información en curso y
-              no podrá deshacerse.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className='cursor-pointer'>
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              className='bg-destructive hover:bg-destructive/90 cursor-pointer text-white'
-              onClick={handleConfirmClearCurrentData}
-            >
-              Vaciar datos
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </Form>
   );
 }
