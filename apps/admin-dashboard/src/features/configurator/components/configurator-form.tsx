@@ -1,80 +1,27 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowDownToLine,
-  ChevronDown,
-  Check,
   Loader2,
   Mail,
-  FilterX,
-  Filter,
-  FilterIcon,
-  LucideFilter,
-  ListFilterPlus,
-  ListPlus,
-  Plus,
-  Search,
   Send,
-  Trash2,
-  X
+  Trash2
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle
-} from '@/components/ui/alert-dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
+import { Form } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger
 } from '@/components/ui/tooltip';
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger
-} from '@/components/ui/hover-card';
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
 
 import {
   createConfiguration,
@@ -84,25 +31,33 @@ import {
   toProformaPreviewServiceLine,
   updateConfiguration,
   ConfigurationDocument,
-  ConfigurationServiceItem,
   ImportedServiceDocument,
   listImportedServices
 } from '../services/configurations';
 import { ConfiguratorCommonDialogs } from '@/features/configurator/components/configurator-common-dialogs';
-import { ProformaSummaryPanel } from '@/features/proformas/components/proforma-summary-panel';
-import { IconFilterPlus } from '@tabler/icons-react';
+import { ConfiguratorClientTab } from '@/features/configurator/components/configurator-client-tab';
+import { ConfiguratorServicesDialog } from '@/features/configurator/components/configurator-services-dialog';
+import { ConfiguratorServicesTab } from '@/features/configurator/components/configurator-services-tab';
+import { ConfiguratorSummaryTab } from '@/features/configurator/components/configurator-summary-tab';
+import { ConfiguratorTypeTab } from '@/features/configurator/components/configurator-type-tab';
 import { cn } from '@/lib/utils';
 import {
   createDefaultFormValues,
-  DIALOG_FILTER_LABELS,
   formSchema,
   TAB_ORDER,
   type ConfiguratorTab,
-  type DialogFilterKey,
   type FormValues,
-  type SelectedService,
-  type SelectedServiceGroup
+  type SelectedService
 } from '@/features/configurator/lib/configurator-form-model';
+import {
+  mapServiceGroupsToDocument,
+  mapSelectedServicesToDocument,
+  mapServicesToAnalyses,
+  mapStoredServiceGroups,
+  mapStoredServicesToSelected,
+  normalizeRangeValue,
+  parseRangeOffered
+} from '@/features/configurator/lib/configurator-service-mappers';
 import { useConfiguratorServiceDialog } from '@/features/configurator/hooks/use-configurator-service-dialog';
 import { useConfiguratorServiceSelectionState } from '@/features/configurator/hooks/use-configurator-service-selection-state';
 
@@ -140,32 +95,6 @@ export default function ConfiguratorForm() {
   const getMatrizLabel = (service: ImportedServiceDocument) => {
     const value = service.ID_MATRIZ?.trim();
     return value && value.length > 0 ? value : 'Sin matriz';
-  };
-
-  const normalizeRangeValue = (raw: string) => {
-    const value = raw.trim();
-    if (!value) return '';
-
-    const hasComma = value.includes(',');
-    const hasDot = value.includes('.');
-
-    if (hasComma && hasDot && /^\d{1,3}(,\d{3})+(\.\d+)?$/.test(value)) {
-      return value.replace(/,/g, '');
-    }
-
-    if (hasComma && hasDot && /^\d{1,3}(\.\d{3})+(,\d+)?$/.test(value)) {
-      return value.replace(/\./g, '').replace(',', '.');
-    }
-
-    if (hasComma && hasDot) {
-      return value.replace(/,/g, '');
-    }
-
-    if (hasComma && !hasDot) {
-      return value.replace(',', '.');
-    }
-
-    return value;
   };
 
   const toSelectedService = (
@@ -351,137 +280,6 @@ export default function ConfiguratorForm() {
     dialogSearchTerm,
     dialogSelectedServiceIds
   });
-
-  const formatRange = (service: SelectedService) => {
-    const lower = service.rangeMin.trim();
-    const upper = service.rangeMax.trim();
-    if (!lower && !upper) return '—';
-    if (lower && upper) return `${lower} a ${upper}`;
-    return lower || upper;
-  };
-
-  const parseRangeOffered = (rangeOffered: string) => {
-    const normalized = rangeOffered.trim();
-    if (!normalized || normalized === '—') {
-      return { rangeMin: '', rangeMax: '' };
-    }
-
-    const parts = normalized.split(/\s+a\s+/i);
-    if (parts.length === 2) {
-      return {
-        rangeMin: normalizeRangeValue(parts[0]),
-        rangeMax: normalizeRangeValue(parts[1])
-      };
-    }
-
-    return { rangeMin: normalizeRangeValue(normalized), rangeMax: '' };
-  };
-
-  const mapServicesToAnalyses = (
-    services: SelectedService[]
-  ): FormValues['analyses']['items'] =>
-    services.map((service) => ({
-      parameterId: getServiceId(service),
-      parameterLabelEs: service.ID_PARAMETRO || getServiceId(service) || '-',
-      unit: service.UNIDAD_NORMA || service.UNIDAD_INTERNO || '-',
-      method:
-        service.ID_TECNICA ||
-        service.ID_MET_REFERENCIA ||
-        service.ID_MET_INTERNO ||
-        '-',
-      rangeOffered: formatRange(service),
-      isAccredited: false,
-      turnaround: 'standard',
-      unitPrice: service.unitPrice,
-      discountAmount: service.discountAmount,
-      appliesToSampleCodes: null
-    }));
-
-  const mapSelectedServicesToDocument = (
-    services: SelectedService[]
-  ): ConfigurationServiceItem[] =>
-    services.map((service) => ({
-      serviceId: service.id,
-      parameterId: getServiceId(service),
-      parameterLabel: service.ID_PARAMETRO || getServiceId(service) || '-',
-      tableLabel: service.ID_TABLA_NORMA || null,
-      unit: service.UNIDAD_NORMA || service.UNIDAD_INTERNO || null,
-      method:
-        service.ID_TECNICA ||
-        service.ID_MET_REFERENCIA ||
-        service.ID_MET_INTERNO ||
-        null,
-      rangeMin: service.rangeMin,
-      rangeMax: service.rangeMax,
-      quantity: service.quantity,
-      unitPrice: service.unitPrice,
-      discountAmount: service.discountAmount
-    }));
-
-  const mapServiceGroupsToDocument = (groups: SelectedServiceGroup[]) => {
-    return groups
-      .map((group) => {
-        return {
-          name: group.name,
-          items: mapSelectedServicesToDocument(group.items)
-        };
-      })
-      .filter((group) => group.items.length > 0);
-  };
-
-  const mapStoredServicesToSelected = (
-    services: ConfigurationServiceItem[]
-  ): SelectedService[] =>
-    services.map((service) =>
-      toSelectedService(
-        {
-          id: service.serviceId || service.parameterId,
-          ID_CONFIG_PARAMETRO: service.parameterId,
-          ID_PARAMETRO: service.parameterLabel,
-          ID_TABLA_NORMA: service.tableLabel || undefined,
-          UNIDAD_NORMA: service.unit || undefined,
-          ID_TECNICA: service.method || undefined,
-          LIM_INF_NORMA: undefined,
-          LIM_SUP_NORMA: undefined,
-          PRECIO: service.unitPrice
-        },
-        {
-          quantity: service.quantity,
-          rangeMin: service.rangeMin,
-          rangeMax: service.rangeMax,
-          unitPrice: service.unitPrice,
-          discountAmount: service.discountAmount
-        }
-      )
-    );
-
-  const mapStoredServiceGroups = (
-    grouped:
-      | {
-          name?: string;
-          items?: ConfigurationServiceItem[];
-        }[]
-      | undefined
-  ): SelectedServiceGroup[] => {
-    if (!Array.isArray(grouped)) return [];
-
-    return grouped
-      .map((group, index) => {
-        const items = Array.isArray(group.items)
-          ? mapStoredServicesToSelected(group.items)
-          : [];
-
-        return {
-          id: `group-${Date.now()}-${index}`,
-          name:
-            typeof group.name === 'string' && group.name.trim().length > 0
-              ? group.name.trim()
-              : `Combo ${index + 1}`,
-          items
-        };
-      })
-      .filter((group) => group.items.length > 0);
-  };
 
   const toDateOrNull = (value: unknown): Date | null => {
     if (!value) return null;
@@ -686,7 +484,7 @@ export default function ConfiguratorForm() {
       const merged = mergeWithCachedValues(createDefaultFormValues(), parsed);
       form.reset(merged);
       const restoredServices = merged.services?.items?.length
-        ? mapStoredServicesToSelected(merged.services.items)
+        ? mapStoredServicesToSelected(merged.services.items, toSelectedService)
         : merged.analyses.items.map((item, index) =>
             (() => {
               const parsedRange = parseRangeOffered(item.rangeOffered);
@@ -718,7 +516,9 @@ export default function ConfiguratorForm() {
         Array.isArray(merged.services?.grouped) &&
         merged.services.grouped.length
       ) {
-        setServiceGroups(mapStoredServiceGroups(merged.services.grouped));
+        setServiceGroups(
+          mapStoredServiceGroups(merged.services.grouped, toSelectedService)
+        );
       } else if (restoredServices.length) {
         setServiceGroups([
           {
@@ -810,7 +610,10 @@ export default function ConfiguratorForm() {
               const merged = mergeWithCachedValues(loadedValues, parsed);
               form.reset(merged);
               const restoredServices = merged.services?.items?.length
-                ? mapStoredServicesToSelected(merged.services.items)
+                ? mapStoredServicesToSelected(
+                    merged.services.items,
+                    toSelectedService
+                  )
                 : merged.analyses.items.map((item, index) =>
                     (() => {
                       const parsedRange = parseRangeOffered(item.rangeOffered);
@@ -843,7 +646,10 @@ export default function ConfiguratorForm() {
                 merged.services.grouped.length
               ) {
                 setServiceGroups(
-                  mapStoredServiceGroups(merged.services.grouped)
+                  mapStoredServiceGroups(
+                    merged.services.grouped,
+                    toSelectedService
+                  )
                 );
               } else if (restoredServices.length) {
                 setServiceGroups([
@@ -865,7 +671,10 @@ export default function ConfiguratorForm() {
 
         form.reset(loadedValues);
         const restoredServices = loadedValues.services?.items?.length
-          ? mapStoredServicesToSelected(loadedValues.services.items)
+          ? mapStoredServicesToSelected(
+              loadedValues.services.items,
+              toSelectedService
+            )
           : loadedValues.analyses.items.map((item, index) =>
               (() => {
                 const parsedRange = parseRangeOffered(item.rangeOffered);
@@ -898,7 +707,10 @@ export default function ConfiguratorForm() {
           loadedValues.services.grouped.length
         ) {
           setServiceGroups(
-            mapStoredServiceGroups(loadedValues.services.grouped)
+            mapStoredServiceGroups(
+              loadedValues.services.grouped,
+              toSelectedService
+            )
           );
         } else if (restoredServices.length) {
           setServiceGroups([
@@ -969,8 +781,8 @@ export default function ConfiguratorForm() {
           ...currentValues,
           services: {
             ...currentValues.services,
-            items: mapSelectedServicesToDocument(selectedServices),
-            grouped: mapServiceGroupsToDocument(serviceGroups)
+            items: mapSelectedServicesToDocument(selectedServices, getServiceId),
+            grouped: mapServiceGroupsToDocument(serviceGroups, getServiceId)
           }
         };
         window.localStorage.setItem(cacheKey, JSON.stringify(nextCachedValues));
@@ -984,11 +796,14 @@ export default function ConfiguratorForm() {
   }, [cacheKey, form, isLoadingRequest, selectedServices, serviceGroups]);
 
   useEffect(() => {
-    const mappedAnalyses = mapServicesToAnalyses(selectedServices);
-    const mappedServiceItems = mapSelectedServicesToDocument(selectedServices);
+    const mappedAnalyses = mapServicesToAnalyses(selectedServices, getServiceId);
+    const mappedServiceItems = mapSelectedServicesToDocument(
+      selectedServices,
+      getServiceId
+    );
     form.setValue('services', {
       items: mappedServiceItems,
-      grouped: mapServiceGroupsToDocument(serviceGroups)
+      grouped: mapServiceGroupsToDocument(serviceGroups, getServiceId)
     });
     form.setValue('analyses.applyMode', 'all_samples');
     form.setValue('analyses.items', mappedAnalyses);
@@ -1041,8 +856,8 @@ export default function ConfiguratorForm() {
           items: []
         },
         services: {
-          items: mapSelectedServicesToDocument(selectedServices),
-          grouped: mapServiceGroupsToDocument(serviceGroups)
+          items: mapSelectedServicesToDocument(selectedServices, getServiceId),
+          grouped: mapServiceGroupsToDocument(serviceGroups, getServiceId)
         },
         pricing: {
           ...values.pricing,
@@ -1107,8 +922,8 @@ export default function ConfiguratorForm() {
           items: []
         },
         services: {
-          items: mapSelectedServicesToDocument(selectedServices),
-          grouped: mapServiceGroupsToDocument(serviceGroups)
+          items: mapSelectedServicesToDocument(selectedServices, getServiceId),
+          grouped: mapServiceGroupsToDocument(serviceGroups, getServiceId)
         },
         pricing: {
           ...values.pricing,
@@ -1614,601 +1429,48 @@ export default function ConfiguratorForm() {
           </TabsList>
 
           {/* PASO A: DATOS Y METADATOS */}
-          <TabsContent value='type' className='mt-4 space-y-4'>
-            <Card className='border-0 shadow-none'>
-              <CardHeader>
-                <CardTitle>Datos de la proforma</CardTitle>
-              </CardHeader>
-              <CardContent className='space-y-4'>
-                <div className='grid grid-cols-2 gap-4'>
-                  <FormField
-                    control={form.control as any}
-                    name='reference'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Referencia</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control as any}
-                    name='validDays'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Validez de oferta (días)</FormLabel>
-                        <Select
-                          onValueChange={(val) => field.onChange(parseInt(val))}
-                          defaultValue={field.value?.toString()}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder='Seleccione validez' />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value='15'>15 días</SelectItem>
-                            <SelectItem value='30'>30 días</SelectItem>
-                            <SelectItem value='60'>60 días</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control as any}
-                  name='notes'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Notas</FormLabel>
-                      <FormControl>
-                        <Textarea {...field} className='min-h-[79px]' />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {renderTabActions()}
-              </CardContent>
-            </Card>
-          </TabsContent>
+          <ConfiguratorTypeTab
+            form={form}
+            renderTabActions={() => renderTabActions()}
+          />
 
           {/* PASO B: CLIENTE */}
-          <TabsContent value='client' className='mt-4 space-y-4'>
-            <Card className='border-0 shadow-none'>
-              <CardHeader>
-                <CardTitle>Datos del Cliente</CardTitle>
-              </CardHeader>
-              <CardContent className='space-y-4'>
-                <div className='grid grid-cols-2 gap-4'>
-                  <FormField
-                    control={form.control as any}
-                    name='client.businessName'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Razón Social</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control as any}
-                    name='client.taxId'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>RUC</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control as any}
-                    name='client.contactName'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Persona de Contacto</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control as any}
-                    name='client.contactRole'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Cargo (Opcional)</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control as any}
-                    name='client.email'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input type='email' {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control as any}
-                    name='client.phone'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Teléfono</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control as any}
-                    name='client.address'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Dirección</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control as any}
-                    name='client.city'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Ciudad/Localidad</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                {renderTabActions()}
-              </CardContent>
-            </Card>
-          </TabsContent>
+          <ConfiguratorClientTab
+            form={form}
+            renderTabActions={() => renderTabActions()}
+          />
 
           {/* PASO C: SERVICIOS */}
-          <TabsContent value='samples' className='mt-4 space-y-4'>
-            <Card className='border-0 shadow-none'>
-              <CardHeader>
-                <CardTitle>Servicios</CardTitle>
-              </CardHeader>
-              <CardContent className='relative space-y-4 overflow-visible'>
-                <div>
-                  <div className='space-y-4'>
-                    <div className='space-y-3 rounded-md border p-4'>
-                      <div className='border-border flex items-center justify-between gap-2 border-b pb-4'>
-                        <div>
-                          <h4 className='text-sm font-semibold'>
-                            Combos de servicios
-                          </h4>
-                          <p className='text-muted-foreground text-xs'>
-                            Agrega uno o varios combos de servicios.
-                          </p>
-                        </div>
-                        <Button
-                          type='button'
-                          variant='outline'
-                          className='cursor-pointer'
-                          onClick={handleOpenMatrixSelectorDialog}
-                          disabled={isLoadingAvailableServices}
-                        >
-                          <Plus className='h-4 w-4' />
-                          Agregar combo
-                        </Button>
-                      </div>
-
-                      {groupedServicesForRender.length === 0 ? (
-                        <p className='text-muted-foreground text-sm'>
-                          No hay combos de servicios agregados.
-                        </p>
-                      ) : (
-                        <div className='space-y-4'>
-                          {groupedServicesForRender.map((group) => {
-                            return (
-                              <div
-                                key={group.id}
-                                className='bg-primary/15 border-primary/30 relative space-y-3 overflow-hidden rounded-xl border p-3'
-                              >
-                                <span
-                                  aria-hidden='true'
-                                  className='text-primary/35 absolute top-0 left-0 h-4 w-4 [background-image:radial-gradient(currentColor_1px,transparent_1px)] [background-size:3px_3px] [clip-path:polygon(0_0,100%_0,0_100%)]'
-                                />
-                                <div className='flex items-center justify-between gap-3'>
-                                  <div className='flex w-full items-center justify-between gap-1'>
-                                    <div className='relative pt-2'>
-                                      <span className='text-foreground/90 pointer-events-none absolute -top-0.5 left-2 z-10 rounded-sm bg-transparent px-1.5 text-[10px] leading-none font-semibold'>
-                                        Título del combo
-                                      </span>
-                                      <Input
-                                        value={group.name}
-                                        onChange={(event) =>
-                                          handleUpdateGroupName(
-                                            group.id,
-                                            event.target.value
-                                          )
-                                        }
-                                        className='dark:!bg-background w-[25rem] max-w-[85vw] !bg-white'
-                                        placeholder='Nombre del combo'
-                                      />
-                                    </div>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          type='button'
-                                          variant='outline'
-                                          size='sm'
-                                          className={`mt-2 ml-1 h-8 cursor-pointer border ${comboEditServicesButtonClass}`}
-                                          onClick={() =>
-                                            handleEditGroupServices(
-                                              group,
-                                              group.items[0]
-                                                ? getMatrizLabel(group.items[0])
-                                                : null
-                                            )
-                                          }
-                                          aria-label='Editar combo de servicios'
-                                        >
-                                          <Plus className='h-4 w-4' />
-                                          Agregar Servicios
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        Editar combo de servicios
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </div>
-                                  <div className='mx-1 mt-2 flex items-center gap-1'>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Button
-                                          type='button'
-                                          variant='ghost'
-                                          size='icon'
-                                          className='text-destructive hover:text-destructive h-7 w-7 cursor-pointer'
-                                          onClick={() =>
-                                            handleOpenRemoveGroupDialog(group)
-                                          }
-                                          aria-label='Eliminar combo'
-                                        >
-                                          <Trash2 className='h-4 w-4' />
-                                        </Button>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        Eliminar combo
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </div>
-                                </div>
-
-                                <div className='space-y-2'>
-                                  {group.items.map((service) => {
-                                    const serviceId =
-                                      service.ID_CONFIG_PARAMETRO || service.id;
-                                    const scopedServiceId = `${group.id}-${serviceId}`;
-                                    return (
-                                      <div
-                                        key={`${group.id}-${serviceId}`}
-                                        className='dark:bg-background rounded-xl border bg-white p-6 pt-5'
-                                      >
-                                        <div className='flex items-start justify-between gap-2'>
-                                          <div className='flex-1 space-y-2'>
-                                            <p className='text-sm font-medium'>
-                                              {service.ID_PARAMETRO ||
-                                                serviceId}
-                                            </p>
-                                            <p className='text-muted-foreground text-xs leading-tight'>
-                                              {service.ID_MAT_ENSAYO?.trim() ||
-                                                'Sin material de ensayo'}
-                                            </p>
-                                            <p className='text-muted-foreground text-xs leading-tight'>
-                                              {service.ID_TABLA_NORMA ||
-                                                'Sin tabla'}{' '}
-                                            </p>
-                                            <p className='text-muted-foreground text-xs leading-tight'>
-                                              Límite interno:{' '}
-                                              {service.LIM_INF_INTERNO || '—'} a{' '}
-                                              {service.LIM_SUP_INTERNO || '—'} (
-                                              {service.UNIDAD_NORMA ||
-                                                service.UNIDAD_INTERNO ||
-                                                'Sin unidad'}
-                                              )
-                                            </p>
-                                            <p className='text-muted-foreground text-xs leading-tight'>
-                                              {service.ID_TECNICA ||
-                                                service.ID_MET_REFERENCIA ||
-                                                service.ID_MET_INTERNO ||
-                                                'Sin método'}
-                                            </p>
-                                            <div className='mt-5 grid grid-cols-1 gap-5 md:grid-cols-5 md:gap-6'>
-                                              <div className='flex flex-col justify-end space-y-1'>
-                                                <label
-                                                  htmlFor={`quantity-${scopedServiceId}`}
-                                                  className='text-muted-foreground text-[0.7rem] leading-tight'
-                                                >
-                                                  Cantidad
-                                                </label>
-                                                <Input
-                                                  id={`quantity-${scopedServiceId}`}
-                                                  type='number'
-                                                  min={1}
-                                                  value={service.quantity ?? 1}
-                                                  className={`${serviceUnderlineInputClass} pl-2`}
-                                                  onChange={(event) =>
-                                                    handleUpdateServiceField(
-                                                      group.id,
-                                                      serviceId,
-                                                      'quantity',
-                                                      event.target.value
-                                                    )
-                                                  }
-                                                />
-                                              </div>
-                                              <div className='flex flex-col justify-end space-y-1'>
-                                                <label
-                                                  htmlFor={`range-min-${scopedServiceId}`}
-                                                  className='text-muted-foreground text-[0.7rem] leading-tight'
-                                                >
-                                                  Rango mín. (
-                                                  {service.UNIDAD_NORMA?.trim() ||
-                                                    service.UNIDAD_INTERNO?.trim() ||
-                                                    '_'}
-                                                  )
-                                                </label>
-                                                <Input
-                                                  id={`range-min-${scopedServiceId}`}
-                                                  value={service.rangeMin ?? ''}
-                                                  className={`${serviceUnderlineInputClass} pl-2`}
-                                                  onChange={(event) =>
-                                                    handleUpdateServiceField(
-                                                      group.id,
-                                                      serviceId,
-                                                      'rangeMin',
-                                                      event.target.value
-                                                    )
-                                                  }
-                                                  placeholder='0.00'
-                                                />
-                                              </div>
-                                              <div className='flex flex-col justify-end space-y-1'>
-                                                <label
-                                                  htmlFor={`range-max-${scopedServiceId}`}
-                                                  className='text-muted-foreground text-[0.7rem] leading-tight'
-                                                >
-                                                  Rango máx. (
-                                                  {service.UNIDAD_NORMA?.trim() ||
-                                                    service.UNIDAD_INTERNO?.trim() ||
-                                                    '_'}
-                                                  )
-                                                </label>
-                                                <Input
-                                                  id={`range-max-${scopedServiceId}`}
-                                                  value={service.rangeMax ?? ''}
-                                                  className={`${serviceUnderlineInputClass} pl-2`}
-                                                  onChange={(event) =>
-                                                    handleUpdateServiceField(
-                                                      group.id,
-                                                      serviceId,
-                                                      'rangeMax',
-                                                      event.target.value
-                                                    )
-                                                  }
-                                                  placeholder='0.00'
-                                                />
-                                              </div>
-                                              <div className='flex flex-col justify-end space-y-1'>
-                                                <label
-                                                  htmlFor={`price-${scopedServiceId}`}
-                                                  className='text-muted-foreground text-[0.7rem] leading-tight'
-                                                >
-                                                  Precio (USD)
-                                                </label>
-                                                <div className='relative'>
-                                                  <span className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm'>
-                                                    $
-                                                  </span>
-                                                  <Input
-                                                    id={`price-${scopedServiceId}`}
-                                                    type='number'
-                                                    min={0}
-                                                    step='0.01'
-                                                    value={
-                                                      typeof service.unitPrice ===
-                                                      'number'
-                                                        ? service.unitPrice
-                                                        : ''
-                                                    }
-                                                    onChange={(event) =>
-                                                      handleUpdateServiceField(
-                                                        group.id,
-                                                        serviceId,
-                                                        'unitPrice',
-                                                        event.target.value
-                                                      )
-                                                    }
-                                                    placeholder='0.00'
-                                                    className={`${serviceUnderlineInputClass} pl-7`}
-                                                  />
-                                                </div>
-                                              </div>
-                                              <div className='flex flex-col justify-end space-y-1'>
-                                                <label
-                                                  htmlFor={`discount-${scopedServiceId}`}
-                                                  className='text-muted-foreground text-[0.7rem] leading-tight'
-                                                >
-                                                  Descuento (USD)
-                                                </label>
-                                                <div className='relative'>
-                                                  <span className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm'>
-                                                    $
-                                                  </span>
-                                                  <Input
-                                                    id={`discount-${scopedServiceId}`}
-                                                    type='number'
-                                                    min={0}
-                                                    step='0.01'
-                                                    value={
-                                                      typeof service.discountAmount ===
-                                                      'number'
-                                                        ? service.discountAmount
-                                                        : ''
-                                                    }
-                                                    onChange={(event) =>
-                                                      handleUpdateServiceField(
-                                                        group.id,
-                                                        serviceId,
-                                                        'discountAmount',
-                                                        event.target.value
-                                                      )
-                                                    }
-                                                    placeholder='0.00'
-                                                    className={`${serviceUnderlineInputClass} pl-7`}
-                                                  />
-                                                </div>
-                                              </div>
-                                            </div>
-                                          </div>
-                                          <Tooltip>
-                                            <TooltipTrigger asChild>
-                                              <Button
-                                                type='button'
-                                                variant='ghost'
-                                                size='icon'
-                                                className='h-7 w-7 cursor-pointer'
-                                                onClick={() =>
-                                                  handleOpenRemoveService(
-                                                    group.id,
-                                                    service
-                                                  )
-                                                }
-                                                aria-label='Eliminar servicio'
-                                              >
-                                                <Trash2 className='h-4 w-4' />
-                                              </Button>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                              Eliminar servicio
-                                            </TooltipContent>
-                                          </Tooltip>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-
-                    <div ref={estimatedCostsSectionRef}>
-                      {renderEstimatedCostsPanel()}
-                    </div>
-
-                    {renderTabActions()}
-                  </div>
-                </div>
-                <div className='pointer-events-none absolute top-38 bottom-0 left-[calc(100%+1rem)] hidden w-[320px] min-[1400px]:block'>
-                  <AnimatePresence initial={false}>
-                    {shouldShowFloatingEstimatedCosts ? (
-                      <motion.div
-                        key='estimated-costs-floating'
-                        className='pointer-events-auto sticky top-16'
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.12, ease: 'easeOut' }}
-                      >
-                        {renderEstimatedCostsPanel()}
-                      </motion.div>
-                    ) : null}
-                  </AnimatePresence>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+          <ConfiguratorServicesTab
+            groupedServicesForRender={groupedServicesForRender}
+            isLoadingAvailableServices={isLoadingAvailableServices}
+            handleOpenMatrixSelectorDialog={handleOpenMatrixSelectorDialog}
+            comboEditServicesButtonClass={comboEditServicesButtonClass}
+            getMatrizLabel={getMatrizLabel}
+            handleEditGroupServices={handleEditGroupServices}
+            handleUpdateGroupName={handleUpdateGroupName}
+            handleOpenRemoveGroupDialog={handleOpenRemoveGroupDialog}
+            serviceUnderlineInputClass={serviceUnderlineInputClass}
+            handleUpdateServiceField={handleUpdateServiceField}
+            handleOpenRemoveService={handleOpenRemoveService}
+            estimatedCostsSectionRef={estimatedCostsSectionRef}
+            renderEstimatedCostsPanel={renderEstimatedCostsPanel}
+            renderTabActions={() => renderTabActions()}
+            shouldShowFloatingEstimatedCosts={shouldShowFloatingEstimatedCosts}
+          />
 
           {/* PASO E: RESUMEN */}
-          <TabsContent value='summary' className='mt-4'>
-            <Card className='border-0 p-0 shadow-none'>
-              <CardContent className='space-y-5 px-6 py-5'>
-                <ProformaSummaryPanel
-                  typeLabel='Proforma'
-                  reference={form.getValues('reference') || '—'}
-                  validDaysLabel={
-                    validDaysValue ? `${validDaysValue} días` : '—'
-                  }
-                  validUntilLabel={validUntilLabel}
-                  client={{
-                    businessName: form.getValues('client.businessName') || '—',
-                    taxId: form.getValues('client.taxId') || '—',
-                    contactName: form.getValues('client.contactName') || '—',
-                    contactEmail: form.getValues('client.email') || ''
-                  }}
-                  groups={summaryServiceGroups.map((group) => ({
-                    id: group.id,
-                    name: group.name,
-                    items: group.items.map((service, index) => ({
-                      id:
-                        service.ID_CONFIG_PARAMETRO ||
-                        service.id ||
-                        `${group.id}-service-${index}`,
-                      label:
-                        service.ID_PARAMETRO ||
-                        service.ID_CONFIG_PARAMETRO ||
-                        service.id ||
-                        'Servicio',
-                      quantity: service.quantity ?? 1,
-                      unitPrice: service.unitPrice ?? null,
-                      discountAmount: service.discountAmount ?? null
-                    }))
-                  }))}
-                  pricing={{
-                    subtotal: summarySubtotal,
-                    taxPercent: summaryTaxPercent,
-                    total: summaryTotal
-                  }}
-                  notes={summaryNotes}
-                  showTotalUsdSuffix
-                />
-
-                {renderTabActions(true)}
-              </CardContent>
-            </Card>
-          </TabsContent>
+          <ConfiguratorSummaryTab
+            form={form}
+            validDaysValue={validDaysValue}
+            validUntilLabel={validUntilLabel}
+            summaryServiceGroups={summaryServiceGroups}
+            summarySubtotal={summarySubtotal}
+            summaryTaxPercent={summaryTaxPercent}
+            summaryTotal={summaryTotal}
+            summaryNotes={summaryNotes}
+            renderTabActions={() => renderTabActions(true)}
+          />
         </Tabs>
       </div>
 
@@ -2239,409 +1501,38 @@ export default function ConfiguratorForm() {
         handleConfirmClearCurrentData={handleConfirmClearCurrentData}
       />
 
-      <AlertDialog
+      <ConfiguratorServicesDialog
         open={isServicesDialogOpen}
         onOpenChange={handleServicesDialogOpenChange}
-      >
-        <AlertDialogContent className='flex h-[88vh] max-h-[88vh] w-[96vw] max-w-[1100px] flex-col overflow-x-hidden sm:max-w-[1100px]'>
-          <AlertDialogHeader>
-            <div className='flex items-center gap-2'>
-              <AlertDialogTitle className='shrink-0'>
-                Combo de servicios
-              </AlertDialogTitle>
-              {activeComboMatrix ? (
-                <span className='bg-muted text-muted-foreground inline-flex max-w-[70%] items-center rounded-full border px-2.5 py-1 text-sm'>
-                  <span className='mr-1 font-medium'>Matriz:</span>
-                  <span className='truncate' title={activeComboMatrix}>
-                    {activeComboMatrix}
-                  </span>
-                </span>
-              ) : null}
-              {dialogSelectedServiceIds.length > 0 ? (
-                <HoverCard openDelay={80} closeDelay={150}>
-                  <HoverCardTrigger asChild>
-                    <span className='inline-flex cursor-default items-center rounded-full border border-black bg-black px-2.5 py-1 text-sm text-white dark:border-white dark:bg-white dark:text-black'>
-                      {dialogSelectedServiceIds.length} seleccionados
-                    </span>
-                  </HoverCardTrigger>
-                  <HoverCardContent
-                    align='start'
-                    side='bottom'
-                    sideOffset={8}
-                    className='max-h-[19.2rem] w-[25.4rem] max-w-[25.4rem] overflow-y-auto p-3'
-                    onWheel={(event) => event.stopPropagation()}
-                  >
-                    <div className='space-y-1'>
-                      <p className='text-xs font-medium'>
-                        Servicios seleccionados
-                      </p>
-                      <ul className='list-disc space-y-0.5 pl-4 text-xs'>
-                        {selectedDialogServiceLabels.map((label, index) => (
-                          <li key={`${label}-${index}`}>{label}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </HoverCardContent>
-                </HoverCard>
-              ) : (
-                <span className='bg-muted text-muted-foreground inline-flex items-center rounded-full border px-2.5 py-1 text-sm'>
-                  {dialogSelectedServiceIds.length} seleccionados
-                </span>
-              )}
-            </div>
-            <AlertDialogDescription className='m-0'>
-              Selecciona uno o varios servicios para incluir en el combo "
-              {dialogComboTitle}".
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-
-          <div className='min-w-0 space-y-3'>
-            <div className='flex min-w-0 flex-wrap items-center gap-2'>
-              <DropdownMenu
-                open={isAddFilterDropdownOpen}
-                onOpenChange={setIsAddFilterDropdownOpen}
-              >
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type='button'
-                    variant='outline'
-                    size='sm'
-                    className='bg-muted/35 text-foreground hover:bg-muted/55 h-9 gap-1.5 text-xs shadow-none'
-                  >
-                    <IconFilterPlus className='h-3.7 w-3.7' />
-                    Agregar filtro
-                    <ChevronDown className='h-3.5 w-3.5' />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align='start' className='w-60'>
-                  {(Object.keys(DIALOG_FILTER_LABELS) as DialogFilterKey[]).map(
-                    (filterKey) => (
-                      <DropdownMenuSub key={filterKey}>
-                        <DropdownMenuSubTrigger className='text-sm'>
-                          <span>{DIALOG_FILTER_LABELS[filterKey]}</span>
-                        </DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent
-                          className={`max-h-[27rem] max-w-[84vw] overflow-y-auto ${
-                            filterKey === 'tabla' ? 'w-[41rem]' : 'w-[36rem]'
-                          }`}
-                        >
-                          {dialogFilterOptionsByKey[filterKey].map((option) => {
-                            const isChecked = dialogFilters[filterKey].includes(
-                              option.value
-                            );
-                            const isUnavailable = option.count === 0;
-                            const isDisabled = isUnavailable && !isChecked;
-
-                            const item = (
-                              <DropdownMenuCheckboxItem
-                                key={`${filterKey}-${option.value}`}
-                                checked={isChecked}
-                                onCheckedChange={() =>
-                                  handleToggleDialogFilterValue(
-                                    filterKey,
-                                    option.value
-                                  )
-                                }
-                                className={`w-full pr-2 ${
-                                  isUnavailable ? 'text-muted-foreground' : ''
-                                }`}
-                                disabled={isDisabled}
-                              >
-                                <span
-                                  className='min-w-0 flex-1 truncate'
-                                  title={option.value}
-                                >
-                                  {option.value}
-                                </span>
-                                <span className='text-muted-foreground ml-2 shrink-0 text-xs'>
-                                  {option.count}
-                                </span>
-                              </DropdownMenuCheckboxItem>
-                            );
-
-                            if (!isUnavailable) return item;
-
-                            return (
-                              <Tooltip key={`${filterKey}-${option.value}`}>
-                                <TooltipTrigger asChild>
-                                  <span className='block'>{item}</span>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  No disponible con los filtros actuales
-                                </TooltipContent>
-                              </Tooltip>
-                            );
-                          })}
-                        </DropdownMenuSubContent>
-                      </DropdownMenuSub>
-                    )
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {activeDialogFiltersCount > 0 ||
-              dialogSearchTerm.trim().length > 0 ? (
-                <Button
-                  type='button'
-                  variant='outline'
-                  size='sm'
-                  className='border-border bg-muted/40 text-foreground hover:bg-muted/55 h-9 gap-1.5 text-xs'
-                  onClick={handleClearDialogFilters}
-                >
-                  <X className='h-2.5 w-2.5' />
-                  Limpiar filtros
-                </Button>
-              ) : null}
-            </div>
-
-            {activeDialogFiltersCount > 0 ? (
-              <div className='space-y-2'>
-                <button
-                  type='button'
-                  className='inline-flex w-full cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 text-left'
-                  onClick={() =>
-                    setIsAppliedFiltersExpanded((previous) => !previous)
-                  }
-                >
-                  <span className='text-foreground/85 text-sm font-medium'>
-                    Filtros ({activeDialogFiltersCount})
-                  </span>
-                  <span className='bg-border mx-1 h-px flex-1' />
-                  <ChevronDown
-                    className={`text-muted-foreground h-4 w-4 transition-transform ${
-                      isAppliedFiltersExpanded ? 'rotate-180' : ''
-                    }`}
-                  />
-                </button>
-
-                {isAppliedFiltersExpanded ? (
-                  <div className='bg-muted/20 space-y-2 rounded-md border p-3'>
-                    {(
-                      Object.keys(DIALOG_FILTER_LABELS) as DialogFilterKey[]
-                    ).map((filterKey) => {
-                      const selectedValues = dialogFilters[filterKey];
-                      if (selectedValues.length === 0) return null;
-
-                      return (
-                        <div key={filterKey} className='space-y-1'>
-                          <p className='text-muted-foreground text-xs font-medium'>
-                            {DIALOG_FILTER_LABELS[filterKey]}
-                          </p>
-                          <div className='flex flex-wrap gap-1.5'>
-                            {selectedValues.map((value) => (
-                              <span
-                                key={`${filterKey}-${value}`}
-                                title={value}
-                                className='bg-background inline-flex max-w-[24rem] items-center gap-1 rounded-md border px-2 py-1 text-[11px]'
-                              >
-                                <span className='truncate'>{value}</span>
-                                <button
-                                  type='button'
-                                  aria-label={`Quitar filtro ${value}`}
-                                  className='text-muted-foreground hover:text-foreground inline-flex h-3.5 w-3.5 shrink-0 cursor-pointer items-center justify-center rounded-sm'
-                                  onClick={() =>
-                                    handleRemoveDialogFilterValue(
-                                      filterKey,
-                                      value
-                                    )
-                                  }
-                                >
-                                  <X className='h-3 w-3' />
-                                </button>
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-          </div>
-
-          <div className='mt-1 flex items-center gap-3'>
-            <div className='relative min-w-0 flex-1'>
-              <Search className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2' />
-              <Input
-                value={dialogSearchTerm}
-                onChange={(event) => setDialogSearchTerm(event.target.value)}
-                placeholder='Buscar por parámetro, método, norma, tabla, unidad o material...'
-                className='w-full pl-9'
-              />
-            </div>
-            {filteredAvailableServices.length > 1 &&
-            filteredAvailableServices.length <= 30 ? (
-              <div className='flex shrink-0 items-center gap-2'>
-                <label className='text-muted-foreground flex shrink-0 cursor-pointer items-center gap-2 text-xs sm:text-sm'>
-                  <Checkbox
-                    checked={areAllVisibleSelected}
-                    onCheckedChange={(checked) =>
-                      handleSelectAllVisibleToggle(
-                        checked === true,
-                        visibleServiceIds
-                      )
-                    }
-                    disabled={filteredAvailableServices.length === 0}
-                    className='cursor-pointer'
-                  />
-                  Seleccionar todos
-                </label>
-              </div>
-            ) : null}
-          </div>
-
-          <div className='min-h-0 flex-1 overflow-y-auto pr-1'>
-            {isLoadingAvailableServices ? (
-              <p className='text-muted-foreground text-sm'>
-                Cargando servicios...
-              </p>
-            ) : availableServices.length === 0 ? (
-              <p className='text-muted-foreground text-sm'>
-                No hay servicios disponibles. Importalos desde Administración.
-              </p>
-            ) : filteredAvailableServices.length === 0 ? (
-              <p className='text-muted-foreground text-sm'>
-                No hay servicios para los filtros aplicados.
-              </p>
-            ) : (
-              <div className='grid auto-rows-fr grid-cols-2 gap-2 max-[900px]:grid-cols-1'>
-                {filteredAvailableServices.map((service) => {
-                  const serviceId = service.ID_CONFIG_PARAMETRO || service.id;
-                  const isSelected =
-                    dialogSelectedServiceIds.includes(serviceId);
-                  const isLockedSelection =
-                    isSelected && dialogLockedServiceIds.includes(serviceId);
-
-                  const cardButton = (
-                    <button
-                      key={serviceId}
-                      type='button'
-                      className={`flex h-full w-full items-start justify-start rounded-md border p-3 text-left transition-colors ${
-                        isLockedSelection
-                          ? 'border-border bg-muted/35 cursor-not-allowed'
-                          : isSelected
-                            ? 'border-black/60 bg-black/10 dark:border-white/70 dark:bg-white/10'
-                            : 'hover:bg-muted/50 border-border'
-                      }`}
-                      onClick={() => handleToggleServiceSelection(serviceId)}
-                      disabled={isLockedSelection}
-                    >
-                      <div className='flex w-full items-start justify-between gap-2'>
-                        <div className='space-y-1'>
-                          <p className='text-sm font-medium'>
-                            {service.ID_PARAMETRO || serviceId}
-                          </p>
-                          <p className='text-muted-foreground text-xs'>
-                            {getMatEnsayoLabel(service)}
-                          </p>
-                          <p className='text-muted-foreground text-xs'>
-                            {service.ID_TABLA_NORMA || 'Sin tabla'}
-                          </p>
-                          <p className='text-muted-foreground text-xs'>
-                            Límite interno: {service.LIM_INF_INTERNO || '—'} a{' '}
-                            {service.LIM_SUP_INTERNO || '—'} (
-                            {service.UNIDAD_NORMA ||
-                              service.UNIDAD_INTERNO ||
-                              'Sin unidad'}
-                            )
-                          </p>
-                          <p className='text-muted-foreground text-xs'>
-                            {service.ID_TECNICA ||
-                              service.ID_MET_REFERENCIA ||
-                              service.ID_MET_INTERNO ||
-                              'Sin método'}
-                          </p>
-                        </div>
-                        {isSelected ? (
-                          <span
-                            className={`inline-flex aspect-square size-[1.125rem] shrink-0 items-center justify-center self-start rounded-full leading-none ${
-                              isLockedSelection
-                                ? 'bg-muted-foreground/60 text-white'
-                                : 'bg-black/90 text-white dark:bg-white/80 dark:text-black'
-                            }`}
-                          >
-                            <Check className='h-2.5 w-2.5' strokeWidth={3} />
-                          </span>
-                        ) : null}
-                      </div>
-                    </button>
-                  );
-
-                  if (isLockedSelection) {
-                    return (
-                      <span
-                        key={serviceId}
-                        className='block h-full'
-                        onMouseEnter={(event) =>
-                          setLockedServiceCursorHint({
-                            visible: true,
-                            x: event.clientX,
-                            y: event.clientY
-                          })
-                        }
-                        onMouseMove={(event) =>
-                          setLockedServiceCursorHint({
-                            visible: true,
-                            x: event.clientX,
-                            y: event.clientY
-                          })
-                        }
-                        onMouseLeave={() =>
-                          setLockedServiceCursorHint((prev) => ({
-                            ...prev,
-                            visible: false
-                          }))
-                        }
-                      >
-                        {cardButton}
-                      </span>
-                    );
-                  }
-
-                  return (
-                    <div key={serviceId} className='h-full'>
-                      {cardButton}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {lockedServiceCursorHint.visible ? (
-            <div
-              className='bg-popover text-popover-foreground pointer-events-none fixed z-[120] rounded-md border px-2 py-1 text-xs shadow-md'
-              style={{
-                left: `${lockedServiceCursorHint.x + -230}px`,
-                top: `${lockedServiceCursorHint.y + 10}px`
-              }}
-            >
-              Servicio ya agregado al combo
-            </div>
-          ) : null}
-
-          <AlertDialogFooter>
-            <div className='text-muted-foreground mr-auto text-xs sm:text-sm'>
-              {filteredAvailableServices.length} resultados
-            </div>
-            <AlertDialogCancel className='cursor-pointer'>
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              className='cursor-pointer bg-black text-white hover:bg-black/90'
-              onClick={handleAddServicesToForm}
-              disabled={
-                isLoadingAvailableServices ||
-                availableServices.length === 0 ||
-                dialogSelectedServiceIds.length === 0
-              }
-            >
-              Agregar seleccionados
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        activeComboMatrix={activeComboMatrix}
+        dialogSelectedServiceIds={dialogSelectedServiceIds}
+        selectedDialogServiceLabels={selectedDialogServiceLabels}
+        dialogComboTitle={dialogComboTitle}
+        isAddFilterDropdownOpen={isAddFilterDropdownOpen}
+        setIsAddFilterDropdownOpen={setIsAddFilterDropdownOpen}
+        dialogFilterOptionsByKey={dialogFilterOptionsByKey}
+        dialogFilters={dialogFilters}
+        handleToggleDialogFilterValue={handleToggleDialogFilterValue}
+        activeDialogFiltersCount={activeDialogFiltersCount}
+        dialogSearchTerm={dialogSearchTerm}
+        setDialogSearchTerm={setDialogSearchTerm}
+        handleClearDialogFilters={handleClearDialogFilters}
+        isAppliedFiltersExpanded={isAppliedFiltersExpanded}
+        setIsAppliedFiltersExpanded={setIsAppliedFiltersExpanded}
+        handleRemoveDialogFilterValue={handleRemoveDialogFilterValue}
+        filteredAvailableServices={filteredAvailableServices}
+        areAllVisibleSelected={areAllVisibleSelected}
+        visibleServiceIds={visibleServiceIds}
+        handleSelectAllVisibleToggle={handleSelectAllVisibleToggle}
+        isLoadingAvailableServices={isLoadingAvailableServices}
+        availableServices={availableServices}
+        getMatEnsayoLabel={getMatEnsayoLabel}
+        dialogLockedServiceIds={dialogLockedServiceIds}
+        handleToggleServiceSelection={handleToggleServiceSelection}
+        lockedServiceCursorHint={lockedServiceCursorHint}
+        setLockedServiceCursorHint={setLockedServiceCursorHint}
+        handleAddServicesToForm={handleAddServicesToForm}
+      />
 
     </Form>
   );

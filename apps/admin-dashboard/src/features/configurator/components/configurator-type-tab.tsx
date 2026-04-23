@@ -1,0 +1,103 @@
+'use client';
+
+import { ReactNode } from 'react';
+import { UseFormReturn } from 'react-hook-form';
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import { TabsContent } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { FormValues } from '@/features/configurator/lib/configurator-form-model';
+
+interface ConfiguratorTypeTabProps {
+  form: UseFormReturn<FormValues>;
+  renderTabActions: () => ReactNode;
+}
+
+export function ConfiguratorTypeTab({
+  form,
+  renderTabActions
+}: ConfiguratorTypeTabProps) {
+  return (
+    <TabsContent value='type' className='mt-4 space-y-4'>
+      <Card className='border-0 shadow-none'>
+        <CardHeader>
+          <CardTitle>Datos de la proforma</CardTitle>
+        </CardHeader>
+        <CardContent className='space-y-4'>
+          <div className='grid grid-cols-2 gap-4'>
+            <FormField
+              control={form.control as any}
+              name='reference'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Referencia</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control as any}
+              name='validDays'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Validez de oferta (días)</FormLabel>
+                  <Select
+                    onValueChange={(val) => field.onChange(parseInt(val))}
+                    defaultValue={field.value?.toString()}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder='Seleccione validez' />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value='15'>15 días</SelectItem>
+                      <SelectItem value='30'>30 días</SelectItem>
+                      <SelectItem value='60'>60 días</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <FormField
+            control={form.control as any}
+            name='notes'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Notas</FormLabel>
+                <FormControl>
+                  <Textarea {...field} className='min-h-[79px]' />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          {renderTabActions()}
+        </CardContent>
+      </Card>
+    </TabsContent>
+  );
+}

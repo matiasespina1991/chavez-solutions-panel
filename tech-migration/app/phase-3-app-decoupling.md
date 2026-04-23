@@ -13,6 +13,8 @@
 - `notes`:
   - Micro-slice 1: contrato del formulario (schema zod, tipos, constantes de tabs/filtros y `createDefaultFormValues`) extraido de `configurator-form.tsx` a `features/configurator/lib/configurator-form-model.ts`.
   - Micro-slice 2: dialogs auxiliares (selector de matriz, eliminar combo/servicio, enviar email, limpiar datos) desacoplados de `configurator-form.tsx` en `features/configurator/components/configurator-common-dialogs.tsx`.
+  - Micro-slice 3: dialogo principal de seleccion de servicios (`Combo de servicios`) desacoplado de `configurator-form.tsx` en `features/configurator/components/configurator-services-dialog.tsx`.
+  - Micro-slice 4: tabs del configurador desacoplados por responsabilidad en `features/configurator/components/configurator-type-tab.tsx`, `configurator-client-tab.tsx`, `configurator-services-tab.tsx` y `configurator-summary-tab.tsx`.
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
   - `cd apps/admin-dashboard && npm run build`
