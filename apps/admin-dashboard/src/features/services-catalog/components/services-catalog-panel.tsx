@@ -1,20 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { collection, getDocs, Timestamp } from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 import {
   ArrowDown,
   ArrowUp,
-  Copy,
-  Loader2,
-  MoreVertical,
-  Pencil,
-  Plus,
-  Save,
-  Search,
-  Trash2,
-  Undo2,
-  X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -24,408 +14,35 @@ import { showCallableErrorToast } from '@/lib/callable-toast';
 
 import { db } from '@/lib/firebase';
 import { FIRESTORE_COLLECTIONS } from '@/constants/firestore';
-import { Button } from '@/components/ui/button';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle
-} from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
 import { useSidebar } from '@/components/ui/sidebar';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table';
 import {
   createTechnicalService,
   CreateTechnicalServicePayload,
   deleteTechnicalService,
   saveServicesTechnicalChanges
 } from '@/features/admin/services/import-services';
+import { ServicesCatalogConfirmDialogs } from '@/features/services-catalog/components/services-catalog-confirm-dialogs';
+import { ServicesCatalogCreateDialog } from '@/features/services-catalog/components/services-catalog-create-dialog';
+import { ServicesCatalogFiltersBar } from '@/features/services-catalog/components/services-catalog-filters-bar';
+import { ServicesCatalogTable } from '@/features/services-catalog/components/services-catalog-table';
+import { ServicesCatalogToolbarActions } from '@/features/services-catalog/components/services-catalog-toolbar-actions';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger
-} from '@/components/ui/tooltip';
-import { Checkbox } from '@/components/ui/checkbox';
-
-type EditableFieldKey =
-  | 'ID_CONDICION_PARAMETRO'
-  | 'ID_PARAMETRO'
-  | 'ID_MAT_ENSAYO'
-  | 'ID_MATRIZ'
-  | 'ID_UBICACION'
-  | 'ID_NORMA'
-  | 'ID_TABLA_NORMA'
-  | 'ID_TECNICA'
-  | 'ID_MET_INTERNO'
-  | 'ID_MET_REFERENCIA'
-  | 'UNIDAD_INTERNO'
-  | 'LIM_INF_INTERNO'
-  | 'LIM_SUP_INTERNO';
-
-type SortableCatalogFieldKey = 'ID_CONFIG_PARAMETRO' | EditableFieldKey;
-type SortDirection = 'asc' | 'desc' | null;
-
-type ServiceCatalogRow = {
-  id: string;
-  updatedAtISO: string | null;
-  ID_CONFIG_PARAMETRO: string;
-  ID_CONDICION_PARAMETRO: string;
-  ID_PARAMETRO: string;
-  ID_MAT_ENSAYO: string;
-  ID_MATRIZ: string;
-  ID_UBICACION: string;
-  ID_NORMA: string;
-  ID_TABLA_NORMA: string;
-  ID_TECNICA: string;
-  ID_MET_INTERNO: string;
-  ID_MET_REFERENCIA: string;
-  UNIDAD_INTERNO: string;
-  UNIDAD_NORMA: string;
-  LIM_INF_INTERNO: string;
-  LIM_SUP_INTERNO: string;
-  LIM_INF_NORMA: string;
-  LIM_SUP_NORMA: string;
-};
-
-type CreateServiceDraft = {
-  ID_CONFIG_PARAMETRO: string;
-  ID_PARAMETRO: string;
-  ID_CONDICION_PARAMETRO: string;
-  ID_UBICACION: string;
-  ID_MATRIZ: string;
-  ID_MAT_ENSAYO: string;
-  ID_NORMA: string;
-  ID_TABLA_NORMA: string;
-  ID_TECNICA: string;
-  ID_MET_INTERNO: string;
-  ID_MET_REFERENCIA: string;
-  UNIDAD_INTERNO: string;
-  UNIDAD_NORMA: string;
-  LIM_INF_INTERNO: string;
-  LIM_SUP_INTERNO: string;
-  LIM_INF_NORMA: string;
-  LIM_SUP_NORMA: string;
-};
-
-const INITIAL_CREATE_SERVICE_DRAFT: CreateServiceDraft = {
-  ID_CONFIG_PARAMETRO: '',
-  ID_PARAMETRO: '',
-  ID_CONDICION_PARAMETRO: 'ACREDITADO',
-  ID_UBICACION: '',
-  ID_MATRIZ: '',
-  ID_MAT_ENSAYO: '',
-  ID_NORMA: '',
-  ID_TABLA_NORMA: '',
-  ID_TECNICA: '',
-  ID_MET_INTERNO: '',
-  ID_MET_REFERENCIA: '',
-  UNIDAD_INTERNO: '',
-  UNIDAD_NORMA: '',
-  LIM_INF_INTERNO: '',
-  LIM_SUP_INTERNO: '',
-  LIM_INF_NORMA: '',
-  LIM_SUP_NORMA: ''
-};
-
-const CREATE_SERVICE_SECTIONS: Array<{
-  title: string;
-  description: string;
-  fieldsGridClass?: string;
-  fields: Array<{
-    key: keyof CreateServiceDraft;
-    label: string;
-    className?: string;
-    placeholder?: string;
-  }>;
-}> = [
-  {
-    title: 'Identificación técnica',
-    description:
-      'Define el identificador del servicio y sus metadatos base para trazabilidad.',
-    fields: [
-      {
-        key: 'ID_CONFIG_PARAMETRO',
-        label: 'ID config parámetro',
-        placeholder: '9bb504ee'
-      },
-      { key: 'ID_PARAMETRO', label: 'Parámetro', placeholder: 'Manganeso' },
-      {
-        key: 'ID_CONDICION_PARAMETRO',
-        label: 'Condición del parámetro'
-      },
-      {
-        key: 'ID_UBICACION',
-        label: 'Ubicación',
-        placeholder: 'MATRIZ QUITO'
-      }
-    ]
-  },
-  {
-    title: 'Clasificación comercial',
-    description:
-      'Especifica la matriz, el material de ensayo y la normativa asociada al servicio.',
-    fields: [
-      {
-        key: 'ID_MATRIZ',
-        label: 'Matriz',
-        placeholder: 'Análisis Físicos – Químicos en Aguas'
-      },
-      {
-        key: 'ID_MAT_ENSAYO',
-        label: 'Material de ensayo',
-        placeholder: 'AGUAS RESIDUALES'
-      },
-      {
-        key: 'ID_NORMA',
-        label: 'Norma',
-        placeholder: 'OM138-QUITO-NT002'
-      },
-      {
-        key: 'ID_TABLA_NORMA',
-        label: 'Tabla normativa',
-        className: 'md:col-span-2 xl:col-span-3',
-        placeholder: 'TABLA No. A3. CRITERIOS DE CALIDAD...'
-      }
-    ]
-  },
-  {
-    title: 'Método y técnica',
-    description:
-      'Completa el método interno/de referencia y la técnica de laboratorio aplicable.',
-    fieldsGridClass: 'grid grid-cols-1 gap-3 md:grid-cols-2',
-    fields: [
-      {
-        key: 'ID_TECNICA',
-        label: 'Técnica',
-        className: 'md:col-span-2',
-        placeholder:
-          'Espectrofotometría de Absorción Atómica, Llama Aire - Acetileno'
-      },
-      {
-        key: 'ID_MET_INTERNO',
-        label: 'Método interno',
-        className: 'md:col-span-1 md:col-start-1',
-        placeholder: 'PEE 48'
-      },
-      {
-        key: 'ID_MET_REFERENCIA',
-        label: 'Método de referencia',
-        className: 'md:col-span-1 md:col-start-1',
-        placeholder: 'EPA ...'
-      }
-    ]
-  },
-  {
-    title: 'Rangos y unidades',
-    description: 'Define rangos internos/de norma y unidades de referencia.',
-    fieldsGridClass: 'grid grid-cols-1 gap-3 md:grid-cols-2',
-    fields: [
-      {
-        key: 'UNIDAD_INTERNO',
-        label: 'Unidad interna',
-        placeholder: 'mg/L'
-      },
-      { key: 'UNIDAD_NORMA', label: 'Unidad norma', placeholder: 'mg/L' },
-      {
-        key: 'LIM_INF_INTERNO',
-        label: 'Límite inferior interno',
-        placeholder: '0.10'
-      },
-      {
-        key: 'LIM_SUP_INTERNO',
-        label: 'Límite superior interno',
-        placeholder: '1.00'
-      },
-      {
-        key: 'LIM_INF_NORMA',
-        label: 'Límite inferior norma',
-        placeholder: '0.10'
-      },
-      {
-        key: 'LIM_SUP_NORMA',
-        label: 'Límite superior norma',
-        placeholder: '1.00'
-      }
-    ]
-  }
-];
-
-const PAGE_SIZE = 20;
-
-const EDITABLE_COLUMNS: Array<{
-  key: EditableFieldKey;
-  label: string;
-  minWidth: string;
-}> = [
-  { key: 'ID_PARAMETRO', label: 'Parámetro', minWidth: 'min-w-[14rem]' },
-  { key: 'ID_MAT_ENSAYO', label: 'Material', minWidth: 'min-w-[12rem]' },
-  { key: 'ID_MATRIZ', label: 'Matriz', minWidth: 'min-w-[26rem]' },
-  { key: 'ID_UBICACION', label: 'Ubicación', minWidth: 'min-w-[11rem]' },
-  { key: 'ID_NORMA', label: 'Norma', minWidth: 'min-w-[15rem]' },
-  { key: 'ID_TABLA_NORMA', label: 'Tabla', minWidth: 'min-w-[32rem]' },
-  { key: 'ID_TECNICA', label: 'Técnica', minWidth: 'min-w-[17rem]' },
-  { key: 'ID_MET_INTERNO', label: 'Método interno', minWidth: 'min-w-[6rem]' },
-  {
-    key: 'ID_MET_REFERENCIA',
-    label: 'Método referencia',
-    minWidth: 'min-w-[6rem]'
-  },
-  {
-    key: 'ID_CONDICION_PARAMETRO',
-    label: 'Acreditado',
-    minWidth: 'min-w-[6rem]'
-  },
-  { key: 'UNIDAD_INTERNO', label: 'Unidad', minWidth: 'min-w-[10rem]' },
-  { key: 'LIM_INF_INTERNO', label: 'Límite inf.', minWidth: 'min-w-[6.5rem]' },
-  { key: 'LIM_SUP_INTERNO', label: 'Límite sup.', minWidth: 'min-w-[6.5rem]' }
-];
-
-const toStringValue = (value: unknown): string => {
-  if (value === null || value === undefined) return '';
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number' && Number.isFinite(value)) return `${value}`;
-  return '';
-};
-
-const toTimestampIso = (value: unknown): string | null => {
-  if (value instanceof Timestamp) return value.toDate().toISOString();
-
-  if (
-    typeof value === 'object' &&
-    value !== null &&
-    'toDate' in value &&
-    typeof (value as { toDate?: unknown }).toDate === 'function'
-  ) {
-    const date = (value as { toDate: () => Date }).toDate();
-    return date.toISOString();
-  }
-
-  if (typeof value === 'string') {
-    const parsed = Date.parse(value);
-    return Number.isNaN(parsed) ? null : new Date(parsed).toISOString();
-  }
-
-  return null;
-};
-
-const buildRowFromDoc = (
-  id: string,
-  data: Record<string, unknown>
-): ServiceCatalogRow => ({
-  id,
-  updatedAtISO: toTimestampIso(data.updatedAt),
-  ID_CONFIG_PARAMETRO: toStringValue(data.ID_CONFIG_PARAMETRO) || id,
-  ID_CONDICION_PARAMETRO:
-    toStringValue(data.ID_CONDICION_PARAMETRO) || 'ACREDITADO',
-  ID_PARAMETRO: toStringValue(data.ID_PARAMETRO),
-  ID_MAT_ENSAYO: toStringValue(data.ID_MAT_ENSAYO),
-  ID_MATRIZ: toStringValue(data.ID_MATRIZ),
-  ID_UBICACION: toStringValue(data.ID_UBICACION),
-  ID_NORMA: toStringValue(data.ID_NORMA),
-  ID_TABLA_NORMA: toStringValue(data.ID_TABLA_NORMA),
-  ID_TECNICA: toStringValue(data.ID_TECNICA),
-  ID_MET_INTERNO: toStringValue(data.ID_MET_INTERNO),
-  ID_MET_REFERENCIA: toStringValue(data.ID_MET_REFERENCIA),
-  UNIDAD_INTERNO: toStringValue(data.UNIDAD_INTERNO),
-  UNIDAD_NORMA: toStringValue(data.UNIDAD_NORMA),
-  LIM_INF_INTERNO: toStringValue(data.LIM_INF_INTERNO),
-  LIM_SUP_INTERNO: toStringValue(data.LIM_SUP_INTERNO),
-  LIM_INF_NORMA: toStringValue(data.LIM_INF_NORMA),
-  LIM_SUP_NORMA: toStringValue(data.LIM_SUP_NORMA)
-});
-
-const AUTOCOMPLETE_FIELD_KEYS: Array<keyof CreateServiceDraft> = [
-  'ID_PARAMETRO',
-  'ID_TABLA_NORMA',
-  'ID_NORMA',
-  'ID_MAT_ENSAYO',
-  'ID_MET_INTERNO',
-  'UNIDAD_INTERNO',
-  'UNIDAD_NORMA',
-  'ID_MATRIZ',
-  'ID_TECNICA',
-  'ID_UBICACION'
-];
-
-const CREATE_SERVICE_REQUIRED_FIELDS: Array<keyof CreateServiceDraft> = [
-  'ID_CONFIG_PARAMETRO',
-  'ID_PARAMETRO',
-  'ID_MATRIZ',
-  'ID_MAT_ENSAYO',
-  'ID_NORMA',
-  'ID_TABLA_NORMA',
-  'ID_TECNICA',
-  'UNIDAD_INTERNO',
-  'UNIDAD_NORMA',
-  'LIM_INF_INTERNO',
-  'LIM_SUP_INTERNO',
-  'LIM_INF_NORMA',
-  'LIM_SUP_NORMA'
-];
-
-const normalizeForCompare = (value: string): string => value.trim();
-const normalizeForAutocomplete = (value: string): string =>
-  value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
-
-const getChangedPatch = (
-  current: ServiceCatalogRow,
-  original: ServiceCatalogRow | undefined
-): Record<string, string | number | null> => {
-  if (!original) return {};
-
-  const patch: Record<string, string | number | null> = {};
-
-  EDITABLE_COLUMNS.forEach(({ key }) => {
-    const nextRaw = current[key];
-    const prevRaw = original[key];
-
-    const next = normalizeForCompare(nextRaw);
-    const prev = normalizeForCompare(prevRaw);
-
-    if (next !== prev) {
-      patch[key] = next;
-    }
-  });
-
-  return patch;
-};
+  AUTOCOMPLETE_FIELD_KEYS,
+  buildRowFromDoc,
+  CREATE_SERVICE_REQUIRED_FIELDS,
+  EDITABLE_COLUMNS,
+  getChangedPatch,
+  INITIAL_CREATE_SERVICE_DRAFT,
+  normalizeForAutocomplete,
+  normalizeForCompare,
+  PAGE_SIZE,
+  type CreateServiceDraft,
+  type EditableFieldKey,
+  type ServiceCatalogRow,
+  type SortableCatalogFieldKey,
+  type SortDirection
+} from '@/features/services-catalog/lib/services-catalog-panel-model';
 
 export function ServicesCatalogPanel() {
   const { state, isMobile } = useSidebar();
@@ -942,6 +559,34 @@ export function ServicesCatalogPanel() {
     key: keyof CreateServiceDraft
   ): string[] => getAutocompleteMatches(key, createServiceDraft[key]);
 
+  const handleTableCellFocus = (
+    rowId: string,
+    field: keyof CreateServiceDraft
+  ) => {
+    if (tableAutocompleteBlurTimeoutRef.current !== null) {
+      window.clearTimeout(tableAutocompleteBlurTimeoutRef.current);
+      tableAutocompleteBlurTimeoutRef.current = null;
+    }
+    setActiveTableAutocomplete({
+      rowId,
+      field
+    });
+  };
+
+  const handleTableCellBlur = (_field: keyof CreateServiceDraft) => {
+    if (tableAutocompleteBlurTimeoutRef.current !== null) {
+      window.clearTimeout(tableAutocompleteBlurTimeoutRef.current);
+    }
+    tableAutocompleteBlurTimeoutRef.current = window.setTimeout(() => {
+      setActiveTableAutocomplete(null);
+      tableAutocompleteBlurTimeoutRef.current = null;
+    }, 120);
+  };
+
+  const handleCloseTableAutocomplete = () => {
+    setActiveTableAutocomplete(null);
+  };
+
   const handleOpenCreateServiceDialog = () => {
     const nextDraft = { ...INITIAL_CREATE_SERVICE_DRAFT };
     setEditingRowId(null);
@@ -1011,6 +656,39 @@ export function ServicesCatalogPanel() {
     if (!CREATE_SERVICE_REQUIRED_FIELDS.includes(key)) return false;
     if (!createServiceSubmitAttempted) return false;
     return !createServiceDraft[key].trim();
+  };
+
+  const handleCreateFieldFocus = (key: keyof CreateServiceDraft) => {
+    if (!AUTOCOMPLETE_FIELD_KEYS.includes(key)) return;
+    if (autocompleteBlurTimeoutRef.current !== null) {
+      window.clearTimeout(autocompleteBlurTimeoutRef.current);
+      autocompleteBlurTimeoutRef.current = null;
+    }
+    setActiveAutocompleteField(key);
+  };
+
+  const handleCreateFieldBlur = (key: keyof CreateServiceDraft) => {
+    setCreateServiceTouchedFields((prev) => ({
+      ...prev,
+      [key]: true
+    }));
+
+    if (!AUTOCOMPLETE_FIELD_KEYS.includes(key)) return;
+    if (autocompleteBlurTimeoutRef.current !== null) {
+      window.clearTimeout(autocompleteBlurTimeoutRef.current);
+    }
+    autocompleteBlurTimeoutRef.current = window.setTimeout(() => {
+      setActiveAutocompleteField(null);
+      autocompleteBlurTimeoutRef.current = null;
+    }, 120);
+  };
+
+  const handleSelectCreateAutocomplete = (
+    key: keyof CreateServiceDraft,
+    value: string
+  ) => {
+    handleCreateServiceFieldChange(key, value);
+    setActiveAutocompleteField(null);
   };
   const handleDuplicateRow = (row: ServiceCatalogRow) => {
     const nextDraft: CreateServiceDraft = {
@@ -1189,759 +867,111 @@ export function ServicesCatalogPanel() {
               </p>
             </div>
 
-            <div className='flex items-center gap-2'>
-              <Button
-                type='button'
-                variant='outline'
-                size='sm'
-                className='cursor-pointer'
-                onClick={() => {
-                  if (selectedRowIds.length > 1) {
-                    setSelectedRowIds([]);
-                    return;
-                  }
-                  if (selectedRowIds.length === 0 && dirtyIds.length > 0) {
-                    handleResetAllChanges();
-                    return;
-                  }
-                  if (selectedRowIds.length === 1 && selectedRows[0]) {
-                    handleEditRow(selectedRows[0]);
-                    return;
-                  }
-                  handleOpenCreateServiceDialog();
-                }}
-                disabled={isSaving || isCreatingService || isDeletingService}
-              >
-                {selectedRowIds.length === 1 ? (
-                  <Pencil className='h-4 w-4' />
-                ) : selectedRowIds.length === 0 && dirtyIds.length === 0 ? (
-                  <Plus className='h-4 w-4' />
-                ) : null}
-                {selectedRowIds.length > 1
-                  ? 'Deseleccionar todos'
-                  : selectedRowIds.length === 1
-                    ? 'Editar servicio'
-                    : dirtyIds.length > 0
-                      ? 'Deshacer cambios'
-                      : 'Agregar servicio'}
-              </Button>
-              {selectedRowIds.length > 0 ? (
-                <Button
-                  type='button'
-                  size='sm'
-                  className='cursor-pointer bg-black text-white hover:bg-black/90 dark:bg-black dark:text-white dark:hover:bg-black/90'
-                  onClick={() => setIsBulkDeleteDialogOpen(true)}
-                  disabled={isSaving || isCreatingService || isDeletingService}
-                >
-                  <Trash2 className='h-4 w-4' />
-                  Eliminar servicio(s)
-                </Button>
-              ) : (
-                <Button
-                  type='button'
-                  size='sm'
-                  onClick={handleSaveChanges}
-                  disabled={
-                    isSaving || isCreatingService || dirtyIds.length === 0
-                  }
-                >
-                  {isSaving ? (
-                    <Loader2 className='h-4 w-4 animate-spin' />
-                  ) : (
-                    <Save className='h-4 w-4' />
-                  )}
-                  Guardar cambios ({dirtyIds.length})
-                </Button>
-              )}
-            </div>
+            <ServicesCatalogToolbarActions
+              selectedRowsCount={selectedRowIds.length}
+              dirtyRowsCount={dirtyIds.length}
+              hasSingleSelectedRow={selectedRowIds.length === 1}
+              isSaving={isSaving}
+              isCreatingService={isCreatingService}
+              isDeletingService={isDeletingService}
+              onPrimaryAction={() => {
+                if (selectedRowIds.length > 1) {
+                  setSelectedRowIds([]);
+                  return;
+                }
+                if (selectedRowIds.length === 0 && dirtyIds.length > 0) {
+                  handleResetAllChanges();
+                  return;
+                }
+                if (selectedRowIds.length === 1 && selectedRows[0]) {
+                  handleEditRow(selectedRows[0]);
+                  return;
+                }
+                handleOpenCreateServiceDialog();
+              }}
+              onRequestBulkDelete={() => setIsBulkDeleteDialogOpen(true)}
+              onSaveChanges={handleSaveChanges}
+            />
           </div>
 
-          <div className='mt-2 flex flex-col gap-2 md:flex-row md:items-center md:justify-between'>
-            <div className='flex w-full flex-col gap-2 md:flex-row md:items-center md:gap-3'>
-              <div className='relative w-full max-w-xl'>
-                <Search className='text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2' />
-                <Input
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder='Buscar por parámetro, norma, técnica, tabla o matriz...'
-                  className='pr-9 pl-9'
-                />
-                {query.trim().length > 0 ? (
-                  <button
-                    type='button'
-                    aria-label='Limpiar búsqueda'
-                    className='text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer transition-colors'
-                    onClick={() => setQuery('')}
-                  >
-                    <X className='h-4 w-4' />
-                  </button>
-                ) : null}
-              </div>
-
-              <label className='text-muted-foreground inline-flex shrink-0 cursor-pointer items-center gap-2 text-sm'>
-                <Checkbox
-                  checked={hideColumnsFromTechnique}
-                  onCheckedChange={(checked) =>
-                    setHideColumnsFromTechnique(checked === true)
-                  }
-                  aria-label='Alternar vista compacta'
-                  className='bg-background cursor-pointer !border-[#9a9a9a] shadow-none dark:!border-[#5f5f5f]'
-                />
-                <span>Vista resumida</span>
-              </label>
-            </div>
-
-            <p className='text-muted-foreground text-sm md:shrink-0'>
-              {filteredRows.length} resultados · {dirtyIds.length} con cambios
-            </p>
-          </div>
+          <ServicesCatalogFiltersBar
+            query={query}
+            onQueryChange={setQuery}
+            hideColumnsFromTechnique={hideColumnsFromTechnique}
+            onHideColumnsFromTechniqueChange={setHideColumnsFromTechnique}
+            filteredRowsCount={filteredRows.length}
+            dirtyRowsCount={dirtyIds.length}
+          />
         </CardHeader>
 
         <CardContent className='min-w-0 space-y-3 overflow-x-hidden'>
-          <div className='w-full max-w-full min-w-0 overflow-visible rounded-md border'>
-            <Table
-              className={
-                hideColumnsFromTechnique ? 'min-w-[128rem]' : 'min-w-[170rem]'
-              }
-            >
-              <TableHeader>
-                <TableRow>
-                  <TableHead className='min-w-[2.75rem]'>
-                    <div className='flex items-center justify-center'>
-                      <Checkbox
-                        className='bg-background cursor-pointer !border-[#9a9a9a] shadow-none dark:!border-[#5f5f5f]'
-                        checked={
-                          allPageSelected
-                            ? true
-                            : hasSomePageSelected
-                              ? 'indeterminate'
-                              : false
-                        }
-                        onCheckedChange={(checked) =>
-                          togglePageSelection(checked === true)
-                        }
-                        aria-label='Seleccionar filas visibles'
-                      />
-                    </div>
-                  </TableHead>
-                  <TableHead className='min-w-[6rem]'>
-                    <button
-                      type='button'
-                      className='inline-flex cursor-pointer items-center gap-1.5'
-                      onClick={() => handleSortBy('ID_CONFIG_PARAMETRO')}
-                    >
-                      ID Config
-                      {renderSortIcon('ID_CONFIG_PARAMETRO')}
-                    </button>
-                  </TableHead>
-                  {visibleEditableColumns.map((column) => (
-                    <TableHead key={column.key} className={column.minWidth}>
-                      <button
-                        type='button'
-                        className='inline-flex cursor-pointer items-center gap-1.5'
-                        onClick={() => handleSortBy(column.key)}
-                      >
-                        {column.label}
-                        {renderSortIcon(column.key)}
-                      </button>
-                    </TableHead>
-                  ))}
-                  <TableHead className='min-w-[5rem] text-right font-bold'>
-                    Deshacer
-                  </TableHead>
-                  <TableHead className='w-[3.5rem] min-w-[3.5rem] text-right'>
-                    <span className='sr-only'>Acciones</span>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  Array.from({ length: PAGE_SIZE }).map((_, index) => (
-                    <TableRow key={`skeleton-row-${index}`}>
-                      <TableCell>
-                        <Skeleton className='mx-auto h-4 w-4 rounded-sm' />
-                      </TableCell>
-                      <TableCell>
-                        <Skeleton className='h-6 w-20' />
-                      </TableCell>
-                      {visibleEditableColumns.map((column) => (
-                        <TableCell key={`skeleton-${index}-${column.key}`}>
-                          <Skeleton className='h-8 w-full' />
-                        </TableCell>
-                      ))}
-                      <TableCell className='w-[3.5rem] min-w-[3.5rem] pl-0 text-right'>
-                        <Skeleton className='ml-auto h-8 w-8 rounded-md' />
-                      </TableCell>
-                      <TableCell className='text-right'>
-                        <Skeleton className='ml-auto h-8 w-8 rounded-md' />
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : pageRows.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={visibleEditableColumns.length + 4}
-                      className='text-muted-foreground py-6 pl-7 text-left text-sm'
-                    >
-                      No se encontraron servicios con ese criterio.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  pageRows.map((row) => {
-                    const isDirty = dirtySet.has(row.id);
-
-                    return (
-                      <TableRow
-                        key={row.id}
-                        className={
-                          isDirty ? 'bg-amber-50/50 dark:bg-amber-900/10' : ''
-                        }
-                      >
-                        <TableCell>
-                          <div className='flex items-center justify-center'>
-                            <Checkbox
-                              className='bg-background cursor-pointer !border-[#9a9a9a] shadow-none dark:!border-[#5f5f5f]'
-                              checked={selectedRowIdsSet.has(row.id)}
-                              onCheckedChange={(checked) =>
-                                toggleRowSelection(row.id, checked === true)
-                              }
-                              aria-label={`Seleccionar servicio ${row.ID_CONFIG_PARAMETRO || row.id}`}
-                            />
-                          </div>
-                        </TableCell>
-                        <TableCell
-                          className='max-w-[6rem] truncate font-mono text-xs'
-                          title={row.ID_CONFIG_PARAMETRO || row.id}
-                        >
-                          {row.ID_CONFIG_PARAMETRO || row.id}
-                        </TableCell>
-
-                        {visibleEditableColumns.map((column) => (
-                          <TableCell key={`${row.id}-${column.key}`}>
-                            {column.key === 'ID_CONDICION_PARAMETRO' ? (
-                              <Select
-                                value={
-                                  row.ID_CONDICION_PARAMETRO || 'ACREDITADO'
-                                }
-                                onValueChange={(value) =>
-                                  handleCellChange(
-                                    row.id,
-                                    'ID_CONDICION_PARAMETRO',
-                                    value
-                                  )
-                                }
-                              >
-                                <SelectTrigger className='h-8 w-[5.25rem] min-w-[5.25rem]'>
-                                  <SelectValue placeholder='Sí' />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value='ACREDITADO'>Sí</SelectItem>
-                                  <SelectItem value='NO ACREDITADO'>
-                                    No
-                                  </SelectItem>
-                                </SelectContent>
-                              </Select>
-                            ) : (
-                              <div className='relative'>
-                                <Input
-                                  value={row[column.key]}
-                                  onChange={(event) =>
-                                    handleCellChange(
-                                      row.id,
-                                      column.key,
-                                      event.target.value
-                                    )
-                                  }
-                                  onFocus={() => {
-                                    const fieldKey =
-                                      column.key as keyof CreateServiceDraft;
-                                    if (
-                                      !AUTOCOMPLETE_FIELD_KEYS.includes(
-                                        fieldKey
-                                      )
-                                    ) {
-                                      return;
-                                    }
-                                    if (
-                                      tableAutocompleteBlurTimeoutRef.current !==
-                                      null
-                                    ) {
-                                      window.clearTimeout(
-                                        tableAutocompleteBlurTimeoutRef.current
-                                      );
-                                      tableAutocompleteBlurTimeoutRef.current =
-                                        null;
-                                    }
-                                    setActiveTableAutocomplete({
-                                      rowId: row.id,
-                                      field: fieldKey
-                                    });
-                                  }}
-                                  onBlur={() => {
-                                    const fieldKey =
-                                      column.key as keyof CreateServiceDraft;
-                                    if (
-                                      !AUTOCOMPLETE_FIELD_KEYS.includes(
-                                        fieldKey
-                                      )
-                                    ) {
-                                      return;
-                                    }
-                                    if (
-                                      tableAutocompleteBlurTimeoutRef.current !==
-                                      null
-                                    ) {
-                                      window.clearTimeout(
-                                        tableAutocompleteBlurTimeoutRef.current
-                                      );
-                                    }
-                                    tableAutocompleteBlurTimeoutRef.current =
-                                      window.setTimeout(() => {
-                                        setActiveTableAutocomplete(null);
-                                        tableAutocompleteBlurTimeoutRef.current =
-                                          null;
-                                      }, 120);
-                                  }}
-                                  className='h-8'
-                                />
-                                {AUTOCOMPLETE_FIELD_KEYS.includes(
-                                  column.key as keyof CreateServiceDraft
-                                ) &&
-                                  activeTableAutocomplete?.rowId === row.id &&
-                                  activeTableAutocomplete.field ===
-                                    (column.key as keyof CreateServiceDraft) &&
-                                  getAutocompleteMatches(
-                                    column.key as keyof CreateServiceDraft,
-                                    row[column.key]
-                                  ).length > 0 && (
-                                    <div className='bg-popover text-popover-foreground absolute z-50 mt-1 flex max-h-64 w-full flex-col overflow-x-hidden overflow-y-auto rounded-md border shadow-lg'>
-                                      {getAutocompleteMatches(
-                                        column.key as keyof CreateServiceDraft,
-                                        row[column.key]
-                                      ).map((option) => (
-                                        <button
-                                          key={option}
-                                          type='button'
-                                          className='hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground block w-full cursor-pointer px-3 py-2 text-left text-sm break-words whitespace-normal'
-                                          onMouseDown={(event) => {
-                                            event.preventDefault();
-                                            handleCellChange(
-                                              row.id,
-                                              column.key,
-                                              option
-                                            );
-                                            setActiveTableAutocomplete(null);
-                                          }}
-                                        >
-                                          {option}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  )}
-                              </div>
-                            )}
-                          </TableCell>
-                        ))}
-
-                        <TableCell className='text-right'>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                type='button'
-                                variant='ghost'
-                                size='sm'
-                                className='h-8 px-2'
-                                onClick={() => handleResetRow(row.id)}
-                                disabled={!isDirty}
-                              >
-                                <Undo2 className='h-4 w-4' />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Deshacer cambios</TooltipContent>
-                          </Tooltip>
-                        </TableCell>
-                        <TableCell className='w-[3.5rem] min-w-[3.5rem] pl-0 text-right'>
-                          <DropdownMenu modal={false}>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                type='button'
-                                variant='ghost'
-                                size='sm'
-                                className='h-8 w-8 cursor-pointer p-0'
-                                disabled={isSaving || isCreatingService}
-                              >
-                                <span className='sr-only'>Abrir acciones</span>
-                                <MoreVertical className='h-4 w-4' />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align='end' side='bottom'>
-                              <DropdownMenuItem
-                                className='cursor-pointer'
-                                onClick={() => handleEditRow(row)}
-                              >
-                                <Pencil className='h-4 w-4' />
-                                Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className='cursor-pointer'
-                                onClick={() => handleDuplicateRow(row)}
-                              >
-                                <Copy className='h-4 w-4' />
-                                Duplicar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className='text-destructive focus:text-destructive cursor-pointer'
-                                onClick={() => setRowToDelete(row)}
-                              >
-                                <Trash2 className='text-destructive h-4 w-4' />
-                                Eliminar
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          <div className='flex items-center justify-between'>
-            <p className='text-muted-foreground text-xs'>
-              Página {currentPage} de {totalPages}
-            </p>
-            <div className='flex items-center gap-2'>
-              <Button
-                type='button'
-                variant='outline'
-                size='sm'
-                disabled={currentPage <= 1}
-                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-              >
-                Anterior
-              </Button>
-              <Button
-                type='button'
-                variant='outline'
-                size='sm'
-                disabled={currentPage >= totalPages}
-                onClick={() =>
-                  setPage((prev) => Math.min(totalPages, prev + 1))
-                }
-              >
-                Siguiente
-              </Button>
-            </div>
-          </div>
+          <ServicesCatalogTable
+            hideColumnsFromTechnique={hideColumnsFromTechnique}
+            visibleEditableColumns={visibleEditableColumns}
+            allPageSelected={allPageSelected}
+            hasSomePageSelected={hasSomePageSelected}
+            onTogglePageSelection={togglePageSelection}
+            onSortBy={handleSortBy}
+            renderSortIcon={renderSortIcon}
+            isLoading={isLoading}
+            pageRows={pageRows}
+            dirtySet={dirtySet}
+            selectedRowIdsSet={selectedRowIdsSet}
+            onToggleRowSelection={toggleRowSelection}
+            onCellChange={handleCellChange}
+            activeTableAutocomplete={activeTableAutocomplete}
+            onCellFocus={handleTableCellFocus}
+            onCellBlur={handleTableCellBlur}
+            onCloseAutocomplete={handleCloseTableAutocomplete}
+            getAutocompleteMatches={getAutocompleteMatches}
+            onResetRow={handleResetRow}
+            isSaving={isSaving}
+            isCreatingService={isCreatingService}
+            onEditRow={handleEditRow}
+            onDuplicateRow={handleDuplicateRow}
+            onRequestDeleteRow={setRowToDelete}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPrevPage={() => setPage((prev) => Math.max(1, prev - 1))}
+            onNextPage={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+          />
         </CardContent>
       </Card>
 
-      <Dialog
+      <ServicesCatalogCreateDialog
         open={isCreateServiceDialogOpen}
-        onOpenChange={(open) => {
-          if (open) {
-            setIsCreateServiceDialogOpen(true);
-            return;
-          }
+        onOpenChange={setIsCreateServiceDialogOpen}
+        editingRowId={editingRowId}
+        isCreatingService={isCreatingService}
+        createServiceDraft={createServiceDraft}
+        activeAutocompleteField={activeAutocompleteField}
+        onFieldChange={handleCreateServiceFieldChange}
+        onFieldFocus={handleCreateFieldFocus}
+        onFieldBlur={handleCreateFieldBlur}
+        onSelectAutocomplete={handleSelectCreateAutocomplete}
+        getAutocompleteMatches={getCreateServiceAutocompleteMatches}
+        isFieldInvalid={isCreateServiceFieldInvalid}
+        onRequestClose={handleRequestCloseCreateServiceDialog}
+        onSave={handleSaveServiceDialog}
+      />
 
-          handleRequestCloseCreateServiceDialog();
-        }}
-      >
-        <DialogContent
-          className='w-[min(96vw,1280px)] !max-w-[1280px] overflow-hidden p-0 sm:!max-w-[1280px]'
-          onInteractOutside={(event) => event.preventDefault()}
-          onEscapeKeyDown={(event) => event.preventDefault()}
-        >
-          <div className='flex max-h-[90vh] flex-col'>
-            <DialogHeader className='border-b px-6 py-5'>
-              <DialogTitle className='flex items-center gap-2'>
-                {editingRowId ? (
-                  <Pencil className='text-muted-foreground h-4 w-4' />
-                ) : (
-                  <Plus className='h-4 w-4' />
-                )}
-
-                <span>
-                  {editingRowId ? 'Editar servicio' : 'Agregar servicio'}
-                </span>
-              </DialogTitle>
-            </DialogHeader>
-
-            <div className='flex-1 overflow-y-auto px-6 py-5'>
-              <div className='grid grid-cols-1 gap-4 xl:grid-cols-2'>
-                {CREATE_SERVICE_SECTIONS.map((section) => (
-                  <section
-                    key={section.title}
-                    className='bg-muted/15 rounded-lg border px-4 py-3'
-                  >
-                    <div className='mb-3'>
-                      <h3 className='text-sm font-semibold'>{section.title}</h3>
-                      <p className='text-muted-foreground text-xs'>
-                        {section.description}
-                      </p>
-                    </div>
-
-                    <div
-                      className={
-                        section.fieldsGridClass ??
-                        'grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3'
-                      }
-                    >
-                      {section.fields.map((field) => (
-                        <div
-                          key={field.key}
-                          className={`space-y-1.5 ${(field.className ?? '').replace('md:col-span-2', 'md:col-span-2 xl:col-span-2')}`}
-                        >
-                          <label
-                            htmlFor={`new-service-${field.key}`}
-                            className='text-foreground/90 text-[11px] font-semibold tracking-[0.02em] uppercase'
-                          >
-                            {field.label}
-                          </label>
-                          {field.key === 'ID_CONDICION_PARAMETRO' ? (
-                            <Select
-                              value={createServiceDraft.ID_CONDICION_PARAMETRO}
-                              onValueChange={(value) =>
-                                handleCreateServiceFieldChange(
-                                  'ID_CONDICION_PARAMETRO',
-                                  value
-                                )
-                              }
-                            >
-                              <SelectTrigger
-                                id={`new-service-${field.key}`}
-                                className='bg-background/90 h-9 w-full'
-                              >
-                                <SelectValue placeholder='ACREDITADO' />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value='ACREDITADO'>
-                                  ACREDITADO
-                                </SelectItem>
-                                <SelectItem value='NO ACREDITADO'>
-                                  NO ACREDITADO
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                          ) : (
-                            <div className='relative'>
-                              <Input
-                                id={`new-service-${field.key}`}
-                                value={createServiceDraft[field.key]}
-                                disabled={
-                                  editingRowId !== null &&
-                                  field.key === 'ID_CONFIG_PARAMETRO'
-                                }
-                                onChange={(event) =>
-                                  handleCreateServiceFieldChange(
-                                    field.key,
-                                    event.target.value
-                                  )
-                                }
-                                onFocus={() => {
-                                  if (
-                                    AUTOCOMPLETE_FIELD_KEYS.includes(field.key)
-                                  ) {
-                                    if (
-                                      autocompleteBlurTimeoutRef.current !==
-                                      null
-                                    ) {
-                                      window.clearTimeout(
-                                        autocompleteBlurTimeoutRef.current
-                                      );
-                                      autocompleteBlurTimeoutRef.current = null;
-                                    }
-                                    setActiveAutocompleteField(field.key);
-                                  }
-                                }}
-                                onBlur={() => {
-                                  if (
-                                    AUTOCOMPLETE_FIELD_KEYS.includes(field.key)
-                                  ) {
-                                    if (
-                                      autocompleteBlurTimeoutRef.current !==
-                                      null
-                                    ) {
-                                      window.clearTimeout(
-                                        autocompleteBlurTimeoutRef.current
-                                      );
-                                    }
-                                    autocompleteBlurTimeoutRef.current =
-                                      window.setTimeout(() => {
-                                        setActiveAutocompleteField(null);
-                                        autocompleteBlurTimeoutRef.current =
-                                          null;
-                                      }, 120);
-                                  }
-                                }}
-                                placeholder={field.placeholder}
-                                className={`bg-background/90 h-9 ${
-                                  isCreateServiceFieldInvalid(field.key)
-                                    ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20'
-                                    : ''
-                                }`}
-                              />
-                              {AUTOCOMPLETE_FIELD_KEYS.includes(field.key) &&
-                                activeAutocompleteField === field.key &&
-                                getCreateServiceAutocompleteMatches(field.key)
-                                  .length > 0 && (
-                                  <div className='bg-popover text-popover-foreground absolute z-50 mt-1 flex max-h-64 w-full flex-col overflow-x-hidden overflow-y-auto rounded-md border shadow-lg'>
-                                    {getCreateServiceAutocompleteMatches(
-                                      field.key
-                                    ).map((option) => (
-                                      <button
-                                        key={option}
-                                        type='button'
-                                        className='hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground block w-full cursor-pointer px-3 py-2 text-left text-sm break-words whitespace-normal'
-                                        onMouseDown={(event) => {
-                                          event.preventDefault();
-                                          handleCreateServiceFieldChange(
-                                            field.key,
-                                            option
-                                          );
-                                          setActiveAutocompleteField(null);
-                                        }}
-                                      >
-                                        {option}
-                                      </button>
-                                    ))}
-                                  </div>
-                                )}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-                ))}
-              </div>
-            </div>
-
-            <DialogFooter className='border-t px-6 py-4 sm:justify-between'>
-              <div className='flex items-center gap-2'>
-                <Button
-                  type='button'
-                  variant='outline'
-                  className='cursor-pointer'
-                  onClick={handleRequestCloseCreateServiceDialog}
-                  disabled={isCreatingService}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type='button'
-                  className='cursor-pointer'
-                  onClick={handleSaveServiceDialog}
-                  disabled={isCreatingService}
-                >
-                  {isCreatingService ? (
-                    <Loader2 className='h-4 w-4 animate-spin' />
-                  ) : null}
-                  {editingRowId ? 'Actualizar servicio' : 'Guardar servicio'}
-                </Button>
-              </div>
-            </DialogFooter>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog
-        open={isDiscardCreateDialogOpen}
-        onOpenChange={setIsDiscardCreateDialogOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Descartar cambios</AlertDialogTitle>
-            <AlertDialogDescription>
-              Hay información escrita en el formulario. ¿Desea cerrar y perder
-              los cambios?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction
-              className='cursor-pointer bg-black text-white hover:bg-black/90 dark:bg-red-800 dark:text-white dark:hover:bg-red-700'
-              onClick={handleConfirmDiscardCreateServiceDraft}
-            >
-              Descartar y cerrar
-            </AlertDialogAction>
-            <AlertDialogCancel className='cursor-pointer'>
-              Seguir editando
-            </AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog
-        open={isBulkDeleteDialogOpen}
-        onOpenChange={(open) => {
-          if (!open && !isDeletingService) {
-            setIsBulkDeleteDialogOpen(false);
-          }
-        }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              Eliminar servicios seleccionados
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              ¿Está seguro de eliminar {selectedRowIds.length} servicio
-              {selectedRowIds.length === 1 ? '' : 's'}? Esta acción no se puede
-              deshacer.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              className='cursor-pointer'
-              disabled={isDeletingService}
-            >
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              className='cursor-pointer bg-black text-white hover:bg-black/90 dark:bg-black dark:text-white dark:hover:bg-black/90'
-              onClick={handleConfirmBulkDeleteRows}
-              disabled={isDeletingService || selectedRowIds.length === 0}
-            >
-              {isDeletingService ? 'Eliminando…' : 'Eliminar'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog
-        open={!!rowToDelete}
-        onOpenChange={(open) => {
-          if (!open && !isDeletingService) {
+      <ServicesCatalogConfirmDialogs
+        isDiscardCreateDialogOpen={isDiscardCreateDialogOpen}
+        onSetDiscardCreateDialogOpen={setIsDiscardCreateDialogOpen}
+        onConfirmDiscardCreateServiceDraft={handleConfirmDiscardCreateServiceDraft}
+        isBulkDeleteDialogOpen={isBulkDeleteDialogOpen}
+        onSetBulkDeleteDialogOpen={setIsBulkDeleteDialogOpen}
+        isRowDeleteDialogOpen={!!rowToDelete}
+        onSetRowDeleteDialogOpen={(open) => {
+          if (!open) {
             setRowToDelete(null);
           }
         }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Eliminar servicio</AlertDialogTitle>
-            <AlertDialogDescription>
-              ¿Está seguro de eliminar este servicio técnico? Esta acción no se
-              puede deshacer.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              className='cursor-pointer'
-              disabled={isDeletingService}
-            >
-              Cancelar
-            </AlertDialogCancel>
-            <AlertDialogAction
-              className='cursor-pointer bg-black text-white hover:bg-black/90 dark:bg-black dark:text-white dark:hover:bg-black/90'
-              onClick={handleConfirmDeleteRow}
-              disabled={isDeletingService}
-            >
-              {isDeletingService ? 'Eliminando…' : 'Eliminar'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        isDeletingService={isDeletingService}
+        selectedRowsCount={selectedRowIds.length}
+        onConfirmBulkDeleteRows={handleConfirmBulkDeleteRows}
+        onConfirmDeleteRow={handleConfirmDeleteRow}
+      />
     </div>
   );
 }
