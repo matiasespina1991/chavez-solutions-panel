@@ -37,6 +37,24 @@ export function useConfiguratorServiceSelectionState({
   getMatrizLabel,
   toSelectedService
 }: UseConfiguratorServiceSelectionStateParams) {
+  const sortServicesAlphabetically = (services: SelectedService[]) => {
+    return [...services].sort((a, b) => {
+      const aLabel = (a.ID_PARAMETRO || getServiceId(a)).trim();
+      const bLabel = (b.ID_PARAMETRO || getServiceId(b)).trim();
+
+      const byLabel = aLabel.localeCompare(bLabel, 'es', {
+        sensitivity: 'base',
+        numeric: true
+      });
+      if (byLabel !== 0) return byLabel;
+
+      return getServiceId(a).localeCompare(getServiceId(b), 'es', {
+        sensitivity: 'base',
+        numeric: true
+      });
+    });
+  };
+
   const [isMatrixSelectorDialogOpen, setIsMatrixSelectorDialogOpen] =
     useState(false);
   const [isServicesDialogOpen, setIsServicesDialogOpen] = useState(false);
@@ -192,7 +210,7 @@ export function useConfiguratorServiceSelectionState({
             return currentItem ? { ...currentItem } : service;
           });
 
-          return { ...group, items: nextItems };
+          return { ...group, items: sortServicesAlphabetically(nextItems) };
         })
       );
       setEditingGroupId(null);
@@ -208,7 +226,7 @@ export function useConfiguratorServiceSelectionState({
             typeof activeComboMatrix === 'string' && activeComboMatrix.trim()
               ? activeComboMatrix
               : `Combo ${prev.length + 1}`,
-          items: nextGroupServicesFromCatalog
+          items: sortServicesAlphabetically(nextGroupServicesFromCatalog)
         }
       ]);
     }
