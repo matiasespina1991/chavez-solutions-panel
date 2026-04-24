@@ -125,7 +125,7 @@ export async function resolveSignedUrl(storagePath: string) {
   if (cached) return cached;
   if (inflight.has(storagePath)) return inflight.get(storagePath)!;
   const request = fetchSignedUrl(storagePath)
-    .catch((error) => {
+    .catch((error: unknown) => {
       inflight.delete(storagePath);
       throw error;
     })

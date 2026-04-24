@@ -240,17 +240,14 @@ export function FileUploader(props: FileUploaderProps) {
     }
   }, [files, progresses]);
 
-  React.useEffect(() => 
-    () => {
-      if (!files) return;
-      for (const file of files) {
-        if (isFileWithPreview(file)) {
-          URL.revokeObjectURL(file.preview);
-        }
+  React.useEffect(() => () => {
+    if (!files) return;
+    for (const file of files) {
+      if (isFileWithPreview(file)) {
+        URL.revokeObjectURL(file.preview);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  , []);
+  }, [files]);
 
   const isDisabled = disabled || (files?.length ?? 0) >= maxFiles;
   const showPickerMenu = Boolean(onPickFromGallery);

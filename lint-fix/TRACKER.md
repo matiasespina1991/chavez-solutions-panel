@@ -29,7 +29,7 @@
 | Task | Estado | Dependencias | Archivo |
 |---|---|---|---|
 | LINT-3001 | approved | LINT-2002, LINT-2102 | `cross-cutting/phase-3-manual-rules-and-hardening.md` |
-| LINT-3002 | in_progress | LINT-3001 | `cross-cutting/phase-3-manual-rules-and-hardening.md` |
+| LINT-3002 | approved | LINT-3001 | `cross-cutting/phase-3-manual-rules-and-hardening.md` |
 | LINT-3003 | approved | LINT-3001 | `cross-cutting/phase-3-manual-rules-and-hardening.md` |
 
 ## Fase 4 - Enforcements y CI

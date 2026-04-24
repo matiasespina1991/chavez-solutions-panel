@@ -477,7 +477,7 @@ function MediaCard({
             }
           }}
         >
-          {isEditing ? draftTitleRef.current : localTitle || 'Sin título'}
+          {isEditing ? localTitle : localTitle || 'Sin título'}
         </span>
         {originalFilenameLabel ? (
           <span className='text-muted-foreground truncate text-[11px] leading-tight'>
@@ -892,7 +892,7 @@ export default function MediaGallery({
                   <div className='text-muted-foreground text-xs'>
                     {activeMedia.originalFilename
                       ? 'Archivo Original: ' +
-                      activeMedia.originalFilename?.trim()
+                      activeMedia.originalFilename.trim()
                       : ''}
                   </div>
                   <div className='text-muted-foreground text-xs'>

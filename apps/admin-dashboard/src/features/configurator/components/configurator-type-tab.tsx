@@ -62,7 +62,9 @@ export function ConfiguratorTypeTab({
                   <FormLabel>Validez de oferta (días)</FormLabel>
                   <Select
                     defaultValue={field.value?.toString()}
-                    onValueChange={(val) => field.onChange(Number.parseInt(val))}
+                    onValueChange={(val) =>
+                      field.onChange(Number.parseInt(val, 10))
+                    }
                   >
                     <FormControl>
                       <SelectTrigger>

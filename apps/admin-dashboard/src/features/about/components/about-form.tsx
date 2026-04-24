@@ -89,9 +89,7 @@ function MediaPreviewCard({
         </div>
         <div className='text-muted-foreground truncate text-xs'>{media.id}</div>
       </div>
-      {actions ? (
-        actions
-      ) : onRemove ? (
+      {actions || (onRemove ? (
         <Button
           type='button'
           variant='ghost'
@@ -101,7 +99,7 @@ function MediaPreviewCard({
         >
           <IconTrash className='h-4 w-4' />
         </Button>
-      ) : null}
+      ) : null)}
     </div>
   );
 }

@@ -68,7 +68,7 @@ export function ColumnActions({
             onSelect={() => {
               setIsEditDisable(!editDisable);
               setTimeout(() => {
-                inputRef.current && inputRef.current?.focus();
+                inputRef.current?.focus();
               }, 500);
             }}
           >
@@ -100,7 +100,9 @@ export function ColumnActions({
               variant='destructive'
               onClick={() => {
                 // yes, you have to set a timeout
-                setTimeout(() => (document.body.style.pointerEvents = ''), 100);
+                setTimeout(() => {
+                  document.body.style.pointerEvents = '';
+                }, 100);
 
                 setShowDeleteDialog(false);
                 removeCol(id);
