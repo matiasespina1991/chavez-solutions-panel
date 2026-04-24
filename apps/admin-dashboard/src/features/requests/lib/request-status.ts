@@ -6,7 +6,10 @@ export const hasIssuedWorkOrder = (row: RequestRow) =>
   row.status === 'work_order_paused' ||
   row.status === 'work_order_completed';
 
-export const getValidUntilMs = (createdAtMs: number, validDays: number | null) => {
+export const getValidUntilMs = (
+  createdAtMs: number,
+  validDays: number | null
+) => {
   if (!createdAtMs || !validDays || validDays <= 0) return null;
   return createdAtMs + validDays * 24 * 60 * 60 * 1000;
 };
@@ -102,7 +105,7 @@ export const getRequestDialogBanner = (row: RequestRow) => {
     return {
       className:
         'rounded-md border border-emerald-600/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-300',
-      text: 'Proforma aprobada. Lista para emitir OT.'
+      text: 'Proforma aprobada. Preparando para emitir Orden de Trabajo.'
     };
   }
 

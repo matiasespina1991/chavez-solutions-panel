@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { RequestListRow as RequestRow } from '@/types/domain';
-import type { RequestListSortKey } from '@/features/requests/components/request-list-table';
+import type { RequestListSortKey } from '@/features/requests/lib/request-component-types';
 import {
   formatDate,
   getApprovalStatusLabel,

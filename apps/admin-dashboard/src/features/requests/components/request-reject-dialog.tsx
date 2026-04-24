@@ -9,15 +9,7 @@ import {
   AlertDialogTitle
 } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
-
-interface RequestRejectDialogProps {
-  readonly open: boolean;
-  readonly isRejecting: boolean;
-  readonly rejectFeedback: string;
-  readonly onOpenChange: (open: boolean) => void;
-  readonly onRejectFeedbackChange: (value: string) => void;
-  readonly onConfirm: () => void;
-}
+import type { RequestRejectDialogProps } from '@/features/requests/lib/request-component-types';
 
 export function RequestRejectDialog({
   open,

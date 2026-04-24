@@ -9,16 +9,7 @@ import {
   AlertDialogTitle
 } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
-
-interface RequestWorkOrderToggleDialogProps {
-  readonly open: boolean;
-  readonly isTogglingWorkOrder: boolean;
-  readonly workOrderToggleAction: 'pause' | 'resume' | null;
-  readonly workOrderToggleNotes: string;
-  readonly onOpenChange: (open: boolean) => void;
-  readonly onNotesChange: (value: string) => void;
-  readonly onConfirm: () => void;
-}
+import type { RequestWorkOrderToggleDialogProps } from '@/features/requests/lib/request-component-types';
 
 export function RequestWorkOrderToggleDialog({
   open,

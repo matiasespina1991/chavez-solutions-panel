@@ -13,24 +13,7 @@ import {
   getRequestDialogBanner,
   getValidUntilMs
 } from '@/features/requests/lib/request-status';
-import type { RequestListRow as RequestRow } from '@/types/domain';
-
-interface RequestSummaryDialogProps {
-  readonly open: boolean;
-  readonly selectedRow: RequestRow | null;
-  readonly canShowExecuteWorkOrderButton: boolean;
-  readonly canApproveSelectedRow: boolean;
-  readonly canEditSelectedRow: boolean;
-  readonly pendingActionId: string | null;
-  readonly isDialogDownloading: boolean;
-  readonly onOpenChange: (open: boolean) => void;
-  readonly onOpenExecuteWorkOrderDialog: (row: RequestRow) => void;
-  readonly onWorkOrderAction: (row: RequestRow) => void;
-  readonly onEdit: () => void;
-  readonly onDownload: () => void;
-  readonly onDelete: () => void;
-  readonly onResume: () => void;
-}
+import type { RequestSummaryDialogProps } from '@/features/requests/lib/request-component-types';
 
 export function RequestSummaryDialog({
   open,

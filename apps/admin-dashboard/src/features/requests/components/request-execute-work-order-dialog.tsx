@@ -8,17 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from '@/components/ui/alert-dialog';
-import type { RequestListRow as RequestRow } from '@/types/domain';
-
-interface RequestExecuteWorkOrderDialogProps {
-  readonly open: boolean;
-  readonly rowToExecuteWorkOrder: RequestRow | null;
-  readonly pendingActionId: string | null;
-  readonly approverLabel: string;
-  readonly nowLabel: string;
-  readonly onOpenChange: (open: boolean) => void;
-  readonly onConfirm: () => void;
-}
+import type { RequestExecuteWorkOrderDialogProps } from '@/features/requests/lib/request-component-types';
 
 export function RequestExecuteWorkOrderDialog({
   open,
