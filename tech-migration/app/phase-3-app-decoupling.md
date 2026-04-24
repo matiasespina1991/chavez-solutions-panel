@@ -124,8 +124,8 @@
 ## APP-3006
 
 - `id`: APP-3006
-- `scope`: crear capa `services` por dominio (requests/work-orders/services-catalog) para desacoplar `configurations.ts`.
-- `files`: `apps/admin-dashboard/src/features/**/services/**`
+- `scope`: crear capa `services` por dominio (requests/work-orders/services-catalog/lab-analysis) y mover contratos/modelos de dominio fuera de componentes para desacoplar `configurations.ts`.
+- `files`: `apps/admin-dashboard/src/features/**/services/**`, `apps/admin-dashboard/src/features/**/lib/**`, `apps/admin-dashboard/src/features/**/components/**`
 - `risk`: medium
 - `depends_on`: [APP-3001, APP-3003, APP-3004, APP-3005]
 - `acceptance`:
@@ -135,6 +135,7 @@
   - Micro-slice 1: capa de servicios por dominio introducida para `requests` y `work-orders` con entrypoints propios en `features/requests/services/request-actions.ts`, `features/requests/services/request-preview.ts` y `features/work-orders/services/work-order-actions.ts`.
   - Micro-slice 2: hooks/libs de `requests` y `work-orders` migrados a importar servicios de su dominio (ya no dependen directo de `features/configurator/services/configurations.ts`).
   - Micro-slice 3: implementación de callables y contratos movida a dominio (`features/requests/services/request-callables.ts`, `features/requests/services/request-preview-callables.ts`, `features/work-orders/services/work-order-callables.ts`) para eliminar dependencia indirecta con `configurations.ts`.
+  - Micro-slice 4: gap detectado en `lab-analysis` (tipos/helpers de dominio aún incrustados en componente). Se extrae a `features/lab-analysis/lib/lab-analysis-model.ts` y se actualizan imports en `lab-analysis-form.tsx` y `services/lab-analysis.ts`.
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
-- `status`: `approved`
+- `status`: `in_progress`

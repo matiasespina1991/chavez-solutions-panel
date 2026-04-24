@@ -10,48 +10,16 @@ import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { FIRESTORE_COLLECTIONS } from '@/constants/firestore';
 import { saveWorkOrderLabAnalysis } from '@/features/lab-analysis/services/lab-analysis';
+import {
+  createEmptyLabAnalysisRow,
+  createLocalId,
+  LabAnalysisRow,
+  parseWorkOrderStatus,
+  WorkOrderMeta,
+  WORK_ORDER_STATUS_LABELS
+} from '@/features/lab-analysis/lib/lab-analysis-model';
 import { IconPlus, IconTrash } from '@tabler/icons-react';
 import { toast } from 'sonner';
-
-type WorkOrderStatus =
-  | 'issued'
-  | 'paused'
-  | 'completed'
-  | 'cancelled'
-  | 'unknown';
-
-interface WorkOrderMeta {
-  id: string;
-  workOrderNumber: string;
-  sourceReference: string;
-  status: WorkOrderStatus;
-}
-
-interface LabAnalysisRow {
-  id: string;
-  parameterLabelEs: string;
-  resultValue: string;
-  unit: string;
-  method: string;
-}
-
-const createLocalId = () => Math.random().toString(36).slice(2, 11);
-
-const createEmptyRow = (): LabAnalysisRow => ({
-  id: createLocalId(),
-  parameterLabelEs: '',
-  resultValue: '',
-  unit: '',
-  method: ''
-});
-
-const statusLabelMap: Record<WorkOrderStatus, string> = {
-  issued: 'OT iniciada',
-  paused: 'OT pausada',
-  completed: 'OT finalizada',
-  cancelled: 'OT cancelada',
-  unknown: 'Estado desconocido'
-};
 
 export default function LabAnalysisForm() {
   const router = useRouter();
@@ -63,7 +31,7 @@ export default function LabAnalysisForm() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [workOrder, setWorkOrder] = useState<WorkOrderMeta | null>(null);
   const [analysisRows, setAnalysisRows] = useState<LabAnalysisRow[]>([
-    createEmptyRow()
+    createEmptyLabAnalysisRow()
   ]);
   const [labNotes, setLabNotes] = useState('');
 
@@ -88,14 +56,7 @@ export default function LabAnalysisForm() {
         }
 
         const value = workOrderSnap.data();
-        const rawStatus = String(value.status ?? '').toLowerCase();
-        const status: WorkOrderStatus =
-          rawStatus === 'issued' ||
-          rawStatus === 'paused' ||
-          rawStatus === 'completed' ||
-          rawStatus === 'cancelled'
-            ? (rawStatus)
-            : 'unknown';
+        const status = parseWorkOrderStatus(value.status);
 
         setWorkOrder({
           id: workOrderSnap.id,
@@ -135,7 +96,7 @@ export default function LabAnalysisForm() {
             : [];
 
         setAnalysisRows(
-          existingRows.length > 0 ? existingRows : [createEmptyRow()]
+          existingRows.length > 0 ? existingRows : [createEmptyLabAnalysisRow()]
         );
 
         const existingNotes =
@@ -167,7 +128,7 @@ export default function LabAnalysisForm() {
   };
 
   const addAnalysisRow = () => {
-    setAnalysisRows((prev) => [...prev, createEmptyRow()]);
+    setAnalysisRows((prev) => [...prev, createEmptyLabAnalysisRow()]);
   };
 
   const removeAnalysisRow = (id: string) => {
@@ -304,7 +265,7 @@ export default function LabAnalysisForm() {
           </p>
           <p>
             <span className='font-medium'>Estado:</span>{' '}
-            {statusLabelMap[workOrder.status]}
+            {WORK_ORDER_STATUS_LABELS[workOrder.status]}
           </p>
         </CardContent>
       </Card>
