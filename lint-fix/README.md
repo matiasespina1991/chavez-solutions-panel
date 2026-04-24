@@ -51,6 +51,23 @@ Fuente:
 4. Priorizar autofix y reglas de bajo riesgo primero.
 5. Cualquier regla de alto impacto (`naming-convention`, `unicorn/*`, `no-restricted-types`) va con plan explicito por dominio.
 
+## Comando operativo oficial (Fase 4)
+
+- Local + CI gate:
+  - `./lint-fix/scripts/xo-ci.sh`
+- Workspace admin-dashboard:
+  - `cd apps/admin-dashboard && npm run lint:xo`
+  - `cd apps/admin-dashboard && npm run lint:xo:fix`
+- Workspace functions:
+  - `cd functions && npm run lint:xo`
+  - `cd functions && npm run lint:xo:fix`
+
+## CI Gate
+
+- Workflow: `.github/workflows/lint-xo.yml`
+- Trigger: `pull_request` + `push` (`main`/`master`)
+- Política: si XO falla en cualquiera de los dos workspaces, el job falla.
+
 ## Estados
 
 - `todo`: no iniciado.

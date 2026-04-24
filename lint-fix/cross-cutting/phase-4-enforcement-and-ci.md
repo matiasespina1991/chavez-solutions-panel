@@ -11,11 +11,11 @@
 - `depends_on`:
   - LINT-3002
 - `acceptance`:
-  - [ ] Comando documentado y reproducible.
-  - [ ] Sin falsos positivos por artefactos.
+  - [x] Comando documentado y reproducible.
+  - [x] Sin falsos positivos por artefactos.
 - `validation_commands`:
   - `npx --yes xo \"apps/admin-dashboard/src/**/*.{js,jsx,ts,tsx}\" \"functions/src/**/*.{js,ts}\"`
-- `status`: `todo`
+- `status`: `approved`
 
 ## LINT-4002 - Gate de PR (bloqueo incremental)
 
@@ -28,10 +28,10 @@
 - `depends_on`:
   - LINT-4001
 - `acceptance`:
-  - [ ] PR falla si reintroduce reglas bloqueadas.
+  - [x] PR falla si reintroduce reglas bloqueadas.
 - `validation_commands`:
   - `npx --yes xo \"apps/admin-dashboard/src/**/*.{js,jsx,ts,tsx}\" \"functions/src/**/*.{js,ts}\"`
-- `status`: `todo`
+- `status`: `approved`
 
 ## LINT-4003 - Cierre y handoff
 
@@ -44,9 +44,23 @@
 - `depends_on`:
   - LINT-4002
 - `acceptance`:
-  - [ ] Guia operativa final lista.
-  - [ ] Tracker alineado a estado real.
+  - [x] Guia operativa final lista.
+  - [x] Tracker alineado a estado real.
 - `validation_commands`:
   - `sed -n '1,220p' lint-fix/README.md`
   - `sed -n '1,220p' lint-fix/TRACKER.md`
-- `status`: `todo`
+- `status`: `approved`
+
+## Resultado de fase
+
+- Comando oficial de lint XO:
+  - `./lint-fix/scripts/xo-ci.sh`
+- Scripts por workspace:
+  - `cd apps/admin-dashboard && npm run lint:xo`
+  - `cd functions && npm run lint:xo`
+- Autofix por workspace:
+  - `cd apps/admin-dashboard && npm run lint:xo:fix`
+  - `cd functions && npm run lint:xo:fix`
+- Gate de CI:
+  - workflow: `.github/workflows/lint-xo.yml`
+  - ejecuta instalación de dependencias en ambos workspaces y falla PR/push si `xo-ci.sh` falla.

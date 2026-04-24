@@ -31,8 +31,17 @@
 - `depends_on`:
   - LINT-0001
 - `acceptance`:
-  - [ ] Queda definido un comando baseline unico y estable.
-  - [ ] Se excluyen rutas no fuente (`.next`, `lib` generado, etc.) del programa.
+  - [x] Queda definido un comando baseline unico y estable.
+  - [x] Se excluyen rutas no fuente (`.next`, `lib` generado, etc.) del programa.
 - `validation_commands`:
-  - `npx --yes xo \"apps/admin-dashboard/src/**/*.{js,jsx,ts,tsx}\" \"functions/src/**/*.{js,ts}\"`
-- `status`: `todo`
+  - `./lint-fix/scripts/xo-ci.sh`
+  - `./lint-fix/scripts/xo-baseline.sh`
+- `status`: `approved`
+
+## Resultado de fase
+
+- Alcance final fijado a código fuente real:
+  - `apps/admin-dashboard/src/**/*.{js,jsx,ts,tsx}`
+  - `functions/src/**/*.{js,ts}`
+- Excluidos artefactos y generados en config XO (`.next`, `node_modules`, `dist`, `coverage`, etc.).
+- Comando único estable para local/CI: `./lint-fix/scripts/xo-ci.sh`.

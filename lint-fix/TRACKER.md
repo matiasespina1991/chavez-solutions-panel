@@ -5,7 +5,7 @@
 | Task | Estado | Dependencias | Archivo |
 |---|---|---|---|
 | LINT-0001 | approved | - | `cross-cutting/phase-0-baseline-and-scope.md` |
-| LINT-0002 | todo | LINT-0001 | `cross-cutting/phase-0-baseline-and-scope.md` |
+| LINT-0002 | approved | LINT-0001 | `cross-cutting/phase-0-baseline-and-scope.md` |
 
 ## Fase 1 - Alineacion de tooling XO
 
@@ -36,6 +36,6 @@
 
 | Task | Estado | Dependencias | Archivo |
 |---|---|---|---|
-| LINT-4001 | todo | LINT-3002 | `cross-cutting/phase-4-enforcement-and-ci.md` |
-| LINT-4002 | todo | LINT-4001 | `cross-cutting/phase-4-enforcement-and-ci.md` |
-| LINT-4003 | todo | LINT-4002 | `cross-cutting/phase-4-enforcement-and-ci.md` |
+| LINT-4001 | approved | LINT-3002 | `cross-cutting/phase-4-enforcement-and-ci.md` |
+| LINT-4002 | approved | LINT-4001 | `cross-cutting/phase-4-enforcement-and-ci.md` |
+| LINT-4003 | approved | LINT-4002 | `cross-cutting/phase-4-enforcement-and-ci.md` |
