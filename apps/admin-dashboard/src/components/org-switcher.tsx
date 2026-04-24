@@ -24,7 +24,7 @@ export function OrgSwitcher() {
   const router = useRouter();
   const { organizations, activeOrgId, selectOrganization } = useAuthSession();
 
-  if (!organizations.length) {
+  if (organizations.length === 0) {
     return null;
   }
 
@@ -80,14 +80,14 @@ export function OrgSwitcher() {
               return (
                 <DropdownMenuItem
                   key={org.id}
-                  onClick={() => selectOrganization(org.id)}
                   className='gap-2 p-2'
+                  onClick={() => selectOrganization(org.id)}
                 >
                   <div className='flex size-6 items-center justify-center overflow-hidden rounded-md border'>
                     <GalleryVerticalEnd className='size-3.5 shrink-0' />
                   </div>
                   {org.name}
-                  {isActive && <Check className='ml-auto size-4' />}
+                  {isActive ? <Check className='ml-auto size-4' /> : null}
                   {!isActive && (
                     <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
                   )}

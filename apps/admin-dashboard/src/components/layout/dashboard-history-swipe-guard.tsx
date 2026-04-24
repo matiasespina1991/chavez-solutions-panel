@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 export default function DashboardHistorySwipeGuard() {
   useEffect(() => {
     const html = document.documentElement;
-    const body = document.body;
+    const {body} = document;
 
     html.classList.add('dashboard-no-history-swipe');
     body.classList.add('dashboard-no-history-swipe');

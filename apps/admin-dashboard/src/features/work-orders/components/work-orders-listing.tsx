@@ -53,8 +53,8 @@ export default function WorkOrdersListing() {
         visibleRows={visibleRows}
         hasVisibleRows={hasVisibleRows}
         pendingActionId={pendingActionId}
-        onSort={handleSort}
         getSortIndicator={getSortIndicator}
+        onSort={handleSort}
         onOpenSummary={(row) => {
           setSelectedRow(row);
           setIsViewDialogOpen(true);

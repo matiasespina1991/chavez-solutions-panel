@@ -8,7 +8,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { Product } from '@/constants/data';
+import { type Product } from '@/constants/data';
 import { IconEdit, IconDotsVertical, IconTrash } from '@tabler/icons-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -22,15 +22,16 @@ export const CellAction: React.FC<CellActionProps> = ({ data }) => {
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
-  const onConfirm = async () => {};
+  const onConfirm = async () => {
+  };
 
   return (
     <>
       <AlertModal
         isOpen={open}
+        loading={loading}
         onClose={() => setOpen(false)}
         onConfirm={onConfirm}
-        loading={loading}
       />
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>

@@ -1,10 +1,10 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { AppUserRole, getUserRoleLabel } from '@/lib/user-role';
+import { type AppUserRole, getUserRoleLabel } from '@/lib/user-role';
 
 interface UserAvatarProfileProps {
-  className?: string;
-  showInfo?: boolean;
-  user: {
+  readonly className?: string;
+  readonly showInfo?: boolean;
+  readonly user: {
     imageUrl?: string;
     fullName?: string | null;
     role?: AppUserRole;
@@ -32,18 +32,16 @@ export function UserAvatarProfile({
         </AvatarFallback>
       </Avatar>
 
-      {showInfo && (
-        <div className='grid flex-1 text-left text-sm leading-tight'>
-          <span
-            className={`truncate ${
-              isPrimaryLabelEmail ? 'font-normal' : 'font-semibold'
-            }`}
-          >
-            {primaryLabel}
-          </span>
-          <span className='truncate text-xs'>{roleLabel}</span>
-        </div>
-      )}
+      {showInfo ? <div className='grid flex-1 text-left text-sm leading-tight'>
+        <span
+          className={`truncate ${
+            isPrimaryLabelEmail ? 'font-normal' : 'font-semibold'
+          }`}
+        >
+          {primaryLabel}
+        </span>
+        <span className='truncate text-xs'>{roleLabel}</span>
+      </div> : null}
     </div>
   );
 }

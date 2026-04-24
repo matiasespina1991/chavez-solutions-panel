@@ -23,16 +23,16 @@ import {
   SidebarMenuItem,
   useSidebar
 } from '@/components/ui/sidebar';
-import { Icon } from '@/components/icons';
+import { type Icon } from '@/components/icons';
 
 export function NavProjects({
   projects
 }: {
-  projects: {
+  readonly projects: Array<{
     name: string;
     url: string;
     icon: Icon;
-  }[];
+  }>;
 }) {
   const { isMobile } = useSidebar();
 

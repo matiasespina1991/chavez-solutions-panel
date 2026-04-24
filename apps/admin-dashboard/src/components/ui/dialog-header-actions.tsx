@@ -20,7 +20,7 @@ export interface DialogHeaderAction {
 }
 
 interface DialogHeaderActionsProps {
-  actions: DialogHeaderAction[];
+  readonly actions: DialogHeaderAction[];
 }
 
 export function DialogHeaderActions({ actions }: DialogHeaderActionsProps) {
@@ -35,9 +35,9 @@ export function DialogHeaderActions({ actions }: DialogHeaderActionsProps) {
                 variant='ghost'
                 size='icon'
                 className={`${DIALOG_HEADER_ACTION_BUTTON_CLASS} ${action.className ?? ''}`.trim()}
-                onClick={action.onClick}
                 aria-label={action.ariaLabel}
                 disabled={action.disabled}
+                onClick={action.onClick}
               >
                 {action.icon}
               </Button>

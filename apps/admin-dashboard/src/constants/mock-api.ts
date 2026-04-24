@@ -1,11 +1,11 @@
-////////////////////////////////////////////////////////////////////////////////
+/// /////////////////////////////////////////////////////////////////////////////
 // 🛑 Nothing in here has anything to do with Nextjs, it's just a fake database
-////////////////////////////////////////////////////////////////////////////////
+/// /////////////////////////////////////////////////////////////////////////////
 
 import { faker } from '@faker-js/faker';
 import { matchSorter } from 'match-sorter'; // For filtering
 
-export const delay = (ms: number) =>
+export const delay = async (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
 // Define the shape of Product data
@@ -46,7 +46,7 @@ export const fakeProducts = {
         created_at: faker.date
           .between({ from: '2022-01-01', to: '2023-12-31' })
           .toISOString(),
-        price: parseFloat(faker.commerce.price({ min: 5, max: 500, dec: 2 })),
+        price: Number.parseFloat(faker.commerce.price({ min: 5, max: 500, dec: 2 })),
         photo_url: `https://api.slingacademy.com/public/sample-products/${id}.png`,
         category: faker.helpers.arrayElement(categories),
         updated_at: faker.date.recent().toISOString()

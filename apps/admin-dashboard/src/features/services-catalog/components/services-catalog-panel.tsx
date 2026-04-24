@@ -18,7 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSidebar } from '@/components/ui/sidebar';
 import {
   createTechnicalService,
-  CreateTechnicalServicePayload,
+  type CreateTechnicalServicePayload,
   deleteTechnicalService,
   saveServicesTechnicalChanges
 } from '@/features/admin/services/import-services';
@@ -69,12 +69,14 @@ export function ServicesCatalogPanel() {
   const [activeAutocompleteField, setActiveAutocompleteField] = useState<
     keyof CreateServiceDraft | null
   >(null);
-  const autocompleteBlurTimeoutRef = useRef<number | null>(null);
+  const autocompleteBlurTimeoutRef =
+    useRef<ReturnType<typeof globalThis.setTimeout> | null>(null);
   const [activeTableAutocomplete, setActiveTableAutocomplete] = useState<{
     rowId: string;
     field: keyof CreateServiceDraft;
   } | null>(null);
-  const tableAutocompleteBlurTimeoutRef = useRef<number | null>(null);
+  const tableAutocompleteBlurTimeoutRef =
+    useRef<ReturnType<typeof globalThis.setTimeout> | null>(null);
   const [sortKey, setSortKey] = useState<SortableCatalogFieldKey | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [hideColumnsFromTechnique, setHideColumnsFromTechnique] =
@@ -99,7 +101,7 @@ export function ServicesCatalogPanel() {
 
       const loadedRows = snapshot.docs
         .map((docSnap) =>
-          buildRowFromDoc(docSnap.id, docSnap.data() as Record<string, unknown>)
+          buildRowFromDoc(docSnap.id, docSnap.data())
         )
         .sort((a, b) =>
           a.ID_PARAMETRO.localeCompare(b.ID_PARAMETRO, 'es', {
@@ -174,14 +176,12 @@ export function ServicesCatalogPanel() {
     });
   }, [rows, query, originalById]);
 
-  const dirtyIds = useMemo(() => {
-    return rows
-      .filter((row) => {
-        const original = originalById[row.id];
-        return Object.keys(getChangedPatch(row, original)).length > 0;
-      })
-      .map((row) => row.id);
-  }, [rows, originalById]);
+  const dirtyIds = useMemo(() => rows
+    .filter((row) => {
+      const original = originalById[row.id];
+      return Object.keys(getChangedPatch(row, original)).length > 0;
+    })
+    .map((row) => row.id), [rows, originalById]);
 
   const dirtySet = useMemo(() => new Set(dirtyIds), [dirtyIds]);
 
@@ -336,6 +336,7 @@ export function ServicesCatalogPanel() {
         if (prev.includes(rowId)) return prev;
         return [...prev, rowId];
       }
+
       return prev.filter((id) => id !== rowId);
     });
   };
@@ -344,8 +345,9 @@ export function ServicesCatalogPanel() {
     setSelectedRowIds((prev) => {
       if (checked) {
         const merged = new Set([...prev, ...pageRowIds]);
-        return Array.from(merged);
+        return [...merged];
       }
+
       const pageSet = new Set(pageRowIds);
       return prev.filter((id) => !pageSet.has(id));
     });
@@ -407,7 +409,7 @@ export function ServicesCatalogPanel() {
     setIsDeletingService(true);
     try {
       const results = await Promise.allSettled(
-        selectedRowIds.map((id) => deleteTechnicalService(id))
+        selectedRowIds.map(async (id) => deleteTechnicalService(id))
       );
       const deleted = results.filter(
         (result) => result.status === 'fulfilled'
@@ -419,6 +421,7 @@ export function ServicesCatalogPanel() {
           `${deleted} servicio${deleted === 1 ? '' : 's'} eliminado${deleted === 1 ? '' : 's'}.`
         );
       }
+
       if (failed > 0) {
         toast.error(
           `No se pudieron eliminar ${failed} servicio${failed === 1 ? '' : 's'}.`
@@ -441,7 +444,7 @@ export function ServicesCatalogPanel() {
       .map((row) => {
         const original = originalById[row.id];
         const patch = getChangedPatch(row, original);
-        if (!Object.keys(patch).length) return null;
+        if (Object.keys(patch).length === 0) return null;
 
         return {
           id: row.id,
@@ -504,14 +507,12 @@ export function ServicesCatalogPanel() {
 
   const createServiceAutocompleteOptions = useMemo(() => {
     const uniqueFromRows = <K extends keyof ServiceCatalogRow>(key: K) =>
-      Array.from(
-        new Set(
-          rows
-            .map((row) => row[key])
-            .map((value) => (typeof value === 'string' ? value.trim() : ''))
-            .filter((value) => value.length > 0)
-        )
-      ).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+      [...new Set(
+        rows
+          .map((row) => row[key])
+          .map((value) => (typeof value === 'string' ? value.trim() : ''))
+          .filter((value) => value.length > 0)
+      )].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
 
     return {
       ID_PARAMETRO: uniqueFromRows('ID_PARAMETRO'),
@@ -534,7 +535,7 @@ export function ServicesCatalogPanel() {
     if (!AUTOCOMPLETE_FIELD_KEYS.includes(key)) return [];
 
     const queryValue = normalizeForAutocomplete(query);
-    if (!queryValue.length) return [];
+    if (queryValue.length === 0) return [];
 
     const options =
       createServiceAutocompleteOptions[
@@ -564,9 +565,10 @@ export function ServicesCatalogPanel() {
     field: keyof CreateServiceDraft
   ) => {
     if (tableAutocompleteBlurTimeoutRef.current !== null) {
-      window.clearTimeout(tableAutocompleteBlurTimeoutRef.current);
+      globalThis.clearTimeout(tableAutocompleteBlurTimeoutRef.current);
       tableAutocompleteBlurTimeoutRef.current = null;
     }
+
     setActiveTableAutocomplete({
       rowId,
       field
@@ -575,9 +577,10 @@ export function ServicesCatalogPanel() {
 
   const handleTableCellBlur = (_field: keyof CreateServiceDraft) => {
     if (tableAutocompleteBlurTimeoutRef.current !== null) {
-      window.clearTimeout(tableAutocompleteBlurTimeoutRef.current);
+      globalThis.clearTimeout(tableAutocompleteBlurTimeoutRef.current);
     }
-    tableAutocompleteBlurTimeoutRef.current = window.setTimeout(() => {
+
+    tableAutocompleteBlurTimeoutRef.current = globalThis.setTimeout(() => {
       setActiveTableAutocomplete(null);
       tableAutocompleteBlurTimeoutRef.current = null;
     }, 120);
@@ -595,9 +598,10 @@ export function ServicesCatalogPanel() {
     setCreateServiceTouchedFields({});
     setCreateServiceSubmitAttempted(false);
     if (autocompleteBlurTimeoutRef.current !== null) {
-      window.clearTimeout(autocompleteBlurTimeoutRef.current);
+      globalThis.clearTimeout(autocompleteBlurTimeoutRef.current);
       autocompleteBlurTimeoutRef.current = null;
     }
+
     setActiveAutocompleteField(null);
     setIsCreateServiceDialogOpen(true);
   };
@@ -612,15 +616,14 @@ export function ServicesCatalogPanel() {
     [createServiceDraft, createServiceDraftBaseline]
   );
 
-  useEffect(() => {
-    return () => {
-      if (autocompleteBlurTimeoutRef.current !== null) {
-        window.clearTimeout(autocompleteBlurTimeoutRef.current);
-      }
-      if (tableAutocompleteBlurTimeoutRef.current !== null) {
-        window.clearTimeout(tableAutocompleteBlurTimeoutRef.current);
-      }
-    };
+  useEffect(() => () => {
+    if (autocompleteBlurTimeoutRef.current !== null) {
+      globalThis.clearTimeout(autocompleteBlurTimeoutRef.current);
+    }
+
+    if (tableAutocompleteBlurTimeoutRef.current !== null) {
+      globalThis.clearTimeout(tableAutocompleteBlurTimeoutRef.current);
+    }
   }, []);
 
   const handleRequestCloseCreateServiceDialog = () => {
@@ -642,9 +645,10 @@ export function ServicesCatalogPanel() {
     setIsCreateServiceDialogOpen(false);
     setEditingRowId(null);
     if (autocompleteBlurTimeoutRef.current !== null) {
-      window.clearTimeout(autocompleteBlurTimeoutRef.current);
+      globalThis.clearTimeout(autocompleteBlurTimeoutRef.current);
       autocompleteBlurTimeoutRef.current = null;
     }
+
     setActiveAutocompleteField(null);
     setCreateServiceDraft(INITIAL_CREATE_SERVICE_DRAFT);
     setCreateServiceDraftBaseline(INITIAL_CREATE_SERVICE_DRAFT);
@@ -661,9 +665,10 @@ export function ServicesCatalogPanel() {
   const handleCreateFieldFocus = (key: keyof CreateServiceDraft) => {
     if (!AUTOCOMPLETE_FIELD_KEYS.includes(key)) return;
     if (autocompleteBlurTimeoutRef.current !== null) {
-      window.clearTimeout(autocompleteBlurTimeoutRef.current);
+      globalThis.clearTimeout(autocompleteBlurTimeoutRef.current);
       autocompleteBlurTimeoutRef.current = null;
     }
+
     setActiveAutocompleteField(key);
   };
 
@@ -675,9 +680,10 @@ export function ServicesCatalogPanel() {
 
     if (!AUTOCOMPLETE_FIELD_KEYS.includes(key)) return;
     if (autocompleteBlurTimeoutRef.current !== null) {
-      window.clearTimeout(autocompleteBlurTimeoutRef.current);
+      globalThis.clearTimeout(autocompleteBlurTimeoutRef.current);
     }
-    autocompleteBlurTimeoutRef.current = window.setTimeout(() => {
+
+    autocompleteBlurTimeoutRef.current = globalThis.setTimeout(() => {
       setActiveAutocompleteField(null);
       autocompleteBlurTimeoutRef.current = null;
     }, 120);
@@ -690,6 +696,7 @@ export function ServicesCatalogPanel() {
     handleCreateServiceFieldChange(key, value);
     setActiveAutocompleteField(null);
   };
+
   const handleDuplicateRow = (row: ServiceCatalogRow) => {
     const nextDraft: CreateServiceDraft = {
       ID_CONFIG_PARAMETRO: '',
@@ -716,9 +723,10 @@ export function ServicesCatalogPanel() {
     setCreateServiceTouchedFields({});
     setCreateServiceSubmitAttempted(false);
     if (autocompleteBlurTimeoutRef.current !== null) {
-      window.clearTimeout(autocompleteBlurTimeoutRef.current);
+      globalThis.clearTimeout(autocompleteBlurTimeoutRef.current);
       autocompleteBlurTimeoutRef.current = null;
     }
+
     setActiveAutocompleteField(null);
     setIsCreateServiceDialogOpen(true);
   };
@@ -802,9 +810,10 @@ export function ServicesCatalogPanel() {
         setCreateServiceSubmitAttempted(false);
         setActiveAutocompleteField(null);
         if (autocompleteBlurTimeoutRef.current !== null) {
-          window.clearTimeout(autocompleteBlurTimeoutRef.current);
+          globalThis.clearTimeout(autocompleteBlurTimeoutRef.current);
           autocompleteBlurTimeoutRef.current = null;
         }
+
         await loadRows();
       } catch (error) {
         console.error('[ServicesCatalog] update service error', error);
@@ -815,6 +824,7 @@ export function ServicesCatalogPanel() {
       } finally {
         setIsCreatingService(false);
       }
+
       return;
     }
 
@@ -830,9 +840,10 @@ export function ServicesCatalogPanel() {
       setCreateServiceSubmitAttempted(false);
       setActiveAutocompleteField(null);
       if (autocompleteBlurTimeoutRef.current !== null) {
-        window.clearTimeout(autocompleteBlurTimeoutRef.current);
+        globalThis.clearTimeout(autocompleteBlurTimeoutRef.current);
         autocompleteBlurTimeoutRef.current = null;
       }
+
       await loadRows();
     } catch (error) {
       console.error('[ServicesCatalog] create service error', error);
@@ -879,14 +890,17 @@ export function ServicesCatalogPanel() {
                   setSelectedRowIds([]);
                   return;
                 }
+
                 if (selectedRowIds.length === 0 && dirtyIds.length > 0) {
                   handleResetAllChanges();
                   return;
                 }
+
                 if (selectedRowIds.length === 1 && selectedRows[0]) {
                   handleEditRow(selectedRows[0]);
                   return;
                 }
+
                 handleOpenCreateServiceDialog();
               }}
               onRequestBulkDelete={() => setIsBulkDeleteDialogOpen(true)}
@@ -896,11 +910,11 @@ export function ServicesCatalogPanel() {
 
           <ServicesCatalogFiltersBar
             query={query}
-            onQueryChange={setQuery}
             hideColumnsFromTechnique={hideColumnsFromTechnique}
-            onHideColumnsFromTechniqueChange={setHideColumnsFromTechnique}
             filteredRowsCount={filteredRows.length}
             dirtyRowsCount={dirtyIds.length}
+            onQueryChange={setQuery}
+            onHideColumnsFromTechniqueChange={setHideColumnsFromTechnique}
           />
         </CardHeader>
 
@@ -910,28 +924,28 @@ export function ServicesCatalogPanel() {
             visibleEditableColumns={visibleEditableColumns}
             allPageSelected={allPageSelected}
             hasSomePageSelected={hasSomePageSelected}
-            onTogglePageSelection={togglePageSelection}
-            onSortBy={handleSortBy}
             renderSortIcon={renderSortIcon}
             isLoading={isLoading}
             pageRows={pageRows}
             dirtySet={dirtySet}
             selectedRowIdsSet={selectedRowIdsSet}
+            activeTableAutocomplete={activeTableAutocomplete}
+            getAutocompleteMatches={getAutocompleteMatches}
+            isSaving={isSaving}
+            isCreatingService={isCreatingService}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onTogglePageSelection={togglePageSelection}
+            onSortBy={handleSortBy}
             onToggleRowSelection={toggleRowSelection}
             onCellChange={handleCellChange}
-            activeTableAutocomplete={activeTableAutocomplete}
             onCellFocus={handleTableCellFocus}
             onCellBlur={handleTableCellBlur}
             onCloseAutocomplete={handleCloseTableAutocomplete}
-            getAutocompleteMatches={getAutocompleteMatches}
             onResetRow={handleResetRow}
-            isSaving={isSaving}
-            isCreatingService={isCreatingService}
             onEditRow={handleEditRow}
             onDuplicateRow={handleDuplicateRow}
             onRequestDeleteRow={setRowToDelete}
-            currentPage={currentPage}
-            totalPages={totalPages}
             onPrevPage={() => setPage((prev) => Math.max(1, prev - 1))}
             onNextPage={() => setPage((prev) => Math.min(totalPages, prev + 1))}
           />
@@ -940,35 +954,35 @@ export function ServicesCatalogPanel() {
 
       <ServicesCatalogCreateDialog
         open={isCreateServiceDialogOpen}
-        onOpenChange={setIsCreateServiceDialogOpen}
         editingRowId={editingRowId}
         isCreatingService={isCreatingService}
         createServiceDraft={createServiceDraft}
         activeAutocompleteField={activeAutocompleteField}
+        getAutocompleteMatches={getCreateServiceAutocompleteMatches}
+        isFieldInvalid={isCreateServiceFieldInvalid}
+        onOpenChange={setIsCreateServiceDialogOpen}
         onFieldChange={handleCreateServiceFieldChange}
         onFieldFocus={handleCreateFieldFocus}
         onFieldBlur={handleCreateFieldBlur}
         onSelectAutocomplete={handleSelectCreateAutocomplete}
-        getAutocompleteMatches={getCreateServiceAutocompleteMatches}
-        isFieldInvalid={isCreateServiceFieldInvalid}
         onRequestClose={handleRequestCloseCreateServiceDialog}
         onSave={handleSaveServiceDialog}
       />
 
       <ServicesCatalogConfirmDialogs
         isDiscardCreateDialogOpen={isDiscardCreateDialogOpen}
+        isBulkDeleteDialogOpen={isBulkDeleteDialogOpen}
+        isRowDeleteDialogOpen={Boolean(rowToDelete)}
+        isDeletingService={isDeletingService}
+        selectedRowsCount={selectedRowIds.length}
         onSetDiscardCreateDialogOpen={setIsDiscardCreateDialogOpen}
         onConfirmDiscardCreateServiceDraft={handleConfirmDiscardCreateServiceDraft}
-        isBulkDeleteDialogOpen={isBulkDeleteDialogOpen}
         onSetBulkDeleteDialogOpen={setIsBulkDeleteDialogOpen}
-        isRowDeleteDialogOpen={!!rowToDelete}
         onSetRowDeleteDialogOpen={(open) => {
           if (!open) {
             setRowToDelete(null);
           }
         }}
-        isDeletingService={isDeletingService}
-        selectedRowsCount={selectedRowIds.length}
         onConfirmBulkDeleteRows={handleConfirmBulkDeleteRows}
         onConfirmDeleteRow={handleConfirmDeleteRow}
       />

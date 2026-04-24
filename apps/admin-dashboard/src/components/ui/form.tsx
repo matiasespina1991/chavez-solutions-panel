@@ -1,13 +1,13 @@
 'use client';
 
 import * as React from 'react';
-import * as LabelPrimitive from '@radix-ui/react-label';
+import type * as LabelPrimitive from '@radix-ui/react-label';
 import { Slot } from '@radix-ui/react-slot';
 import {
   Controller,
   FormProvider,
   useFormContext,
-  UseFormReturn,
+  type UseFormReturn,
   useFormState,
   type ControllerProps,
   type FieldPath,
@@ -17,25 +17,25 @@ import {
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
 
-const Form = <TFieldValues extends FieldValues = FieldValues>({
+function Form<TFieldValues extends FieldValues = FieldValues>({
   children,
   onSubmit,
   form,
   className
 }: {
-  children: React.ReactNode;
-  onSubmit: React.FormEventHandler<HTMLFormElement>;
-  form: UseFormReturn<TFieldValues>;
-  className?: string;
-}) => {
+  readonly children: React.ReactNode;
+  readonly onSubmit: React.FormEventHandler<HTMLFormElement>;
+  readonly form: UseFormReturn<TFieldValues>;
+  readonly className?: string;
+}) {
   return (
     <FormProvider {...form}>
-      <form onSubmit={onSubmit} className={className}>
+      <form className={className} onSubmit={onSubmit}>
         {children}
       </form>
     </FormProvider>
   );
-};
+}
 
 type FormFieldContextValue<
   TFieldValues extends FieldValues = FieldValues,
@@ -48,18 +48,18 @@ const FormFieldContext = React.createContext<FormFieldContextValue>(
   {} as FormFieldContextValue
 );
 
-const FormField = <
+function FormField<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
 >({
   ...props
-}: ControllerProps<TFieldValues, TName>) => {
+}: ControllerProps<TFieldValues, TName>) {
   return (
     <FormFieldContext.Provider value={{ name: props.name }}>
       <Controller {...props} />
     </FormFieldContext.Provider>
   );
-};
+}
 
 const useFormField = () => {
   const fieldContext = React.useContext(FormFieldContext);
@@ -115,7 +115,7 @@ function FormLabel({
   return (
     <Label
       data-slot='form-label'
-      data-error={!!error}
+      data-error={Boolean(error)}
       className={cn('data-[error=true]:text-destructive', className)}
       htmlFor={formItemId}
       {...props}
@@ -136,7 +136,7 @@ function FormControl({ ...props }: React.ComponentProps<typeof Slot>) {
           ? `${formDescriptionId}`
           : `${formDescriptionId} ${formMessageId}`
       }
-      aria-invalid={!!error}
+      aria-invalid={Boolean(error)}
       {...props}
     />
   );

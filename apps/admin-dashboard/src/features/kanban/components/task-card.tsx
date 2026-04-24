@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Task } from '../utils/store';
+import { type Task } from '../utils/store';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { cva } from 'class-variance-authority';
@@ -14,8 +14,8 @@ import { Badge } from '@/components/ui/badge';
 // }
 
 interface TaskCardProps {
-  task: Task;
-  isOverlay?: boolean;
+  readonly task: Task;
+  readonly isOverlay?: boolean;
 }
 
 export type TaskType = 'Task';
@@ -68,7 +68,7 @@ export function TaskCard({ task, isOverlay }: TaskCardProps) {
     >
       <CardHeader className='space-between border-secondary relative flex flex-row border-b-2 px-3 py-3'>
         <Button
-          variant={'ghost'}
+          variant="ghost"
           {...attributes}
           {...listeners}
           className='text-secondary-foreground/50 -ml-2 h-auto cursor-grab p-1'
@@ -76,7 +76,7 @@ export function TaskCard({ task, isOverlay }: TaskCardProps) {
           <span className='sr-only'>Move task</span>
           <IconGripVertical />
         </Button>
-        <Badge variant={'outline'} className='ml-auto font-semibold'>
+        <Badge variant="outline" className='ml-auto font-semibold'>
           Task
         </Badge>
       </CardHeader>

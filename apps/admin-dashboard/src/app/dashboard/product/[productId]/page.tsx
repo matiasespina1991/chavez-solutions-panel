@@ -7,7 +7,7 @@ export const metadata = {
   title: 'Panel : Product View'
 };
 
-type PageProps = { params: Promise<{ productId: string }> };
+type PageProps = { readonly params: Promise<{ productId: string }> };
 
 export default async function Page(props: PageProps) {
   const params = await props.params;

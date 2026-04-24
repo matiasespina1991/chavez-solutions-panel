@@ -31,11 +31,11 @@ export const generateDownloadUrl = onCall(async (req) => {
   let preferredPath = '';
   if (media.type === 'image') {
     preferredPath =
-      media.paths.derivatives['webp_medium'] ??
+      media.paths.derivatives.webp_medium ??
       Object.values(media.paths.derivatives)[0];
   } else {
     preferredPath =
-      media.paths.derivatives['webm_720'] ??
+      media.paths.derivatives.webm_720 ??
       Object.values(media.paths.derivatives)[0];
   }
 

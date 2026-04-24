@@ -77,23 +77,23 @@ export const useRequestModerationActions = ({
         prev.map((entry) =>
           entry.id === rowToReject.id
             ? {
-                ...entry,
-                status: 'draft',
-                approvalStatus: 'rejected',
-                approvalFeedback: feedback
-              }
+              ...entry,
+              status: 'draft',
+              approvalStatus: 'rejected',
+              approvalFeedback: feedback
+            }
             : entry
         )
       );
 
       setSelectedRow((prev) =>
-        prev && prev.id === rowToReject.id
+        prev?.id === rowToReject.id
           ? {
-              ...prev,
-              status: 'draft',
-              approvalStatus: 'rejected',
-              approvalFeedback: feedback
-            }
+            ...prev,
+            status: 'draft',
+            approvalStatus: 'rejected',
+            approvalFeedback: feedback
+          }
           : prev
       );
 

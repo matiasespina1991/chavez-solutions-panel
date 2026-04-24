@@ -6,11 +6,11 @@ interface RequestDialogBanner {
 }
 
 interface RequestSummaryBannerProps {
-  row: RequestRow;
-  banner: RequestDialogBanner | null;
-  onExecute: (row: RequestRow) => void;
-  onEdit: () => void;
-  onResume: () => void;
+  readonly row: RequestRow;
+  readonly banner: RequestDialogBanner | null;
+  readonly onExecute: (row: RequestRow) => void;
+  readonly onEdit: () => void;
+  readonly onResume: () => void;
 }
 
 export function RequestSummaryBanner({

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 
-import { ImportedServiceDocument } from '@/features/configurator/services/configurations';
+import { type ImportedServiceDocument } from '@/features/configurator/services/configurations';
 import {
   type DialogFilterKey,
   type DialogFilters,
@@ -37,23 +37,21 @@ export function useConfiguratorServiceSelectionState({
   getMatrizLabel,
   toSelectedService
 }: UseConfiguratorServiceSelectionStateParams) {
-  const sortServicesAlphabetically = (services: SelectedService[]) => {
-    return [...services].sort((a, b) => {
-      const aLabel = (a.ID_PARAMETRO || getServiceId(a)).trim();
-      const bLabel = (b.ID_PARAMETRO || getServiceId(b)).trim();
+  const sortServicesAlphabetically = (services: SelectedService[]) => [...services].sort((a, b) => {
+    const aLabel = (a.ID_PARAMETRO || getServiceId(a)).trim();
+    const bLabel = (b.ID_PARAMETRO || getServiceId(b)).trim();
 
-      const byLabel = aLabel.localeCompare(bLabel, 'es', {
-        sensitivity: 'base',
-        numeric: true
-      });
-      if (byLabel !== 0) return byLabel;
-
-      return getServiceId(a).localeCompare(getServiceId(b), 'es', {
-        sensitivity: 'base',
-        numeric: true
-      });
+    const byLabel = aLabel.localeCompare(bLabel, 'es', {
+      sensitivity: 'base',
+      numeric: true
     });
-  };
+    if (byLabel !== 0) return byLabel;
+
+    return getServiceId(a).localeCompare(getServiceId(b), 'es', {
+      sensitivity: 'base',
+      numeric: true
+    });
+  });
 
   const [isMatrixSelectorDialogOpen, setIsMatrixSelectorDialogOpen] =
     useState(false);
@@ -230,6 +228,7 @@ export function useConfiguratorServiceSelectionState({
         }
       ]);
     }
+
     setActiveComboMatrix(null);
     setIsServicesDialogOpen(false);
   };
@@ -328,6 +327,7 @@ export function useConfiguratorServiceSelectionState({
             if (!value.trim()) {
               return { ...service, unitPrice: null };
             }
+
             const parsed = Number(value);
             return {
               ...service,
@@ -339,6 +339,7 @@ export function useConfiguratorServiceSelectionState({
             if (!value.trim()) {
               return { ...service, discountAmount: null };
             }
+
             const parsed = Number(value);
             return {
               ...service,

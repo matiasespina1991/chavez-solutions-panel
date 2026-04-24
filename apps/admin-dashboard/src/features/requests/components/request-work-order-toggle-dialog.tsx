@@ -11,13 +11,13 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 
 interface RequestWorkOrderToggleDialogProps {
-  open: boolean;
-  isTogglingWorkOrder: boolean;
-  workOrderToggleAction: 'pause' | 'resume' | null;
-  workOrderToggleNotes: string;
-  onOpenChange: (open: boolean) => void;
-  onNotesChange: (value: string) => void;
-  onConfirm: () => void;
+  readonly open: boolean;
+  readonly isTogglingWorkOrder: boolean;
+  readonly workOrderToggleAction: 'pause' | 'resume' | null;
+  readonly workOrderToggleNotes: string;
+  readonly onOpenChange: (open: boolean) => void;
+  readonly onNotesChange: (value: string) => void;
+  readonly onConfirm: () => void;
 }
 
 export function RequestWorkOrderToggleDialog({
@@ -47,10 +47,10 @@ export function RequestWorkOrderToggleDialog({
             <label className='text-sm font-medium'>Notas</label>
             <Textarea
               value={workOrderToggleNotes}
-              onChange={(event) => onNotesChange(event.target.value)}
               placeholder='Ingrese notas para la solicitud y la orden de trabajo'
               rows={4}
               disabled={isTogglingWorkOrder}
+              onChange={(event) => onNotesChange(event.target.value)}
             />
           </div>
         </AlertDialogHeader>
@@ -63,8 +63,8 @@ export function RequestWorkOrderToggleDialog({
           </AlertDialogCancel>
           <AlertDialogAction
             className='cursor-pointer bg-black text-white hover:bg-black/90 disabled:bg-black disabled:text-white'
-            onClick={onConfirm}
             disabled={isTogglingWorkOrder}
+            onClick={onConfirm}
           >
             {isTogglingWorkOrder
               ? workOrderToggleAction === 'resume'

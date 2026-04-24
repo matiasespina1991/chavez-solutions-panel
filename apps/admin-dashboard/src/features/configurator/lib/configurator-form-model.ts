@@ -1,6 +1,6 @@
 import * as z from 'zod';
 
-import { ImportedServiceDocument } from '@/features/configurator/services/configurations';
+import { type ImportedServiceDocument } from '@/features/configurator/services/configurations';
 
 export const formSchema = z.object({
   type: z.literal('proforma'),

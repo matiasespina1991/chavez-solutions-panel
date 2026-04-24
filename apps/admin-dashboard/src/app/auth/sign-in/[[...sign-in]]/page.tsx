@@ -1,4 +1,4 @@
-import { Metadata } from 'next';
+import { type Metadata } from 'next';
 import SignInViewPage from '@/features/auth/components/sign-in-view';
 
 export const metadata: Metadata = {
@@ -13,7 +13,7 @@ export default async function Page() {
     const response = await fetch(
       'https://api.github.com/repos/kiranism/next-shadcn-dashboard-starter',
       {
-        next: { revalidate: 86400 }
+        next: { revalidate: 86_400 }
       }
     );
 
@@ -21,8 +21,9 @@ export default async function Page() {
       const data = await response.json();
       stars = data.stargazers_count || stars; // Update stars if API response is valid
     }
-  } catch (error) {
+  } catch {
     // Error fetching GitHub stars, using default value
   }
+
   return <SignInViewPage stars={stars} />;
 }

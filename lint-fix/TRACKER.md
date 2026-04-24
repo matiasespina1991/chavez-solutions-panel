@@ -11,18 +11,18 @@
 
 | Task | Estado | Dependencias | Archivo |
 |---|---|---|---|
-| LINT-1001 | todo | LINT-0002 | `cross-cutting/phase-1-xo-tooling-alignment.md` |
-| LINT-1002 | todo | LINT-1001 | `cross-cutting/phase-1-xo-tooling-alignment.md` |
-| LINT-1003 | todo | LINT-1001 | `cross-cutting/phase-1-xo-tooling-alignment.md` |
+| LINT-1001 | approved | LINT-0002 | `cross-cutting/phase-1-xo-tooling-alignment.md` |
+| LINT-1002 | approved | LINT-1001 | `cross-cutting/phase-1-xo-tooling-alignment.md` |
+| LINT-1003 | approved | LINT-1001 | `cross-cutting/phase-1-xo-tooling-alignment.md` |
 
 ## Fase 2 - Reduccion masiva (autofix + lotes seguros)
 
 | Task | Estado | Dependencias | Archivo |
 |---|---|---|---|
-| LINT-2001 | todo | LINT-1002 | `app/phase-2-admin-dashboard-autofix.md` |
-| LINT-2002 | todo | LINT-2001 | `app/phase-2-admin-dashboard-autofix.md` |
-| LINT-2101 | todo | LINT-1002 | `functions/phase-2-functions-autofix.md` |
-| LINT-2102 | todo | LINT-2101 | `functions/phase-2-functions-autofix.md` |
+| LINT-2001 | approved | LINT-1002 | `app/phase-2-admin-dashboard-autofix.md` |
+| LINT-2002 | approved | LINT-2001 | `app/phase-2-admin-dashboard-autofix.md` |
+| LINT-2101 | approved | LINT-1002 | `functions/phase-2-functions-autofix.md` |
+| LINT-2102 | approved | LINT-2101 | `functions/phase-2-functions-autofix.md` |
 
 ## Fase 3 - Reglas de alto impacto (manual)
 

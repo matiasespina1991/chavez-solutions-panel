@@ -8,9 +8,9 @@ const ResultItem = React.forwardRef(
       active,
       currentRootActionId
     }: {
-      action: ActionImpl;
-      active: boolean;
-      currentRootActionId: ActionId;
+      readonly action: ActionImpl;
+      readonly active: boolean;
+      readonly currentRootActionId: ActionId;
     },
     ref: React.Ref<HTMLDivElement>
   ) => {
@@ -25,16 +25,14 @@ const ResultItem = React.forwardRef(
     return (
       <div
         ref={ref}
-        className={`relative z-10 flex cursor-pointer items-center justify-between px-4 py-3`}
+        className="relative z-10 flex cursor-pointer items-center justify-between px-4 py-3"
       >
-        {active && (
-          <div
-            id='kbar-result-item'
-            className='border-primary bg-accent/50 absolute inset-0 z-[-1]! border-l-4'
-          ></div>
-        )}
+        {active ? <div
+          id='kbar-result-item'
+          className='border-primary bg-accent/50 absolute inset-0 z-[-1]! border-l-4'
+        /> : null}
         <div className='relative z-10 flex items-center gap-2'>
-          {action.icon && action.icon}
+          {action.icon ? action.icon : null}
           <div className='flex flex-col'>
             <div>
               {ancestors.length > 0 &&
@@ -48,11 +46,9 @@ const ResultItem = React.forwardRef(
                 ))}
               <span>{action.name}</span>
             </div>
-            {action.subtitle && (
-              <span className='text-muted-foreground text-sm'>
-                {action.subtitle}
-              </span>
-            )}
+            {action.subtitle ? <span className='text-muted-foreground text-sm'>
+              {action.subtitle}
+            </span> : null}
           </div>
         </div>
         {action.shortcut?.length ? (

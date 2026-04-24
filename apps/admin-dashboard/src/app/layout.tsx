@@ -27,7 +27,7 @@ export const viewport: Viewport = {
 export default async function RootLayout({
   children
 }: {
-  children: React.ReactNode;
+  readonly children: React.ReactNode;
 }) {
   const cookieStore = await cookies();
   const activeThemeValue = cookieStore.get('active_theme')?.value;
@@ -42,7 +42,7 @@ export default async function RootLayout({
   const isScaled = initialThemeValue?.endsWith('-scaled');
 
   return (
-    <html lang='en' suppressHydrationWarning>
+    <html suppressHydrationWarning lang='en'>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -68,13 +68,13 @@ export default async function RootLayout({
         <NextTopLoader color='var(--primary)' showSpinner={false} />
         <NuqsAdapter>
           <ThemeProvider
-            attribute='class'
-            defaultTheme='system'
             enableSystem
             disableTransitionOnChange
             enableColorScheme
+            attribute='class'
+            defaultTheme='system'
           >
-            <Providers activeThemeValue={activeThemeValue as string}>
+            <Providers activeThemeValue={activeThemeValue!}>
               <Toaster />
               {children}
             </Providers>

@@ -321,7 +321,7 @@ export const normalizeForCompare = (value: string): string => value.trim();
 export const normalizeForAutocomplete = (value: string): string =>
   value
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replaceAll(/[\u0300-\u036F]/g, '')
     .toLowerCase()
     .trim();
 
@@ -333,7 +333,7 @@ export const getChangedPatch = (
 
   const patch: Record<string, string | number | null> = {};
 
-  EDITABLE_COLUMNS.forEach(({ key }) => {
+  for (const { key } of EDITABLE_COLUMNS) {
     const nextRaw = current[key];
     const prevRaw = original[key];
 
@@ -343,7 +343,7 @@ export const getChangedPatch = (
     if (next !== prev) {
       patch[key] = next;
     }
-  });
+  }
 
   return patch;
 };

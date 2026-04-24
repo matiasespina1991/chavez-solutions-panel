@@ -8,7 +8,7 @@ export const metadata = {
 export default function Page() {
   return (
     <PageContainer
-      scrollable={true}
+      scrollable
       className='w-full max-w-[66rem] justify-self-start'
       pageTitle='Contacto'
       pageDescription='Edita los links de contacto.'

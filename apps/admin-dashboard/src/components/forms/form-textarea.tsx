@@ -1,6 +1,6 @@
 'use client';
 
-import { FieldPath, FieldValues } from 'react-hook-form';
+import { type FieldPath, type FieldValues } from 'react-hook-form';
 import {
   FormControl,
   FormDescription,
@@ -10,14 +10,14 @@ import {
   FormMessage
 } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
-import { BaseFormFieldProps, TextareaConfig } from '@/types/base-form';
+import { type BaseFormFieldProps, type TextareaConfig } from '@/types/base-form';
 
 interface FormTextareaProps<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
 > extends BaseFormFieldProps<TFieldValues, TName> {
-  placeholder?: string;
-  config?: TextareaConfig;
+  readonly placeholder?: string;
+  readonly config?: TextareaConfig;
 }
 
 function FormTextarea<
@@ -47,12 +47,10 @@ function FormTextarea<
       name={name}
       render={({ field }) => (
         <FormItem className={className}>
-          {label && (
-            <FormLabel>
-              {label}
-              {required && <span className='ml-1 text-red-500'>*</span>}
-            </FormLabel>
-          )}
+          {label ? <FormLabel>
+            {label}
+            {required ? <span className='ml-1 text-red-500'>*</span> : null}
+          </FormLabel> : null}
           <FormControl>
             <div className='space-y-2'>
               <Textarea
@@ -63,14 +61,12 @@ function FormTextarea<
                 maxLength={maxLength}
                 {...field}
               />
-              {showCharCount && maxLength && (
-                <div className='text-muted-foreground text-right text-sm'>
-                  {field.value?.length || 0} / {maxLength}
-                </div>
-              )}
+              {showCharCount && maxLength ? <div className='text-muted-foreground text-right text-sm'>
+                {field.value?.length || 0} / {maxLength}
+              </div> : null}
             </div>
           </FormControl>
-          {description && <FormDescription>{description}</FormDescription>}
+          {description ? <FormDescription>{description}</FormDescription> : null}
           <FormMessage />
         </FormItem>
       )}

@@ -20,9 +20,8 @@ import {
   IconChevronRight,
   IconFileTypeCsv,
   IconRefresh,
-  IconUpload
+  IconUpload, IconTrash, IconRotateClockwise 
 } from '@tabler/icons-react';
-import { IconTrash, IconRotateClockwise } from '@tabler/icons-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useDropzone, type FileRejection } from 'react-dropzone';
 import { toast } from 'sonner';
@@ -31,7 +30,7 @@ import {
   listServiceHistory,
   restoreServiceHistory,
   deleteServiceHistory,
-  ServiceHistoryEntry
+  type ServiceHistoryEntry
 } from '../services/import-services';
 
 const PREVIEW_ROWS_PER_PAGE = 30;
@@ -64,6 +63,7 @@ const parseCsvRows = (csvContent: string): string[][] => {
       } else {
         inQuotes = !inQuotes;
       }
+
       continue;
     }
 
@@ -97,7 +97,7 @@ const parseCsvRows = (csvContent: string): string[][] => {
 const buildCsvPreview = (csvContent: string): CsvPreviewData => {
   const rows = parseCsvRows(csvContent);
 
-  if (!rows.length) {
+  if (rows.length === 0) {
     return {
       headers: [],
       rows: [],
@@ -148,11 +148,11 @@ const getHeaderLabel = (header: string): string =>
   headerLabelMap[header] ??
   header
     .toLowerCase()
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (l) => l.toUpperCase());
+    .replaceAll('_', ' ')
+    .replaceAll(/\b\w/g, (l) => l.toUpperCase());
 
 const getRejectionMessage = (rejection: FileRejection) => {
-  if (!rejection.errors.length) {
+  if (rejection.errors.length === 0) {
     return `No se pudo cargar el archivo ${rejection.file.name}.`;
   }
 
@@ -191,12 +191,12 @@ export function ImportServicesPanel() {
   const onDrop = useCallback(
     (acceptedFiles: File[], rejected: FileRejection[]) => {
       if (rejected.length > 0) {
-        rejected.forEach((rejection) => {
+        for (const rejection of rejected) {
           toast.error(getRejectionMessage(rejection));
-        });
+        }
       }
 
-      if (!acceptedFiles.length) return;
+      if (acceptedFiles.length === 0) return;
 
       const nextFile = acceptedFiles[0];
       const wasReplacing = Boolean(selectedFile);
@@ -487,12 +487,12 @@ export function ImportServicesPanel() {
                       variant='outline'
                       size='sm'
                       className='cursor-pointer'
+                      disabled={isImporting}
                       onClick={(event) => {
                         event.preventDefault();
                         event.stopPropagation();
                         open();
                       }}
-                      disabled={isImporting}
                     >
                       Reemplazar archivo
                     </Button>
@@ -504,8 +504,8 @@ export function ImportServicesPanel() {
                 <Button
                   type='button'
                   className='cursor-pointer'
-                  onClick={() => setIsConfirmDialogOpen(true)}
                   disabled={!selectedFile || isImporting}
+                  onClick={() => setIsConfirmDialogOpen(true)}
                 >
                   {isImporting ? (
                     <span className='inline-flex items-center gap-2'>
@@ -641,14 +641,14 @@ export function ImportServicesPanel() {
                         </tr>
                       </thead>
                       <tbody>
-                        {paginatedRows.length ? (
+                        {paginatedRows.length > 0 ? (
                           paginatedRows.map(
                             (row: string[], rowIndex: number) => (
                               <tr
                                 key={`preview-row-${(currentPage - 1) * rowsPerPage + rowIndex}`}
                                 className='border-t'
                               >
-                                {csvPreview!.headers.map(
+                                {csvPreview.headers.map(
                                   (header: string, colIndex: number) => (
                                     <td
                                       key={`preview-cell-${(currentPage - 1) * rowsPerPage + rowIndex}-${header}-${colIndex}`}
@@ -697,10 +697,10 @@ export function ImportServicesPanel() {
                         variant='outline'
                         size='sm'
                         disabled={currentPage <= 1}
+                        aria-label='Página anterior'
                         onClick={() =>
                           setPreviewPage((prev) => Math.max(1, prev - 1))
                         }
-                        aria-label='Página anterior'
                       >
                         <IconChevronLeft className='h-4 w-4' />
                       </Button>
@@ -712,12 +712,12 @@ export function ImportServicesPanel() {
                         variant='outline'
                         size='sm'
                         disabled={currentPage >= pageCount}
+                        aria-label='Página siguiente'
                         onClick={() =>
                           setPreviewPage((prev) =>
                             Math.min(pageCount, prev + 1)
                           )
                         }
-                        aria-label='Página siguiente'
                       >
                         <IconChevronRight className='h-4 w-4' />
                       </Button>
@@ -756,8 +756,8 @@ export function ImportServicesPanel() {
             </AlertDialogCancel>
             <AlertDialogAction
               className='cursor-pointer'
-              onClick={handleConfirmUpdate}
               disabled={isImporting || !selectedFile}
+              onClick={handleConfirmUpdate}
             >
               {isImporting ? 'Actualizando…' : 'Aceptar'}
             </AlertDialogAction>
@@ -797,32 +797,32 @@ export function ImportServicesPanel() {
             </AlertDialogCancel>
             <AlertDialogAction
               className='inline-flex cursor-pointer items-center justify-center rounded-md border border-slate-700/20 bg-black px-3 py-2 text-white hover:bg-black dark:border-slate-600/40 dark:bg-sky-500 dark:text-white dark:hover:bg-sky-500'
-              onClick={() => {
-                // open confirmation for restore
-                setPendingAction('restore');
-                setIsActionConfirmOpen(true);
-              }}
               disabled={
                 !selectedTimelineEntry ||
                 isRestoreInProgress ||
                 isHistoryActionInProgress
               }
+              onClick={() => {
+                // open confirmation for restore
+                setPendingAction('restore');
+                setIsActionConfirmOpen(true);
+              }}
             >
               <IconRotateClockwise className='mr-1 h-4 w-4 text-white' />
               <span>Restaurar</span>
             </AlertDialogAction>
             <AlertDialogAction
               className='inline-flex cursor-pointer items-center justify-center rounded-md border border-slate-700/20 bg-red-500 px-3 py-2 text-white hover:bg-red-500 dark:border-slate-600/40 dark:hover:bg-red-500'
-              onClick={() => {
-                setPendingAction('delete');
-                setIsActionConfirmOpen(true);
-              }}
               disabled={
                 !selectedTimelineEntry ||
                 selectedTimelineEntry?.isCurrent ||
                 isHistoryActionInProgress ||
                 isRestoreInProgress
               }
+              onClick={() => {
+                setPendingAction('delete');
+                setIsActionConfirmOpen(true);
+              }}
             >
               <IconTrash className='mr-1 h-4 w-4 text-white' />
               <span>Eliminar</span>
@@ -857,7 +857,7 @@ export function ImportServicesPanel() {
               className={`inline-flex cursor-pointer items-center justify-center rounded-md border border-slate-700/20 px-3 py-2 dark:border-slate-600/40 ${pendingAction === 'delete' ? 'bg-red-500 text-white hover:bg-red-500 dark:hover:bg-red-500' : 'bg-black text-white hover:bg-black dark:bg-sky-500 dark:text-white dark:hover:bg-sky-500'}`}
               onClick={async () => {
                 if (!selectedTimelineEntry) return;
-                const id = selectedTimelineEntry.id;
+                const {id} = selectedTimelineEntry;
                 setIsActionConfirmOpen(false);
                 setIsTimelineDialogOpen(false);
                 setPendingAction(null);

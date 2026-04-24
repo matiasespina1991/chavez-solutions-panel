@@ -7,19 +7,19 @@ import { FormTextarea } from '@/components/forms/form-textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form } from '@/components/ui/form';
-import { Product } from '@/constants/mock-api';
+import { type Product } from '@/constants/mock-api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 
-const MAX_FILE_SIZE = 5000000;
-const ACCEPTED_IMAGE_TYPES = [
+const MAX_FILE_SIZE = 5_000_000;
+const ACCEPTED_IMAGE_TYPES = new Set([
   'image/jpeg',
   'image/jpg',
   'image/png',
   'image/webp'
-];
+]);
 
 const formSchema = z.object({
   image: z
@@ -30,7 +30,7 @@ const formSchema = z.object({
       `Max file size is 5MB.`
     )
     .refine(
-      (files) => ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type),
+      (files) => ACCEPTED_IMAGE_TYPES.has(files?.[0]?.type),
       '.jpg, .jpeg, .png and .webp files are accepted.'
     ),
   name: z.string().min(2, {
@@ -47,8 +47,8 @@ export default function ProductForm({
   initialData,
   pageTitle
 }: {
-  initialData: Product | null;
-  pageTitle: string;
+  readonly initialData: Product | null;
+  readonly pageTitle: string;
 }) {
   const defaultValues = {
     name: initialData?.name || '',
@@ -59,7 +59,7 @@ export default function ProductForm({
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: defaultValues
+    defaultValues
   });
 
   const router = useRouter();
@@ -80,8 +80,8 @@ export default function ProductForm({
       <CardContent>
         <Form
           form={form}
-          onSubmit={form.handleSubmit(onSubmit)}
           className='space-y-8'
+          onSubmit={form.handleSubmit(onSubmit)}
         >
           <FormFileUpload
             control={form.control}
@@ -96,19 +96,19 @@ export default function ProductForm({
 
           <div className='grid grid-cols-1 gap-6 md:grid-cols-2'>
             <FormInput
+              required
               control={form.control}
               name='name'
               label='Product Name'
               placeholder='Enter product name'
-              required
             />
 
             <FormSelect
+              required
               control={form.control}
               name='category'
               label='Category'
               placeholder='Select category'
-              required
               options={[
                 {
                   label: 'Beauty Products',
@@ -130,11 +130,11 @@ export default function ProductForm({
             />
 
             <FormInput
+              required
               control={form.control}
               name='price'
               label='Price'
               placeholder='Enter price'
-              required
               type='number'
               min={0}
               step='0.01'
@@ -142,11 +142,11 @@ export default function ProductForm({
           </div>
 
           <FormTextarea
+            required
             control={form.control}
             name='description'
             label='Description'
             placeholder='Enter product description'
-            required
             config={{
               maxLength: 500,
               showCharCount: true,

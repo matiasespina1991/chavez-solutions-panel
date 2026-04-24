@@ -18,10 +18,10 @@ import { getCommonPinningStyles } from '@/lib/data-table';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 interface DataTableProps<TData> extends React.ComponentProps<'div'> {
-  table: TanstackTable<TData>;
-  actionBar?: React.ReactNode;
-  onRowClick?: (row: TanstackRow<TData>) => void;
-  renderRow?: (
+  readonly table: TanstackTable<TData>;
+  readonly actionBar?: React.ReactNode;
+  readonly onRowClick?: (row: TanstackRow<TData>) => void;
+  readonly renderRow?: (
     row: TanstackRow<TData>,
     cells: React.ReactNode[],
     onRowClick?: (row: TanstackRow<TData>) => void
@@ -56,9 +56,9 @@ export function DataTable<TData>({
                         {header.isPlaceholder
                           ? null
                           : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
                       </TableHead>
                     ))}
                   </TableRow>
@@ -66,7 +66,7 @@ export function DataTable<TData>({
               </TableHeader>
               <TableBody>
                 {table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row) => {
+                  table.getRowModel().rows.map(async (row) => {
                     const cells = row.getVisibleCells().map((cell) => (
                       <TableCell
                         key={cell.id}
@@ -100,6 +100,7 @@ export function DataTable<TData>({
                           if (target?.closest('[data-row-click="ignore"]')) {
                             return;
                           }
+
                           onRowClick(row);
                         }}
                       >
@@ -126,8 +127,7 @@ export function DataTable<TData>({
       <div className='flex flex-col gap-2.5'>
         <DataTablePagination table={table} />
         {actionBar &&
-          table.getFilteredSelectedRowModel().rows.length > 0 &&
-          actionBar}
+          table.getFilteredSelectedRowModel().rows.length > 0 ? actionBar : null}
       </div>
     </div>
   );

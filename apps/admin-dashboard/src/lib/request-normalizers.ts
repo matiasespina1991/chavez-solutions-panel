@@ -2,12 +2,12 @@ export const normalizeMatrixArray = (value: unknown): string[] => {
   if (!Array.isArray(value)) return [];
 
   const unique = new Set<string>();
-  value.forEach((entry) => {
-    if (typeof entry !== 'string') return;
+  for (const entry of value) {
+    if (typeof entry !== 'string') continue;
     const normalized = entry.trim();
-    if (!normalized) return;
+    if (!normalized) continue;
     unique.add(normalized);
-  });
+  }
 
   return Array.from(unique);
 };

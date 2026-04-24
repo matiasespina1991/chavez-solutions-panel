@@ -15,26 +15,26 @@ interface ProformaSummaryServiceGroup {
 }
 
 interface ProformaSummaryPanelProps {
-  typeLabel: string;
-  reference: string;
-  workOrderExecutedByEmail?: string | null;
-  validDaysLabel: string;
-  validUntilLabel: string;
-  client: {
+  readonly typeLabel: string;
+  readonly reference: string;
+  readonly workOrderExecutedByEmail?: string | null;
+  readonly validDaysLabel: string;
+  readonly validUntilLabel: string;
+  readonly client: {
     businessName: string;
     taxId: string;
     contactName: string;
     contactEmail?: string;
   };
-  groups: ProformaSummaryServiceGroup[];
-  pricing: {
+  readonly groups: ProformaSummaryServiceGroup[];
+  readonly pricing: {
     subtotal: number;
     taxPercent: number;
     total: number;
   };
-  notes?: string | null;
-  rejectionReason?: string | null;
-  showTotalUsdSuffix?: boolean;
+  readonly notes?: string | null;
+  readonly rejectionReason?: string | null;
+  readonly showTotalUsdSuffix?: boolean;
 }
 
 export function ProformaSummaryPanel({
@@ -139,7 +139,7 @@ export function ProformaSummaryPanel({
                         Math.max(
                           0,
                           service.unitPrice * service.quantity -
-                            (service.discountAmount ?? 0)
+                          (service.discountAmount ?? 0)
                         )
                       );
                     }, 0);
@@ -154,9 +154,9 @@ export function ProformaSummaryPanel({
                           const lineTotal =
                             lineBase !== null
                               ? Math.max(
-                                  0,
-                                  lineBase - (service.discountAmount ?? 0)
-                                )
+                                0,
+                                lineBase - (service.discountAmount ?? 0)
+                              )
                               : null;
                           return (
                             <tr

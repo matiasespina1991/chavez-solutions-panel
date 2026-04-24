@@ -6,7 +6,7 @@ import ConfiguratorForm from '@/features/configurator/components/configurator-fo
 export default function ConfiguratorPage() {
   return (
     <PageContainer
-      scrollable={true}
+      scrollable
       className='w-full max-w-[calc(66rem)] justify-self-start'
       pageTitle='Configurador de proformas'
       pageDescription='Crea y configura proformas'

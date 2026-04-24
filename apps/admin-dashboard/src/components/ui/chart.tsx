@@ -8,15 +8,13 @@ import { cn } from '@/lib/utils';
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: '', dark: '.dark' } as const;
 
-export type ChartConfig = {
-  [key in string]: {
-    label?: React.ReactNode;
-    icon?: React.ComponentType;
-  } & (
-    | { color?: string; theme?: never }
-    | { color?: never; theme: Record<keyof typeof THEMES, string> }
-  );
-};
+export type ChartConfig = Record<string, {
+  label?: React.ReactNode;
+  icon?: React.ComponentType;
+} & (
+  | { color?: string; theme?: never }
+  | { color?: never; theme: Record<keyof typeof THEMES, string> }
+  )>;
 
 type ChartContextProps = {
   config: ChartConfig;
@@ -41,13 +39,13 @@ function ChartContainer({
   config,
   ...props
 }: React.ComponentProps<'div'> & {
-  config: ChartConfig;
-  children: React.ComponentProps<
+  readonly config: ChartConfig;
+  readonly children: React.ComponentProps<
     typeof RechartsPrimitive.ResponsiveContainer
   >['children'];
 }) {
   const uniqueId = React.useId();
-  const chartId = `chart-${id || uniqueId.replace(/:/g, '')}`;
+  const chartId = `chart-${id || uniqueId.replaceAll(':', '')}`;
 
   return (
     <ChartContext.Provider value={{ config }}>
@@ -70,12 +68,12 @@ function ChartContainer({
   );
 }
 
-const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
+function ChartStyle({ id, config }: { readonly id: string; readonly config: ChartConfig }) {
   const colorConfig = Object.entries(config).filter(
     ([, config]) => config.theme || config.color
   );
 
-  if (!colorConfig.length) {
+  if (colorConfig.length === 0) {
     return null;
   }
 
@@ -87,13 +85,13 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
             ([theme, prefix]) => `
 ${prefix} [data-chart=${id}] {
 ${colorConfig
-  .map(([configKey, itemConfig]) => {
-    const color =
-      itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
-      itemConfig.color;
-    return color ? `  --color-${configKey}: ${color};` : null;
-  })
-  .join('\n')}
+      .map(([configKey, itemConfig]) => {
+        const color =
+          itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
+          itemConfig.color;
+        return color ? `  --color-${configKey}: ${color};` : null;
+      })
+      .join('\n')}
 }
 `
           )
@@ -101,7 +99,7 @@ ${colorConfig
       }}
     />
   );
-};
+}
 
 const ChartTooltip = RechartsPrimitive.Tooltip;
 
@@ -121,11 +119,11 @@ function ChartTooltipContent({
   labelKey
 }: React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
   React.ComponentProps<'div'> & {
-    hideLabel?: boolean;
-    hideIndicator?: boolean;
-    indicator?: 'line' | 'dot' | 'dashed';
-    nameKey?: string;
-    labelKey?: string;
+    readonly hideLabel?: boolean;
+    readonly hideIndicator?: boolean;
+    readonly indicator?: 'line' | 'dot' | 'dashed';
+    readonly nameKey?: string;
+    readonly labelKey?: string;
   }) {
   const { config } = useChart();
 
@@ -139,7 +137,7 @@ function ChartTooltipContent({
     const itemConfig = getPayloadConfigFromPayload(config, item, key);
     const value =
       !labelKey && typeof label === 'string'
-        ? config[label as keyof typeof config]?.label || label
+        ? config[label]?.label || label
         : itemConfig?.label;
 
     if (labelFormatter) {
@@ -233,11 +231,9 @@ function ChartTooltipContent({
                         {itemConfig?.label || item.name}
                       </span>
                     </div>
-                    {item.value && (
-                      <span className='text-foreground font-mono font-medium tabular-nums'>
-                        {item.value.toLocaleString()}
-                      </span>
-                    )}
+                    {item.value ? <span className='text-foreground font-mono font-medium tabular-nums'>
+                      {item.value.toLocaleString()}
+                    </span> : null}
                   </div>
                 </>
               )}
@@ -259,8 +255,8 @@ function ChartLegendContent({
   nameKey
 }: React.ComponentProps<'div'> &
   Pick<RechartsPrimitive.LegendProps, 'payload' | 'verticalAlign'> & {
-    hideIcon?: boolean;
-    nameKey?: string;
+    readonly hideIcon?: boolean;
+    readonly nameKey?: string;
   }) {
   const { config } = useChart();
 
@@ -328,7 +324,7 @@ function getPayloadConfigFromPayload(
     key in payload &&
     typeof payload[key as keyof typeof payload] === 'string'
   ) {
-    configLabelKey = payload[key as keyof typeof payload] as string;
+    configLabelKey = payload[key as keyof typeof payload];
   } else if (
     payloadPayload &&
     key in payloadPayload &&
@@ -336,12 +332,12 @@ function getPayloadConfigFromPayload(
   ) {
     configLabelKey = payloadPayload[
       key as keyof typeof payloadPayload
-    ] as string;
+    ];
   }
 
   return configLabelKey in config
     ? config[configLabelKey]
-    : config[key as keyof typeof config];
+    : config[key];
 }
 
 export {

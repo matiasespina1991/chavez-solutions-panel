@@ -11,17 +11,17 @@ import {
 } from '@tabler/icons-react';
 
 interface RequestSummaryActionsProps {
-  selectedRow: RequestRow | null;
-  canShowExecuteWorkOrderButton: boolean;
-  canApproveSelectedRow: boolean;
-  canEditSelectedRow: boolean;
-  pendingActionId: string | null;
-  isDialogDownloading: boolean;
-  onOpenExecuteWorkOrderDialog: (row: RequestRow) => void;
-  onWorkOrderAction: (row: RequestRow) => void;
-  onEdit: () => void;
-  onDownload: () => void;
-  onDelete: () => void;
+  readonly selectedRow: RequestRow | null;
+  readonly canShowExecuteWorkOrderButton: boolean;
+  readonly canApproveSelectedRow: boolean;
+  readonly canEditSelectedRow: boolean;
+  readonly pendingActionId: string | null;
+  readonly isDialogDownloading: boolean;
+  readonly onOpenExecuteWorkOrderDialog: (row: RequestRow) => void;
+  readonly onWorkOrderAction: (row: RequestRow) => void;
+  readonly onEdit: () => void;
+  readonly onDownload: () => void;
+  readonly onDelete: () => void;
 }
 
 export function RequestSummaryActions({
@@ -45,11 +45,12 @@ export function RequestSummaryActions({
       icon: <IconPlayerPlayFilled className='h-4 w-4' />,
       tooltip: 'Ejecutar orden de trabajo',
       ariaLabel: 'Ejecutar orden de trabajo',
-      onClick: () => {
+      onClick() {
         if (canApproveSelectedRow) {
           onOpenExecuteWorkOrderDialog(selectedRow);
           return;
         }
+
         onWorkOrderAction(selectedRow);
       },
       disabled: pendingActionId === selectedRow.id,
@@ -66,9 +67,7 @@ export function RequestSummaryActions({
     ariaLabel: 'Editar solicitud',
     onClick: onEdit,
     disabled: !canEditSelectedRow
-  });
-
-  actions.push({
+  }, {
     id: 'download-request',
     icon: (
       <span className='relative inline-flex h-4 w-4 items-center justify-center'>
@@ -85,9 +84,7 @@ export function RequestSummaryActions({
     onClick: onDownload,
     disabled: isDialogDownloading,
     className: isDialogDownloading ? 'text-muted-foreground' : undefined
-  });
-
-  actions.push({
+  }, {
     id: 'delete-request',
     icon: <IconTrash className='h-4 w-4' />,
     tooltip: 'Eliminar solicitud',

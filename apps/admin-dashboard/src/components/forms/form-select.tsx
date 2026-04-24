@@ -1,6 +1,6 @@
 'use client';
 
-import { FieldPath, FieldValues } from 'react-hook-form';
+import { type FieldPath, type FieldValues } from 'react-hook-form';
 import {
   FormControl,
   FormDescription,
@@ -16,15 +16,15 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { BaseFormFieldProps, FormOption } from '@/types/base-form';
+import { type BaseFormFieldProps, type FormOption } from '@/types/base-form';
 
 interface FormSelectProps<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
 > extends BaseFormFieldProps<TFieldValues, TName> {
-  options: FormOption[];
-  placeholder?: string;
-  searchable?: boolean;
+  readonly options: FormOption[];
+  readonly placeholder?: string;
+  readonly searchable?: boolean;
 }
 
 function FormSelect<
@@ -47,16 +47,14 @@ function FormSelect<
       name={name}
       render={({ field }) => (
         <FormItem className={className}>
-          {label && (
-            <FormLabel>
-              {label}
-              {required && <span className='ml-1 text-red-500'>*</span>}
-            </FormLabel>
-          )}
+          {label ? <FormLabel>
+            {label}
+            {required ? <span className='ml-1 text-red-500'>*</span> : null}
+          </FormLabel> : null}
           <Select
-            onValueChange={field.onChange}
             defaultValue={field.value}
             disabled={disabled}
+            onValueChange={field.onChange}
           >
             <FormControl>
               <SelectTrigger>
@@ -75,7 +73,7 @@ function FormSelect<
               ))}
             </SelectContent>
           </Select>
-          {description && <FormDescription>{description}</FormDescription>}
+          {description ? <FormDescription>{description}</FormDescription> : null}
           <FormMessage />
         </FormItem>
       )}
@@ -83,4 +81,6 @@ function FormSelect<
   );
 }
 
-export { FormSelect, type FormOption };
+export { FormSelect,  };
+
+export {type FormOption} from '@/types/base-form';

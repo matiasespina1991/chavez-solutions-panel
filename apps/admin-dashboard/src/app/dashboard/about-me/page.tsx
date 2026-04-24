@@ -8,8 +8,8 @@ export const metadata = {
 export default function Page() {
   return (
     <PageContainer
+      scrollable
       className='justify-self-start'
-      scrollable={true}
       pageTitle='About Me'
       pageDescription='Edita el contenido de la sección About Me.'
     >

@@ -56,6 +56,7 @@ export function useWorkOrderActions({ selectedRow }: UseWorkOrderActionsParams) 
       toast.error('No se pudo abrir la ventana de impresión');
       return;
     }
+
     toast.success('Abriendo vista de impresión…');
   };
 

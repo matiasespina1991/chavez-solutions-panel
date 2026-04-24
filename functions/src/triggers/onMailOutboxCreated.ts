@@ -58,6 +58,7 @@ const toDate = (value: unknown): Date | null => {
       return maybeDate;
     }
   }
+
   return null;
 };
 
@@ -79,8 +80,8 @@ const toPreviewPayload = (
     reference: source.reference || requestId,
     matrixLabels: Array.isArray(source.matrix)
       ? source.matrix
-          .map((value) => String(value || '').trim())
-          .filter((value) => value.length > 0)
+        .map((value) => String(value || '').trim())
+        .filter((value) => value.length > 0)
       : [],
     validDays: normalizedValidDays,
     issuedAtLabel: formatDate(createdAt),

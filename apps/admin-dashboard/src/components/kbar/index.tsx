@@ -13,7 +13,7 @@ import RenderResults from './render-result';
 import useThemeSwitching from './use-theme-switching';
 import { useFilteredNavItems } from '@/hooks/use-nav';
 
-export default function KBar({ children }: { children: React.ReactNode }) {
+export default function KBar({ children }: { readonly children: React.ReactNode }) {
   const router = useRouter();
   const filteredItems = useFilteredNavItems(navItems);
 
@@ -29,14 +29,14 @@ export default function KBar({ children }: { children: React.ReactNode }) {
       const baseAction =
         navItem.url !== '#'
           ? {
-              id: `${navItem.title.toLowerCase()}Action`,
-              name: navItem.title,
-              shortcut: navItem.shortcut,
-              keywords: navItem.title.toLowerCase(),
-              section: 'Navigation',
-              subtitle: `Go to ${navItem.title}`,
-              perform: () => navigateTo(navItem.url)
-            }
+            id: `${navItem.title.toLowerCase()}Action`,
+            name: navItem.title,
+            shortcut: navItem.shortcut,
+            keywords: navItem.title.toLowerCase(),
+            section: 'Navigation',
+            subtitle: `Go to ${navItem.title}`,
+            perform: () => navigateTo(navItem.url)
+          }
           : null;
 
       // Map child items into actions
@@ -62,7 +62,8 @@ export default function KBar({ children }: { children: React.ReactNode }) {
     </KBarProvider>
   );
 }
-const KBarComponent = ({ children }: { children: React.ReactNode }) => {
+
+function KBarComponent({ children }: { readonly children: React.ReactNode }) {
   useThemeSwitching();
 
   return (
@@ -82,4 +83,4 @@ const KBarComponent = ({ children }: { children: React.ReactNode }) => {
       {children}
     </>
   );
-};
+}

@@ -13,7 +13,7 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import {
-  ChartConfig,
+  type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent
@@ -54,9 +54,7 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function PieGraph() {
-  const totalVisitors = React.useMemo(() => {
-    return chartData.reduce((acc, curr) => acc + curr.visitors, 0);
-  }, []);
+  const totalVisitors = React.useMemo(() => chartData.reduce((acc, curr) => acc + curr.visitors, 0), []);
 
   return (
     <Card className='@container/card'>

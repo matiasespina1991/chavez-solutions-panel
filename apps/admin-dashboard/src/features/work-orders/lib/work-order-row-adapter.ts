@@ -2,37 +2,35 @@ import { firestoreTimestampToMs, formatFirestoreTimestamp } from '@/lib/firestor
 import { normalizeMatrixArray } from '@/lib/request-normalizers';
 import type { RequestServiceItem, WorkOrderListRow as WorkOrderRow, WorkOrderStatus } from '@/types/domain';
 
-const normalizeRequestServiceItems = (raw: unknown[]): RequestServiceItem[] => {
-  return raw.map((item, index) => {
-    const rowItem = item as {
-      serviceId?: string;
-      parameterId?: string;
-      parameterLabel?: string;
-      tableLabel?: string | null;
-      unit?: string | null;
-      method?: string | null;
-      rangeMin?: string;
-      rangeMax?: string;
-      quantity?: number;
-      unitPrice?: number | null;
-      discountAmount?: number | null;
-    };
+const normalizeRequestServiceItems = (raw: unknown[]): RequestServiceItem[] => raw.map((item, index) => {
+  const rowItem = item as {
+    serviceId?: string;
+    parameterId?: string;
+    parameterLabel?: string;
+    tableLabel?: string | null;
+    unit?: string | null;
+    method?: string | null;
+    rangeMin?: string;
+    rangeMax?: string;
+    quantity?: number;
+    unitPrice?: number | null;
+    discountAmount?: number | null;
+  };
 
-    return {
-      serviceId: String(rowItem.serviceId ?? rowItem.parameterId ?? `service-${index}`),
-      parameterId: String(rowItem.parameterId ?? rowItem.serviceId ?? `p-${index}`),
-      parameterLabel: String(rowItem.parameterLabel ?? rowItem.parameterId ?? 'Servicio'),
-      tableLabel: typeof rowItem.tableLabel === 'string' ? rowItem.tableLabel : null,
-      unit: typeof rowItem.unit === 'string' ? rowItem.unit : null,
-      method: typeof rowItem.method === 'string' ? rowItem.method : null,
-      rangeMin: String(rowItem.rangeMin ?? ''),
-      rangeMax: String(rowItem.rangeMax ?? ''),
-      quantity: Math.max(1, Number(rowItem.quantity ?? 1)),
-      unitPrice: Number(rowItem.unitPrice ?? 0),
-      discountAmount: Math.max(0, Number(rowItem.discountAmount ?? 0))
-    };
-  });
-};
+  return {
+    serviceId: String(rowItem.serviceId ?? rowItem.parameterId ?? `service-${index}`),
+    parameterId: String(rowItem.parameterId ?? rowItem.serviceId ?? `p-${index}`),
+    parameterLabel: String(rowItem.parameterLabel ?? rowItem.parameterId ?? 'Servicio'),
+    tableLabel: typeof rowItem.tableLabel === 'string' ? rowItem.tableLabel : null,
+    unit: typeof rowItem.unit === 'string' ? rowItem.unit : null,
+    method: typeof rowItem.method === 'string' ? rowItem.method : null,
+    rangeMin: String(rowItem.rangeMin ?? ''),
+    rangeMax: String(rowItem.rangeMax ?? ''),
+    quantity: Math.max(1, Number(rowItem.quantity ?? 1)),
+    unitPrice: Number(rowItem.unitPrice ?? 0),
+    discountAmount: Math.max(0, Number(rowItem.discountAmount ?? 0))
+  };
+});
 
 const normalizeWorkOrderStatus = (value: unknown): WorkOrderStatus => {
   const rawStatus = String(value ?? '').toLowerCase();
@@ -42,8 +40,9 @@ const normalizeWorkOrderStatus = (value: unknown): WorkOrderStatus => {
     rawStatus === 'completed' ||
     rawStatus === 'cancelled'
   ) {
-    return rawStatus as WorkOrderStatus;
+    return rawStatus;
   }
+
   return 'unknown';
 };
 
@@ -93,25 +92,25 @@ export const buildWorkOrderRowFromDoc = (
   const client =
     typeof data.client === 'object' && data.client !== null
       ? {
-          businessName: String((data.client as { businessName?: string }).businessName ?? ''),
-          taxId: String((data.client as { taxId?: string }).taxId ?? ''),
-          contactName: String((data.client as { contactName?: string }).contactName ?? '')
-        }
+        businessName: String((data.client as { businessName?: string }).businessName ?? ''),
+        taxId: String((data.client as { taxId?: string }).taxId ?? ''),
+        contactName: String((data.client as { contactName?: string }).contactName ?? '')
+      }
       : {
-          businessName: '',
-          taxId: '',
-          contactName: ''
-        };
+        businessName: '',
+        taxId: '',
+        contactName: ''
+      };
 
   const sampleItems =
     typeof data.samples === 'object' && data.samples !== null
       ? toArray((data.samples as { items?: unknown[] }).items).map((item) => {
-          const rowItem = item as { sampleCode?: string; sampleType?: string };
-          return {
-            sampleCode: String(rowItem.sampleCode ?? '—'),
-            sampleType: String(rowItem.sampleType ?? 'Sin tipo')
-          };
-        })
+        const rowItem = item as { sampleCode?: string; sampleType?: string };
+        return {
+          sampleCode: String(rowItem.sampleCode ?? '—'),
+          sampleType: String(rowItem.sampleType ?? 'Sin tipo')
+        };
+      })
       : [];
 
   const analysisItems = analysesItemsRaw.map((item) => {
@@ -143,18 +142,18 @@ export const buildWorkOrderRowFromDoc = (
       : fallbackServiceItems.length > 0
         ? fallbackServiceItems
         : analysisItems.map((analysis, index) => ({
-            serviceId: `legacy-${index}`,
-            parameterId: `legacy-${index}`,
-            parameterLabel: analysis.parameterLabelEs,
-            tableLabel: null,
-            unit: null,
-            method: null,
-            rangeMin: '',
-            rangeMax: '',
-            quantity: agreedCount > 0 ? agreedCount : 1,
-            unitPrice: Number(analysis.unitPrice ?? 0),
-            discountAmount: 0
-          }));
+          serviceId: `legacy-${index}`,
+          parameterId: `legacy-${index}`,
+          parameterLabel: analysis.parameterLabelEs,
+          tableLabel: null,
+          unit: null,
+          method: null,
+          rangeMin: '',
+          rangeMax: '',
+          quantity: agreedCount > 0 ? agreedCount : 1,
+          unitPrice: Number(analysis.unitPrice ?? 0),
+          discountAmount: 0
+        }));
 
   return {
     id,

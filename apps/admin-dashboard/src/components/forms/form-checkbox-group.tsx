@@ -1,6 +1,6 @@
 'use client';
 
-import { FieldPath, FieldValues } from 'react-hook-form';
+import { type FieldPath, type FieldValues } from 'react-hook-form';
 import {
   FormControl,
   FormDescription,
@@ -11,15 +11,15 @@ import {
 } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { BaseFormFieldProps, CheckboxGroupOption } from '@/types/base-form';
+import { type BaseFormFieldProps, type CheckboxGroupOption } from '@/types/base-form';
 
 interface FormCheckboxGroupProps<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
 > extends BaseFormFieldProps<TFieldValues, TName> {
-  options: CheckboxGroupOption[];
-  showBadges?: boolean;
-  columns?: 1 | 2 | 3 | 4;
+  readonly options: CheckboxGroupOption[];
+  readonly showBadges?: boolean;
+  readonly columns?: 1 | 2 | 3 | 4;
 }
 
 function FormCheckboxGroup<
@@ -50,13 +50,11 @@ function FormCheckboxGroup<
       name={name}
       render={({ field }) => (
         <FormItem className={className}>
-          {label && (
-            <FormLabel>
-              {label}
-              {required && <span className='ml-1 text-red-500'>*</span>}
-            </FormLabel>
-          )}
-          {description && <FormDescription>{description}</FormDescription>}
+          {label ? <FormLabel>
+            {label}
+            {required ? <span className='ml-1 text-red-500'>*</span> : null}
+          </FormLabel> : null}
+          {description ? <FormDescription>{description}</FormDescription> : null}
           <div className={`grid gap-4 ${gridCols[columns]}`}>
             {options.map((option) => (
               <div key={option.value} className='flex items-center space-x-2'>
@@ -64,6 +62,7 @@ function FormCheckboxGroup<
                   <Checkbox
                     id={`${name}-${option.value}`}
                     checked={field.value?.includes(option.value) || false}
+                    disabled={disabled || option.disabled}
                     onCheckedChange={(checked) => {
                       const currentValues = field.value || [];
                       if (checked) {
@@ -76,7 +75,6 @@ function FormCheckboxGroup<
                         );
                       }
                     }}
-                    disabled={disabled || option.disabled}
                   />
                 </FormControl>
                 <label
@@ -88,18 +86,16 @@ function FormCheckboxGroup<
               </div>
             ))}
           </div>
-          {showBadges && field.value && field.value.length > 0 && (
-            <div className='mt-2 flex flex-wrap gap-2'>
-              {field.value.map((value: string) => {
-                const option = options.find((opt) => opt.value === value);
-                return (
-                  <Badge key={value} variant='secondary'>
-                    {option?.label || value}
-                  </Badge>
-                );
-              })}
-            </div>
-          )}
+          {showBadges && field.value && field.value.length > 0 ? <div className='mt-2 flex flex-wrap gap-2'>
+            {field.value.map((value: string) => {
+              const option = options.find((opt) => opt.value === value);
+              return (
+                <Badge key={value} variant='secondary'>
+                  {option?.label || value}
+                </Badge>
+              );
+            })}
+          </div> : null}
           <FormMessage />
         </FormItem>
       )}
@@ -107,4 +103,6 @@ function FormCheckboxGroup<
   );
 }
 
-export { FormCheckboxGroup, type CheckboxGroupOption };
+export { FormCheckboxGroup,  };
+
+export {type CheckboxGroupOption} from '@/types/base-form';

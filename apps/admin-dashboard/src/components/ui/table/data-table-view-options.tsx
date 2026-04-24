@@ -22,7 +22,7 @@ import * as React from 'react';
 import { CheckIcon, CaretSortIcon } from '@radix-ui/react-icons';
 
 interface DataTableViewOptionsProps<TData> {
-  table: Table<TData>;
+  readonly table: Table<TData>;
 }
 
 export function DataTableViewOptions<TData>({
@@ -34,7 +34,7 @@ export function DataTableViewOptions<TData>({
         .getAllColumns()
         .filter(
           (column) =>
-            typeof column.accessorFn !== 'undefined' &&
+            column.accessorFn !== undefined &&
             column.getCanHide() &&
             column.id !== 'search'
         ),

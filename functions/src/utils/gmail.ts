@@ -69,29 +69,29 @@ export const sendWithGmailApi = async (params: {
   const mimeBody =
     params.attachment === undefined
       ? [
-          'Content-Type: text/plain; charset="UTF-8"',
-          'Content-Transfer-Encoding: 7bit',
-          '',
-          params.text
-        ]
+        'Content-Type: text/plain; charset="UTF-8"',
+        'Content-Transfer-Encoding: 7bit',
+        '',
+        params.text
+      ]
       : [
-          `Content-Type: multipart/mixed; boundary="${boundary}"`,
-          '',
-          `--${boundary}`,
-          'Content-Type: text/plain; charset="UTF-8"',
-          'Content-Transfer-Encoding: 7bit',
-          '',
-          params.text,
-          '',
-          `--${boundary}`,
-          `Content-Type: ${params.attachment.mimeType}; name="${params.attachment.filename}"`,
-          'Content-Transfer-Encoding: base64',
-          `Content-Disposition: attachment; filename="${params.attachment.filename}"`,
-          '',
-          params.attachment.contentBase64,
-          '',
-          `--${boundary}--`
-        ];
+        `Content-Type: multipart/mixed; boundary="${boundary}"`,
+        '',
+        `--${boundary}`,
+        'Content-Type: text/plain; charset="UTF-8"',
+        'Content-Transfer-Encoding: 7bit',
+        '',
+        params.text,
+        '',
+        `--${boundary}`,
+        `Content-Type: ${params.attachment.mimeType}; name="${params.attachment.filename}"`,
+        'Content-Transfer-Encoding: base64',
+        `Content-Disposition: attachment; filename="${params.attachment.filename}"`,
+        '',
+        params.attachment.contentBase64,
+        '',
+        `--${boundary}--`
+      ];
 
   const mimeMessage = [...mimeHeader, ...mimeBody].join('\r\n');
   const raw = toBase64Url(mimeMessage);

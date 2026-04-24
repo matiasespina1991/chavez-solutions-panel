@@ -1,12 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { buttonVariants } from '@/components/ui/button';
-import { Button } from '@/components/ui/button';
+import { buttonVariants, Button  } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { GitHubLogoIcon } from '@radix-ui/react-icons';
 import { IconStar } from '@tabler/icons-react';
-import { Metadata } from 'next';
+import { type Metadata } from 'next';
 import Link from 'next/link';
 import { InteractiveGridPattern } from './interactive-grid';
 import { useAuthSession } from '@/contexts/auth-session';
@@ -16,7 +15,7 @@ export const metadata: Metadata = {
   description: 'Authentication forms built using the components.'
 };
 
-export default function SignUpViewPage({ stars }: { stars: number }) {
+export default function SignUpViewPage({ stars }: { readonly stars: number }) {
   const { signInWithGoogle, authReady } = useAuthSession();
   const [signingIn, setSigningIn] = useState(false);
 
@@ -80,7 +79,7 @@ export default function SignUpViewPage({ stars }: { stars: number }) {
           <Link
             className={cn('group inline-flex hover:text-yellow-200')}
             target='_blank'
-            href={'https://github.com/kiranism/next-shadcn-dashboard-starter'}
+            href="https://github.com/kiranism/next-shadcn-dashboard-starter"
           >
             <div className='flex items-center'>
               <GitHubLogoIcon className='size-4' />
@@ -98,8 +97,8 @@ export default function SignUpViewPage({ stars }: { stars: number }) {
             <Button
               type='button'
               className='w-full'
-              onClick={handleGoogleSignIn}
               disabled={!authReady || signingIn}
+              onClick={handleGoogleSignIn}
             >
               <span className='mr-2 inline-flex size-4 items-center justify-center'>
                 <svg

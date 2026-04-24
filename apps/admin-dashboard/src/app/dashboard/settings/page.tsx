@@ -9,8 +9,8 @@ export const metadata = {
 export default function Page() {
   return (
     <PageContainer
+      scrollable
       className='w-full max-w-[40rem] justify-self-start'
-      scrollable={true}
       pageTitle='Configuración'
       pageDescription='Ajusta las preferencias de tu panel de administración.'
     >

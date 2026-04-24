@@ -1,6 +1,6 @@
 'use client';
 
-import { FieldPath, FieldValues } from 'react-hook-form';
+import { type FieldPath, type FieldValues } from 'react-hook-form';
 import {
   FormControl,
   FormDescription,
@@ -10,13 +10,13 @@ import {
   FormMessage
 } from '@/components/ui/form';
 import { Checkbox } from '@/components/ui/checkbox';
-import { BaseFormFieldProps } from '@/types/base-form';
+import { type BaseFormFieldProps } from '@/types/base-form';
 
 interface FormCheckboxProps<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
 > extends BaseFormFieldProps<TFieldValues, TName> {
-  checkboxLabel?: string;
+  readonly checkboxLabel?: string;
 }
 
 function FormCheckbox<
@@ -43,16 +43,16 @@ function FormCheckbox<
           <FormControl>
             <Checkbox
               checked={field.value}
-              onCheckedChange={field.onChange}
               disabled={disabled}
+              onCheckedChange={field.onChange}
             />
           </FormControl>
           <div className='space-y-1 leading-none'>
             <FormLabel>
               {checkboxLabel || label}
-              {required && <span className='ml-1 text-red-500'>*</span>}
+              {required ? <span className='ml-1 text-red-500'>*</span> : null}
             </FormLabel>
-            {description && <FormDescription>{description}</FormDescription>}
+            {description ? <FormDescription>{description}</FormDescription> : null}
           </div>
           <FormMessage />
         </FormItem>

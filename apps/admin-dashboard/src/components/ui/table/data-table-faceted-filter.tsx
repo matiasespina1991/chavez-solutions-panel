@@ -26,10 +26,10 @@ import * as React from 'react';
 import { CheckIcon } from '@radix-ui/react-icons';
 
 interface DataTableFacetedFilterProps<TData, TValue> {
-  column?: Column<TData, TValue>;
-  title?: string;
-  options: Option[];
-  multiple?: boolean;
+  readonly column?: Column<TData, TValue>;
+  readonly title?: string;
+  readonly options: Option[];
+  readonly multiple?: boolean;
 }
 
 export function DataTableFacetedFilter<TData, TValue>({
@@ -57,8 +57,9 @@ export function DataTableFacetedFilter<TData, TValue>({
         } else {
           newSelectedValues.add(option.value);
         }
+
         const filterValues = Array.from(newSelectedValues);
-        column.setFilterValue(filterValues.length ? filterValues : undefined);
+        column.setFilterValue(filterValues.length > 0 ? filterValues : undefined);
       } else {
         column.setFilterValue(isSelected ? undefined : [option.value]);
         setOpen(false);
@@ -84,8 +85,8 @@ export function DataTableFacetedFilter<TData, TValue>({
               role='button'
               aria-label={`Clear ${title} filter`}
               tabIndex={0}
-              onClick={onReset}
               className='focus-visible:ring-ring rounded-sm opacity-70 transition-opacity hover:opacity-100 focus-visible:ring-1 focus-visible:outline-none'
+              onClick={onReset}
             >
               <XCircle />
             </div>
@@ -118,8 +119,8 @@ export function DataTableFacetedFilter<TData, TValue>({
                     .filter((option) => selectedValues.has(option.value))
                     .map((option) => (
                       <Badge
-                        variant='secondary'
                         key={option.value}
+                        variant='secondary'
                         className='rounded-sm px-1 font-normal'
                       >
                         {option.label}
@@ -155,13 +156,11 @@ export function DataTableFacetedFilter<TData, TValue>({
                     >
                       <CheckIcon />
                     </div>
-                    {option.icon && <option.icon />}
+                    {option.icon ? <option.icon /> : null}
                     <span className='truncate'>{option.label}</span>
-                    {option.count && (
-                      <span className='ml-auto font-mono text-xs'>
-                        {option.count}
-                      </span>
-                    )}
+                    {option.count ? <span className='ml-auto font-mono text-xs'>
+                      {option.count}
+                    </span> : null}
                   </CommandItem>
                 );
               })}
@@ -171,8 +170,8 @@ export function DataTableFacetedFilter<TData, TValue>({
                 <CommandSeparator />
                 <CommandGroup>
                   <CommandItem
-                    onSelect={() => onReset()}
                     className='justify-center text-center'
+                    onSelect={() => onReset()}
                   >
                     Clear filters
                   </CommandItem>

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { Metadata } from 'next';
+import { type Metadata } from 'next';
 import { useAuthSession } from '@/contexts/auth-session';
 import { toast } from 'sonner';
 import { useTheme } from 'next-themes';
@@ -18,11 +18,9 @@ export const metadata: Metadata = {
 
 const LAST_VALID_SIGNIN_EMAIL_KEY = 'auth:last-valid-signin-email';
 
-const isValidEmail = (value: string) => {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-};
+const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
-export default function SignInViewPage({ stars: _stars }: { stars: number }) {
+export default function SignInViewPage({ stars: _stars }: { readonly stars: number }) {
   const {
     signInWithEmailPassword,
     authReady,
@@ -38,11 +36,9 @@ export default function SignInViewPage({ stars: _stars }: { stars: number }) {
   const previousThemeRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (!previousThemeRef.current) {
-      previousThemeRef.current =
-        window.localStorage.getItem('theme') ?? 'system';
-    }
+    if (globalThis.window === undefined) return;
+    previousThemeRef.current ||=
+      globalThis.localStorage.getItem('theme') ?? 'system';
     setTheme('light');
     return () => {
       if (previousThemeRef.current) {
@@ -58,10 +54,10 @@ export default function SignInViewPage({ stars: _stars }: { stars: number }) {
   }, [authError, clearAuthError]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (globalThis.window === undefined) return;
     if (user) return;
 
-    const savedEmail = window.localStorage.getItem(LAST_VALID_SIGNIN_EMAIL_KEY);
+    const savedEmail = globalThis.localStorage.getItem(LAST_VALID_SIGNIN_EMAIL_KEY);
     if (!savedEmail) return;
     setEmail(savedEmail);
   }, [user]);
@@ -84,12 +80,13 @@ export default function SignInViewPage({ stars: _stars }: { stars: number }) {
     try {
       setSigningIn(true);
       await signInWithEmailPassword(normalizedEmail, password);
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(
+      if (globalThis.window !== undefined) {
+        globalThis.localStorage.setItem(
           LAST_VALID_SIGNIN_EMAIL_KEY,
           normalizedEmail
         );
       }
+
       toast.success('Ingreso correcto. Redirigiendo al panel...');
     } finally {
       setSigningIn(false);
@@ -150,8 +147,8 @@ export default function SignInViewPage({ stars: _stars }: { stars: number }) {
                   autoComplete='email'
                   placeholder='nombre@chavezsolutions.com'
                   value={email}
-                  onChange={(event) => setEmail(event.target.value)}
                   disabled={!authReady || signingIn}
+                  onChange={(event) => setEmail(event.target.value)}
                 />
               </div>
 
@@ -164,8 +161,8 @@ export default function SignInViewPage({ stars: _stars }: { stars: number }) {
                     autoComplete='current-password'
                     className='pr-10'
                     value={password}
-                    onChange={(event) => setPassword(event.target.value)}
                     disabled={!authReady || signingIn}
+                    onChange={(event) => setPassword(event.target.value)}
                   />
                   <button
                     type='button'
@@ -176,8 +173,8 @@ export default function SignInViewPage({ stars: _stars }: { stars: number }) {
                       showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'
                     }
                     className='text-muted-foreground hover:text-foreground absolute inset-y-0 right-0 flex w-10 cursor-pointer items-center justify-center transition-colors'
-                    onClick={() => setShowPassword((prev) => !prev)}
                     disabled={!authReady || signingIn}
+                    onClick={() => setShowPassword((prev) => !prev)}
                   >
                     {showPassword ? (
                       <IconEyeOff className='h-4 w-4' />

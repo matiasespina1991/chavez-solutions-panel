@@ -10,11 +10,11 @@ import type { WorkOrderListRow as WorkOrderRow } from '@/types/domain';
 import { IconDownload, IconPrinter } from '@tabler/icons-react';
 
 interface WorkOrderSummaryDialogProps {
-  open: boolean;
-  selectedRow: WorkOrderRow | null;
-  onOpenChange: (open: boolean) => void;
-  onDownload: () => void;
-  onPrint: () => void;
+  readonly open: boolean;
+  readonly selectedRow: WorkOrderRow | null;
+  readonly onOpenChange: (open: boolean) => void;
+  readonly onDownload: () => void;
+  readonly onPrint: () => void;
 }
 
 const getWorkOrderDialogBanner = (row: WorkOrderRow) => {
@@ -87,102 +87,100 @@ export function WorkOrderSummaryDialog({
           </div>
         </DialogHeader>
 
-        {selectedRow && (
-          <div className='max-h-[calc(90vh-88px)] overflow-y-auto overscroll-none'>
-            <div className='space-y-5 px-6 py-5'>
-              {getWorkOrderDialogBanner(selectedRow) ? (
-                <div
-                  className={`${getWorkOrderDialogBanner(selectedRow)?.className} mx-0 mt-0`}
-                >
-                  {getWorkOrderDialogBanner(selectedRow)?.text}
-                </div>
-              ) : null}
-
-              {selectedRow.notes?.trim() ? (
-                <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
-                  <h4 className='text-muted-foreground font-semibold'>Notas</h4>
-                  <p className='whitespace-pre-wrap'>{selectedRow.notes}</p>
-                </div>
-              ) : null}
-
-              <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
-                <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
-                  <h4 className='text-muted-foreground font-semibold'>
-                    Datos Generales
-                  </h4>
-                  <p>
-                    <span className='font-medium'>N° OT:</span>{' '}
-                    {selectedRow.workOrderNumber}
-                  </p>
-                  <p>
-                    <span className='font-medium'>Referencia origen:</span>{' '}
-                    {selectedRow.sourceReference}
-                  </p>
-                </div>
-                <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
-                  <h4 className='text-muted-foreground font-semibold'>
-                    Cliente
-                  </h4>
-                  <p>
-                    <span className='font-medium'>Razón Social:</span>{' '}
-                    {selectedRow.client.businessName || '—'}
-                  </p>
-                  <p>
-                    <span className='font-medium'>RUC:</span>{' '}
-                    {selectedRow.client.taxId || '—'}
-                  </p>
-                  <p>
-                    <span className='font-medium'>Contacto:</span>{' '}
-                    {selectedRow.client.contactName || '—'}
-                  </p>
-                </div>
+        {selectedRow ? <div className='max-h-[calc(90vh-88px)] overflow-y-auto overscroll-none'>
+          <div className='space-y-5 px-6 py-5'>
+            {getWorkOrderDialogBanner(selectedRow) ? (
+              <div
+                className={`${getWorkOrderDialogBanner(selectedRow)?.className} mx-0 mt-0`}
+              >
+                {getWorkOrderDialogBanner(selectedRow)?.text}
               </div>
+            ) : null}
 
+            {selectedRow.notes?.trim() ? (
+              <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
+                <h4 className='text-muted-foreground font-semibold'>Notas</h4>
+                <p className='whitespace-pre-wrap'>{selectedRow.notes}</p>
+              </div>
+            ) : null}
+
+            <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
               <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
                 <h4 className='text-muted-foreground font-semibold'>
-                  Servicios ({selectedRow.serviceItems.length})
+                  Datos Generales
                 </h4>
-                <div className='space-y-1'>
-                  {selectedRow.serviceItems.length > 0 ? (
-                    selectedRow.serviceItems.map((service, index) => (
-                      <p key={`${service.serviceId}-${index}`} className='text-sm'>
-                        {service.parameterLabel}
-                      </p>
-                    ))
-                  ) : (
-                    <p className='text-sm'>No hay servicios seleccionados.</p>
-                  )}
+                <p>
+                  <span className='font-medium'>N° OT:</span>{' '}
+                  {selectedRow.workOrderNumber}
+                </p>
+                <p>
+                  <span className='font-medium'>Referencia origen:</span>{' '}
+                  {selectedRow.sourceReference}
+                </p>
+              </div>
+              <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
+                <h4 className='text-muted-foreground font-semibold'>
+                  Cliente
+                </h4>
+                <p>
+                  <span className='font-medium'>Razón Social:</span>{' '}
+                  {selectedRow.client.businessName || '—'}
+                </p>
+                <p>
+                  <span className='font-medium'>RUC:</span>{' '}
+                  {selectedRow.client.taxId || '—'}
+                </p>
+                <p>
+                  <span className='font-medium'>Contacto:</span>{' '}
+                  {selectedRow.client.contactName || '—'}
+                </p>
+              </div>
+            </div>
+
+            <div className='bg-muted/20 space-y-2 rounded-md border p-4'>
+              <h4 className='text-muted-foreground font-semibold'>
+                Servicios ({selectedRow.serviceItems.length})
+              </h4>
+              <div className='space-y-1'>
+                {selectedRow.serviceItems.length > 0 ? (
+                  selectedRow.serviceItems.map((service, index) => (
+                    <p key={`${service.serviceId}-${index}`} className='text-sm'>
+                      {service.parameterLabel}
+                    </p>
+                  ))
+                ) : (
+                  <p className='text-sm'>No hay servicios seleccionados.</p>
+                )}
+              </div>
+            </div>
+
+            {selectedRow.serviceItems.length > 0 ? (
+              <div className='space-y-2 rounded-md border p-4'>
+                <h4 className='text-muted-foreground font-semibold'>
+                  Detalle de servicios
+                </h4>
+                <div className='overflow-x-auto rounded-md border'>
+                  <table className='w-full text-left text-sm'>
+                    <thead className='bg-muted text-muted-foreground'>
+                      <tr>
+                        <th className='p-2'>Parámetro</th>
+                        <th className='p-2 text-right'>Cantidad</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedRow.serviceItems.map((service, index) => (
+                        <tr key={`${service.serviceId}-${index}`} className='border-t'>
+                          <td className='p-2'>{service.parameterLabel}</td>
+                          <td className='p-2 text-right'>{service.quantity}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-
-              {selectedRow.serviceItems.length > 0 ? (
-                <div className='space-y-2 rounded-md border p-4'>
-                  <h4 className='text-muted-foreground font-semibold'>
-                    Detalle de servicios
-                  </h4>
-                  <div className='overflow-x-auto rounded-md border'>
-                    <table className='w-full text-left text-sm'>
-                      <thead className='bg-muted text-muted-foreground'>
-                        <tr>
-                          <th className='p-2'>Parámetro</th>
-                          <th className='p-2 text-right'>Cantidad</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedRow.serviceItems.map((service, index) => (
-                          <tr key={`${service.serviceId}-${index}`} className='border-t'>
-                            <td className='p-2'>{service.parameterLabel}</td>
-                            <td className='p-2 text-right'>{service.quantity}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              ) : null}
-            </div>
+            ) : null}
           </div>
-        )}
+        </div> : null}
       </DialogContent>
     </Dialog>
   );

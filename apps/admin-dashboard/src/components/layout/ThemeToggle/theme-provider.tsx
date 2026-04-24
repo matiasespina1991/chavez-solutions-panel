@@ -2,7 +2,7 @@
 
 import {
   ThemeProvider as NextThemesProvider,
-  ThemeProviderProps
+  type ThemeProviderProps
 } from 'next-themes';
 
 export default function ThemeProvider({

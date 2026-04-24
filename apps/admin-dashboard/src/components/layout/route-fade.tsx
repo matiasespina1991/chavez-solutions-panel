@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 
-export default function RouteFade({ children }: { children: React.ReactNode }) {
+export default function RouteFade({ children }: { readonly children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (

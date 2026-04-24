@@ -70,7 +70,7 @@ type ProgressHandler = (fileName: string, progress: number) => void;
 
 function sanitizeFileName(value: string) {
   return value
-    .replace(/[^a-zA-Z0-9._-]+/g, '-')
+    .replaceAll(/[^\w.-]+/g, '-')
     .replace(/^-+/, '')
     .slice(0, 80);
 }
@@ -86,7 +86,7 @@ export async function uploadMediaFiles(
   onProgress?: ProgressHandler
 ) {
   const uploads = files.map(
-    (file) =>
+    async (file) =>
       new Promise<UploadResult>((resolve, reject) => {
         const uploadId = uuidv4();
         const safeName = sanitizeFileName(file.name) || 'file';
@@ -139,7 +139,7 @@ export async function uploadMediaFiles(
   return Promise.all(uploads);
 }
 
-export function waitForMediaByUploadId(
+export async function waitForMediaByUploadId(
   uploadId: string,
   {
     requireProcessed = false,

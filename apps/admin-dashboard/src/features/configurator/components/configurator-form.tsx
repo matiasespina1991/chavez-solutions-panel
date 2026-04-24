@@ -30,8 +30,8 @@ import {
   sendProformaPreviewEmail,
   toProformaPreviewServiceLine,
   updateConfiguration,
-  ConfigurationDocument,
-  ImportedServiceDocument,
+  type ConfigurationDocument,
+  type ImportedServiceDocument,
   listImportedServices
 } from '../services/configurations';
 import { ConfiguratorCommonDialogs } from '@/features/configurator/components/configurator-common-dialogs';
@@ -100,22 +100,20 @@ export default function ConfiguratorForm() {
   const toSelectedService = (
     service: ImportedServiceDocument,
     overrides?: Partial<SelectedService>
-  ): SelectedService => {
-    return {
-      ...service,
-      quantity: overrides?.quantity ?? 1,
-      rangeMin:
+  ): SelectedService => ({
+    ...service,
+    quantity: overrides?.quantity ?? 1,
+    rangeMin:
         typeof overrides?.rangeMin === 'string'
           ? normalizeRangeValue(overrides.rangeMin)
           : '',
-      rangeMax:
+    rangeMax:
         typeof overrides?.rangeMax === 'string'
           ? normalizeRangeValue(overrides.rangeMax)
           : '',
-      unitPrice: overrides?.unitPrice ?? null,
-      discountAmount: overrides?.discountAmount ?? null
-    };
-  };
+    unitPrice: overrides?.unitPrice ?? null,
+    discountAmount: overrides?.discountAmount ?? null
+  });
 
   const {
     isMatrixSelectorDialogOpen,
@@ -171,6 +169,7 @@ export default function ConfiguratorForm() {
       );
       if (editingGroup?.name?.trim()) return editingGroup.name.trim();
     }
+
     if (activeComboMatrix?.trim()) return activeComboMatrix.trim();
     return 'Combo';
   }, [editingGroupId, serviceGroups, activeComboMatrix]);
@@ -226,24 +225,26 @@ export default function ConfiguratorForm() {
       ) {
         return 'error';
       }
+
       return 'ok';
     })(),
     samples: (() => {
       const samples = samplesWatch;
       if (!samples) return 'error';
       if (!samples.agreedCount || samples.agreedCount < 1) return 'error';
-      if (!selectedServices.length) return 'error';
+      if (selectedServices.length === 0) return 'error';
       const hasInvalidServiceInput = selectedServices.some((service) => {
         const quantity = service.quantity ?? 0;
         const rangeMin = (service.rangeMin ?? '').trim();
         const rangeMax = (service.rangeMax ?? '').trim();
-        const unitPrice = service.unitPrice;
+        const {unitPrice} = service;
 
         if (!Number.isFinite(quantity) || quantity <= 0) return true;
         if (!rangeMin || !rangeMax) return true;
         if (typeof unitPrice !== 'number' || !Number.isFinite(unitPrice)) {
           return true;
         }
+
         if (unitPrice < 0) return true;
         if (
           service.discountAmount !== null &&
@@ -253,6 +254,7 @@ export default function ConfiguratorForm() {
         ) {
           return true;
         }
+
         return false;
       });
       if (hasInvalidServiceInput) return 'error';
@@ -291,6 +293,7 @@ export default function ConfiguratorForm() {
         return null;
       }
     }
+
     return null;
   };
 
@@ -304,35 +307,35 @@ export default function ConfiguratorForm() {
       client?: Partial<FormValues['client']>;
       samples?:
         | (Partial<FormValues['samples']> & {
-            items?: Array<Partial<FormValues['samples']['items'][number]>>;
-          })
+          items?: Array<Partial<FormValues['samples']['items'][number]>>;
+        })
         | undefined;
       analyses?:
         | (Partial<FormValues['analyses']> & {
-            items?: FormValues['analyses']['items'];
-          })
+          items?: FormValues['analyses']['items'];
+        })
         | undefined;
       services?:
         | (Partial<FormValues['services']> & {
-            items?: FormValues['services']['items'];
-            grouped?: FormValues['services']['grouped'];
-          })
+          items?: FormValues['services']['items'];
+          grouped?: FormValues['services']['grouped'];
+        })
         | undefined;
       pricing?: Partial<FormValues['pricing']>;
     };
 
     const mergedSampleItems = Array.isArray(cached.samples?.items)
       ? cached.samples.items.map((item, index) => ({
-          sampleCode:
+        sampleCode:
             typeof item.sampleCode === 'string'
               ? item.sampleCode
               : (baseValues.samples.items[index]?.sampleCode ??
                 `M-${String(index + 1).padStart(3, '0')}`),
-          sampleType:
+        sampleType:
             typeof item.sampleType === 'string' ? item.sampleType : '',
-          takenAt: toDateOrNull(item.takenAt),
-          notes: typeof item.notes === 'string' ? item.notes : ''
-        }))
+        takenAt: toDateOrNull(item.takenAt),
+        notes: typeof item.notes === 'string' ? item.notes : ''
+      }))
       : baseValues.samples.items;
 
     return {
@@ -342,11 +345,11 @@ export default function ConfiguratorForm() {
       createdAt: toDateOrNull(cached.createdAt) ?? baseValues.createdAt,
       client: {
         ...baseValues.client,
-        ...(cached.client ?? {})
+        ...cached.client
       },
       samples: {
         ...baseValues.samples,
-        ...(cached.samples ?? {}),
+        ...cached.samples,
         items: mergedSampleItems
       },
       services: {
@@ -369,21 +372,21 @@ export default function ConfiguratorForm() {
       },
       analyses: {
         ...baseValues.analyses,
-        ...(cached.analyses ?? {}),
+        ...cached.analyses,
         items: Array.isArray(cached.analyses?.items)
           ? cached.analyses.items
           : baseValues.analyses.items
       },
       pricing: {
         ...baseValues.pricing,
-        ...(cached.pricing ?? {})
+        ...cached.pricing
       }
     };
   };
 
   const removeCachedDraft = () => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.removeItem(cacheKey);
+    if (globalThis.window === undefined) return;
+    globalThis.localStorage.removeItem(cacheKey);
   };
 
   const handleConfirmClearCurrentData = () => {
@@ -405,8 +408,8 @@ export default function ConfiguratorForm() {
             size='icon'
             className='cursor-pointer'
             disabled={isSubmitting || isLoadingRequest}
-            onClick={() => setIsClearDialogOpen(true)}
             aria-label='Vaciar datos en curso'
+            onClick={() => setIsClearDialogOpen(true)}
           >
             <Trash2 className='h-4 w-4' />
           </Button>
@@ -434,7 +437,7 @@ export default function ConfiguratorForm() {
   }, []);
 
   useEffect(() => {
-    if (!availableServices.length || !serviceGroups.length) return;
+    if (availableServices.length === 0 || serviceGroups.length === 0) return;
 
     setServiceGroups((prev) => {
       let hasChanges = false;
@@ -474,10 +477,10 @@ export default function ConfiguratorForm() {
   }, [availableServices, serviceGroups]);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || editRequestId) return;
+    if (globalThis.window === undefined || editRequestId) return;
 
     try {
-      const cached = window.localStorage.getItem(cacheKey);
+      const cached = globalThis.localStorage.getItem(cacheKey);
       if (!cached) return;
 
       const parsed = JSON.parse(cached) as unknown;
@@ -486,40 +489,40 @@ export default function ConfiguratorForm() {
       const restoredServices = merged.services?.items?.length
         ? mapStoredServicesToSelected(merged.services.items, toSelectedService)
         : merged.analyses.items.map((item, index) =>
-            (() => {
-              const parsedRange = parseRangeOffered(item.rangeOffered);
-              return toSelectedService(
-                {
-                  id: `${item.parameterId}-${index}`,
-                  ID_CONFIG_PARAMETRO: item.parameterId,
-                  ID_PARAMETRO: item.parameterLabelEs,
-                  UNIDAD_NORMA: item.unit,
-                  ID_TECNICA: item.method,
-                  LIM_INF_NORMA: undefined,
-                  LIM_SUP_NORMA: undefined,
-                  PRECIO: item.unitPrice ?? null
-                },
-                {
-                  quantity: 1,
-                  rangeMin: parsedRange.rangeMin,
-                  rangeMax: parsedRange.rangeMax,
-                  unitPrice: item.unitPrice ?? null,
-                  discountAmount:
+          (() => {
+            const parsedRange = parseRangeOffered(item.rangeOffered);
+            return toSelectedService(
+              {
+                id: `${item.parameterId}-${index}`,
+                ID_CONFIG_PARAMETRO: item.parameterId,
+                ID_PARAMETRO: item.parameterLabelEs,
+                UNIDAD_NORMA: item.unit,
+                ID_TECNICA: item.method,
+                LIM_INF_NORMA: undefined,
+                LIM_SUP_NORMA: undefined,
+                PRECIO: item.unitPrice ?? null
+              },
+              {
+                quantity: 1,
+                rangeMin: parsedRange.rangeMin,
+                rangeMax: parsedRange.rangeMax,
+                unitPrice: item.unitPrice ?? null,
+                discountAmount:
                     typeof item.discountAmount === 'number'
                       ? item.discountAmount
                       : null
-                }
-              );
-            })()
-          );
+              }
+            );
+          })()
+        );
       if (
         Array.isArray(merged.services?.grouped) &&
-        merged.services.grouped.length
+        merged.services.grouped.length > 0
       ) {
         setServiceGroups(
           mapStoredServiceGroups(merged.services.grouped, toSelectedService)
         );
-      } else if (restoredServices.length) {
+      } else if (restoredServices.length > 0) {
         setServiceGroups([
           {
             id: `group-${Date.now()}-0`,
@@ -578,11 +581,11 @@ export default function ConfiguratorForm() {
             !Array.isArray(existing.services)
               ? existing.services
               : {
-                  items: Array.isArray(existing.services)
-                    ? existing.services
-                    : [],
-                  grouped: []
-                },
+                items: Array.isArray(existing.services)
+                  ? existing.services
+                  : [],
+                grouped: []
+              },
           analyses: {
             applyMode: existing.analyses?.applyMode ?? 'all_samples',
             items: existing.analyses?.items ?? []
@@ -602,48 +605,48 @@ export default function ConfiguratorForm() {
             : existing.status
         );
 
-        if (typeof window !== 'undefined') {
+        if (globalThis.window !== undefined) {
           try {
-            const cached = window.localStorage.getItem(cacheKey);
+            const cached = globalThis.localStorage.getItem(cacheKey);
             if (cached) {
               const parsed = JSON.parse(cached) as unknown;
               const merged = mergeWithCachedValues(loadedValues, parsed);
               form.reset(merged);
               const restoredServices = merged.services?.items?.length
                 ? mapStoredServicesToSelected(
-                    merged.services.items,
-                    toSelectedService
-                  )
+                  merged.services.items,
+                  toSelectedService
+                )
                 : merged.analyses.items.map((item, index) =>
-                    (() => {
-                      const parsedRange = parseRangeOffered(item.rangeOffered);
-                      return toSelectedService(
-                        {
-                          id: `${item.parameterId}-${index}`,
-                          ID_CONFIG_PARAMETRO: item.parameterId,
-                          ID_PARAMETRO: item.parameterLabelEs,
-                          UNIDAD_NORMA: item.unit,
-                          ID_TECNICA: item.method,
-                          LIM_INF_NORMA: undefined,
-                          LIM_SUP_NORMA: undefined,
-                          PRECIO: item.unitPrice ?? null
-                        },
-                        {
-                          quantity: 1,
-                          rangeMin: parsedRange.rangeMin,
-                          rangeMax: parsedRange.rangeMax,
-                          unitPrice: item.unitPrice ?? null,
-                          discountAmount:
+                  (() => {
+                    const parsedRange = parseRangeOffered(item.rangeOffered);
+                    return toSelectedService(
+                      {
+                        id: `${item.parameterId}-${index}`,
+                        ID_CONFIG_PARAMETRO: item.parameterId,
+                        ID_PARAMETRO: item.parameterLabelEs,
+                        UNIDAD_NORMA: item.unit,
+                        ID_TECNICA: item.method,
+                        LIM_INF_NORMA: undefined,
+                        LIM_SUP_NORMA: undefined,
+                        PRECIO: item.unitPrice ?? null
+                      },
+                      {
+                        quantity: 1,
+                        rangeMin: parsedRange.rangeMin,
+                        rangeMax: parsedRange.rangeMax,
+                        unitPrice: item.unitPrice ?? null,
+                        discountAmount:
                             typeof item.discountAmount === 'number'
                               ? item.discountAmount
                               : null
-                        }
-                      );
-                    })()
-                  );
+                      }
+                    );
+                  })()
+                );
               if (
                 Array.isArray(merged.services?.grouped) &&
-                merged.services.grouped.length
+                merged.services.grouped.length > 0
               ) {
                 setServiceGroups(
                   mapStoredServiceGroups(
@@ -651,7 +654,7 @@ export default function ConfiguratorForm() {
                     toSelectedService
                   )
                 );
-              } else if (restoredServices.length) {
+              } else if (restoredServices.length > 0) {
                 setServiceGroups([
                   {
                     id: `group-${Date.now()}-0`,
@@ -662,6 +665,7 @@ export default function ConfiguratorForm() {
               } else {
                 setServiceGroups([]);
               }
+
               return;
             }
           } catch (error) {
@@ -672,39 +676,39 @@ export default function ConfiguratorForm() {
         form.reset(loadedValues);
         const restoredServices = loadedValues.services?.items?.length
           ? mapStoredServicesToSelected(
-              loadedValues.services.items,
-              toSelectedService
-            )
+            loadedValues.services.items,
+            toSelectedService
+          )
           : loadedValues.analyses.items.map((item, index) =>
-              (() => {
-                const parsedRange = parseRangeOffered(item.rangeOffered);
-                return toSelectedService(
-                  {
-                    id: `${item.parameterId}-${index}`,
-                    ID_CONFIG_PARAMETRO: item.parameterId,
-                    ID_PARAMETRO: item.parameterLabelEs,
-                    UNIDAD_NORMA: item.unit,
-                    ID_TECNICA: item.method,
-                    LIM_INF_NORMA: undefined,
-                    LIM_SUP_NORMA: undefined,
-                    PRECIO: item.unitPrice ?? null
-                  },
-                  {
-                    quantity: 1,
-                    rangeMin: parsedRange.rangeMin,
-                    rangeMax: parsedRange.rangeMax,
-                    unitPrice: item.unitPrice ?? null,
-                    discountAmount:
+            (() => {
+              const parsedRange = parseRangeOffered(item.rangeOffered);
+              return toSelectedService(
+                {
+                  id: `${item.parameterId}-${index}`,
+                  ID_CONFIG_PARAMETRO: item.parameterId,
+                  ID_PARAMETRO: item.parameterLabelEs,
+                  UNIDAD_NORMA: item.unit,
+                  ID_TECNICA: item.method,
+                  LIM_INF_NORMA: undefined,
+                  LIM_SUP_NORMA: undefined,
+                  PRECIO: item.unitPrice ?? null
+                },
+                {
+                  quantity: 1,
+                  rangeMin: parsedRange.rangeMin,
+                  rangeMax: parsedRange.rangeMax,
+                  unitPrice: item.unitPrice ?? null,
+                  discountAmount:
                       typeof item.discountAmount === 'number'
                         ? item.discountAmount
                         : null
-                  }
-                );
-              })()
-            );
+                }
+              );
+            })()
+          );
         if (
           Array.isArray(loadedValues.services?.grouped) &&
-          loadedValues.services.grouped.length
+          loadedValues.services.grouped.length > 0
         ) {
           setServiceGroups(
             mapStoredServiceGroups(
@@ -712,7 +716,7 @@ export default function ConfiguratorForm() {
               toSelectedService
             )
           );
-        } else if (restoredServices.length) {
+        } else if (restoredServices.length > 0) {
           setServiceGroups([
             {
               id: `group-${Date.now()}-0`,
@@ -741,7 +745,7 @@ export default function ConfiguratorForm() {
     isSubmitting || isLoadingRequest || isPausedEditMode;
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (globalThis.window === undefined) return;
 
     const subscription = form.watch((values) => {
       if (isLoadingRequest) return;
@@ -752,7 +756,7 @@ export default function ConfiguratorForm() {
 
       saveTimeoutRef.current = setTimeout(() => {
         try {
-          window.localStorage.setItem(cacheKey, JSON.stringify(values));
+          globalThis.localStorage.setItem(cacheKey, JSON.stringify(values));
         } catch (error) {
           console.error('Error persisting configurator cache:', error);
         }
@@ -768,7 +772,7 @@ export default function ConfiguratorForm() {
   }, [cacheKey, form, isLoadingRequest]);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || isLoadingRequest) return;
+    if (globalThis.window === undefined || isLoadingRequest) return;
 
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
@@ -785,7 +789,7 @@ export default function ConfiguratorForm() {
             grouped: mapServiceGroupsToDocument(serviceGroups, getServiceId)
           }
         };
-        window.localStorage.setItem(cacheKey, JSON.stringify(nextCachedValues));
+        globalThis.localStorage.setItem(cacheKey, JSON.stringify(nextCachedValues));
       } catch (error) {
         console.error(
           'Error persisting configurator cache from service groups:',
@@ -888,6 +892,7 @@ export default function ConfiguratorForm() {
             : 'Proforma guardada correctamente'
         );
       }
+
       removeCachedDraft();
       router.push('/dashboard/requests-list');
     } catch (error) {
@@ -945,14 +950,12 @@ export default function ConfiguratorForm() {
   };
 
   const handleExecuteClick = () => {
-    form.handleSubmit((data) => onSubmit(data, 'final'))();
+    form.handleSubmit(async (data) => onSubmit(data, 'final'))();
   };
 
   const summaryNotes = (form.getValues('notes') || '').trim();
   const referenceLabel = reference?.trim() || '—';
-  const groupedServicesForRender = useMemo(() => {
-    return serviceGroups.filter((group) => group.items.length > 0);
-  }, [serviceGroups]);
+  const groupedServicesForRender = useMemo(() => serviceGroups.filter((group) => group.items.length > 0), [serviceGroups]);
   const totalServicesCount = useMemo(
     () => serviceGroups.reduce((acc, group) => acc + group.items.length, 0),
     [serviceGroups]
@@ -999,7 +1002,7 @@ export default function ConfiguratorForm() {
 
     const updateVisibility = () => {
       if (frameId !== null) return;
-      frameId = window.requestAnimationFrame(() => {
+      frameId = globalThis.requestAnimationFrame(() => {
         frameId = null;
         const target = estimatedCostsSectionRef.current;
         if (!target) {
@@ -1029,7 +1032,7 @@ export default function ConfiguratorForm() {
       window.removeEventListener('resize', handleWindowResize);
       document.removeEventListener('scroll', handleDocumentScroll, true);
       if (frameId !== null) {
-        window.cancelAnimationFrame(frameId);
+        globalThis.cancelAnimationFrame(frameId);
       }
     };
   }, [activeTab, totalServicesCount]);
@@ -1072,74 +1075,72 @@ export default function ConfiguratorForm() {
     ];
   }, [groupedServicesForRender, selectedServices]);
 
-  const buildProformaPreviewPayload = () => {
-    return {
-      reference: referenceLabel,
-      matrixLabels: [],
-      validDays:
+  const buildProformaPreviewPayload = () => ({
+    reference: referenceLabel,
+    matrixLabels: [],
+    validDays:
         typeof validDaysValue === 'number' && Number.isFinite(validDaysValue)
           ? validDaysValue
           : null,
-      issuedAtLabel,
-      validUntilLabel,
-      client: {
-        businessName: form.getValues('client.businessName') || '',
-        taxId: form.getValues('client.taxId') || '',
-        contactName: form.getValues('client.contactName') || '',
-        address: form.getValues('client.address') || '',
-        city: form.getValues('client.city') || '',
-        email: form.getValues('client.email') || '',
-        phone: form.getValues('client.phone') || '',
-        mobile: ''
-      },
-      services: selectedServices.map((service) =>
-        toProformaPreviewServiceLine({
-          tableLabel: service.ID_TABLA_NORMA,
-          label:
+    issuedAtLabel,
+    validUntilLabel,
+    client: {
+      businessName: form.getValues('client.businessName') || '',
+      taxId: form.getValues('client.taxId') || '',
+      contactName: form.getValues('client.contactName') || '',
+      address: form.getValues('client.address') || '',
+      city: form.getValues('client.city') || '',
+      email: form.getValues('client.email') || '',
+      phone: form.getValues('client.phone') || '',
+      mobile: ''
+    },
+    services: selectedServices.map((service) =>
+      toProformaPreviewServiceLine({
+        tableLabel: service.ID_TABLA_NORMA,
+        label:
             service.ID_PARAMETRO || service.ID_CONFIG_PARAMETRO || service.id,
-          parameterId: service.ID_CONFIG_PARAMETRO || service.id,
-          unit: service.UNIDAD_NORMA || service.UNIDAD_INTERNO,
-          method:
+        parameterId: service.ID_CONFIG_PARAMETRO || service.id,
+        unit: service.UNIDAD_NORMA || service.UNIDAD_INTERNO,
+        method:
             service.ID_TECNICA ||
             service.ID_MET_REFERENCIA ||
             service.ID_MET_INTERNO,
+        rangeMin: service.LIM_INF_INTERNO,
+        rangeMax: service.LIM_SUP_INTERNO,
+        quantity: service.quantity,
+        unitPrice: service.unitPrice,
+        discountAmount: service.discountAmount
+      })
+    ),
+    serviceGroups: summaryServiceGroups.map((group, groupIndex) => ({
+      name: group.name || `Combo ${groupIndex + 1}`,
+      items: group.items.map((service) =>
+        toProformaPreviewServiceLine({
+          tableLabel: service.ID_TABLA_NORMA,
+          label:
+              service.ID_PARAMETRO ||
+              service.ID_CONFIG_PARAMETRO ||
+              service.id,
+          parameterId: service.ID_CONFIG_PARAMETRO || service.id,
+          unit: service.UNIDAD_NORMA || service.UNIDAD_INTERNO,
+          method:
+              service.ID_TECNICA ||
+              service.ID_MET_REFERENCIA ||
+              service.ID_MET_INTERNO,
           rangeMin: service.LIM_INF_INTERNO,
           rangeMax: service.LIM_SUP_INTERNO,
           quantity: service.quantity,
           unitPrice: service.unitPrice,
           discountAmount: service.discountAmount
         })
-      ),
-      serviceGroups: summaryServiceGroups.map((group, groupIndex) => ({
-        name: group.name || `Combo ${groupIndex + 1}`,
-        items: group.items.map((service) =>
-          toProformaPreviewServiceLine({
-            tableLabel: service.ID_TABLA_NORMA,
-            label:
-              service.ID_PARAMETRO ||
-              service.ID_CONFIG_PARAMETRO ||
-              service.id,
-            parameterId: service.ID_CONFIG_PARAMETRO || service.id,
-            unit: service.UNIDAD_NORMA || service.UNIDAD_INTERNO,
-            method:
-              service.ID_TECNICA ||
-              service.ID_MET_REFERENCIA ||
-              service.ID_MET_INTERNO,
-            rangeMin: service.LIM_INF_INTERNO,
-            rangeMax: service.LIM_SUP_INTERNO,
-            quantity: service.quantity,
-            unitPrice: service.unitPrice,
-            discountAmount: service.discountAmount
-          })
-        )
-      })),
-      pricing: {
-        subtotal: summarySubtotal,
-        taxPercent: summaryTaxPercent,
-        total: summaryTotal
-      }
-    };
-  };
+      )
+    })),
+    pricing: {
+      subtotal: summarySubtotal,
+      taxPercent: summaryTaxPercent,
+      total: summaryTotal
+    }
+  });
 
   const handleDownloadPreviewPdf = async () => {
     try {
@@ -1151,7 +1152,7 @@ export default function ConfiguratorForm() {
       const link = document.createElement('a');
       link.href = result.downloadURL;
       link.download = result.fileName;
-      document.body.appendChild(link);
+      document.body.append(link);
       link.click();
       link.remove();
       toast.success('PDF de vista previa generado.');
@@ -1248,7 +1249,7 @@ export default function ConfiguratorForm() {
           type='button'
           className='border-primary dark:border-primary border'
           disabled={isSubmitting || isLoadingRequest || !canSubmitFinal}
-          onClick={() => form.handleSubmit((data) => onUpdateRequest(data))()}
+          onClick={async () => form.handleSubmit(async (data) => onUpdateRequest(data))()}
         >
           Actualizar solicitud
         </Button>
@@ -1280,7 +1281,7 @@ export default function ConfiguratorForm() {
                   variant='secondary'
                   className='border-border dark:border-border border'
                   disabled={isDraftSaveDisabled}
-                  onClick={() => onSubmit(form.getValues(), 'draft')}
+                  onClick={async () => onSubmit(form.getValues(), 'draft')}
                 >
                   Guardar como Borrador
                 </Button>
@@ -1301,8 +1302,8 @@ export default function ConfiguratorForm() {
                 disabled={
                   isGeneratingPreviewPdf || isLoadingRequest || !canSubmitFinal
                 }
-                onClick={handleDownloadPreviewPdf}
                 aria-label='Descargar PDF'
+                onClick={handleDownloadPreviewPdf}
               >
                 <span className='relative inline-flex h-4 w-5 items-center justify-center'>
                   <ArrowDownToLine
@@ -1335,8 +1336,8 @@ export default function ConfiguratorForm() {
                 disabled={
                   isSendingPreviewEmail || isLoadingRequest || !canSubmitFinal
                 }
-                onClick={handleOpenSendEmailDialog}
                 aria-label='Enviar proforma por email'
+                onClick={handleOpenSendEmailDialog}
               >
                 <span className='relative inline-flex h-4 w-5 items-center justify-center'>
                   <Mail
@@ -1386,8 +1387,8 @@ export default function ConfiguratorForm() {
 
         <Tabs
           value={activeTab}
-          onValueChange={(value) => setActiveTab(value as ConfiguratorTab)}
           className='w-full'
+          onValueChange={(value) => setActiveTab(value as ConfiguratorTab)}
         >
           <TabsList className='grid w-full grid-cols-4'>
             <TabsTrigger
@@ -1503,7 +1504,6 @@ export default function ConfiguratorForm() {
 
       <ConfiguratorServicesDialog
         open={isServicesDialogOpen}
-        onOpenChange={handleServicesDialogOpenChange}
         activeComboMatrix={activeComboMatrix}
         dialogSelectedServiceIds={dialogSelectedServiceIds}
         selectedDialogServiceLabels={selectedDialogServiceLabels}
@@ -1532,6 +1532,7 @@ export default function ConfiguratorForm() {
         lockedServiceCursorHint={lockedServiceCursorHint}
         setLockedServiceCursorHint={setLockedServiceCursorHint}
         handleAddServicesToForm={handleAddServicesToForm}
+        onOpenChange={handleServicesDialogOpenChange}
       />
 
     </Form>

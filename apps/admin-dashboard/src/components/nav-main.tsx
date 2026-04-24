@@ -18,21 +18,21 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem
 } from '@/components/ui/sidebar';
-import { Icon } from '@/components/icons';
+import { type Icon } from '@/components/icons';
 
 export function NavMain({
   items
 }: {
-  items: {
+  readonly items: Array<{
     title: string;
     url: string;
     icon?: Icon;
     isActive?: boolean;
-    items?: {
+    items?: Array<{
       title: string;
       url: string;
-    }[];
-  }[];
+    }>;
+  }>;
 }) {
   return (
     <SidebarGroup>
@@ -52,7 +52,7 @@ export function NavMain({
                     tooltip={item.title}
                     className='bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground min-w-8 duration-200 ease-linear'
                   >
-                    {item.icon && <item.icon />}
+                    {item.icon ? <item.icon /> : null}
                     <span>{item.title}</span>
                     <IconChevronRight className='ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90' />
                   </SidebarMenuButton>

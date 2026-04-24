@@ -17,30 +17,30 @@ interface MatrixOption {
 }
 
 interface ConfiguratorCommonDialogsProps {
-  isMatrixSelectorDialogOpen: boolean;
-  setIsMatrixSelectorDialogOpen: (open: boolean) => void;
-  matrixOptionsForCombo: MatrixOption[];
-  activeComboMatrix: string | null;
-  handleSelectComboMatrix: (matrixLabel: string) => void;
-  isLoadingAvailableServices: boolean;
-  groupToDelete: { id: string; name: string } | null;
-  setGroupToDelete: (group: null) => void;
-  handleConfirmRemoveGroup: () => void;
-  serviceToDelete: { groupId: string; serviceId: string } | null;
-  setServiceToDelete: (service: null) => void;
-  handleConfirmRemoveService: () => void;
-  isSendEmailDialogOpen: boolean;
-  setIsSendEmailDialogOpen: (open: boolean) => void;
-  recipientEmail: string;
-  setRecipientEmail: (value: string) => void;
-  referenceLabel: string;
-  clientBusinessName: string;
-  summaryTotal: number;
-  isSendingPreviewEmail: boolean;
-  handleSendPreviewEmail: () => void;
-  isClearDialogOpen: boolean;
-  setIsClearDialogOpen: (open: boolean) => void;
-  handleConfirmClearCurrentData: () => void;
+  readonly isMatrixSelectorDialogOpen: boolean;
+  readonly setIsMatrixSelectorDialogOpen: (open: boolean) => void;
+  readonly matrixOptionsForCombo: MatrixOption[];
+  readonly activeComboMatrix: string | null;
+  readonly handleSelectComboMatrix: (matrixLabel: string) => void;
+  readonly isLoadingAvailableServices: boolean;
+  readonly groupToDelete: { id: string; name: string } | null;
+  readonly setGroupToDelete: (group: null) => void;
+  readonly handleConfirmRemoveGroup: () => void;
+  readonly serviceToDelete: { groupId: string; serviceId: string } | null;
+  readonly setServiceToDelete: (service: null) => void;
+  readonly handleConfirmRemoveService: () => void;
+  readonly isSendEmailDialogOpen: boolean;
+  readonly setIsSendEmailDialogOpen: (open: boolean) => void;
+  readonly recipientEmail: string;
+  readonly setRecipientEmail: (value: string) => void;
+  readonly referenceLabel: string;
+  readonly clientBusinessName: string;
+  readonly summaryTotal: number;
+  readonly isSendingPreviewEmail: boolean;
+  readonly handleSendPreviewEmail: () => void;
+  readonly isClearDialogOpen: boolean;
+  readonly setIsClearDialogOpen: (open: boolean) => void;
+  readonly handleConfirmClearCurrentData: () => void;
 }
 
 export function ConfiguratorCommonDialogs({
@@ -119,7 +119,7 @@ export function ConfiguratorCommonDialogs({
       </AlertDialog>
 
       <AlertDialog
-        open={!!groupToDelete}
+        open={Boolean(groupToDelete)}
         onOpenChange={(open) => {
           if (!open) setGroupToDelete(null);
         }}
@@ -146,7 +146,7 @@ export function ConfiguratorCommonDialogs({
       </AlertDialog>
 
       <AlertDialog
-        open={!!serviceToDelete}
+        open={Boolean(serviceToDelete)}
         onOpenChange={(open) => {
           if (!open) setServiceToDelete(null);
         }}
@@ -196,8 +196,8 @@ export function ConfiguratorCommonDialogs({
                 id='send-proforma-email'
                 type='email'
                 value={recipientEmail}
-                onChange={(event) => setRecipientEmail(event.target.value)}
                 placeholder='Email de destino'
+                onChange={(event) => setRecipientEmail(event.target.value)}
               />
             </div>
             <div className='space-y-1 rounded-md border p-3 text-sm'>
@@ -225,8 +225,8 @@ export function ConfiguratorCommonDialogs({
             </AlertDialogCancel>
             <AlertDialogAction
               className='cursor-pointer bg-black text-white hover:bg-black/90'
-              onClick={handleSendPreviewEmail}
               disabled={isSendingPreviewEmail || isLoadingAvailableServices}
+              onClick={handleSendPreviewEmail}
             >
               <span className='inline-flex items-center gap-2'>
                 <Send className='h-4 w-4' />

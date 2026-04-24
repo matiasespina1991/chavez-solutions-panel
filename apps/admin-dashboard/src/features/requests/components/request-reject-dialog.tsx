@@ -11,12 +11,12 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 
 interface RequestRejectDialogProps {
-  open: boolean;
-  isRejecting: boolean;
-  rejectFeedback: string;
-  onOpenChange: (open: boolean) => void;
-  onRejectFeedbackChange: (value: string) => void;
-  onConfirm: () => void;
+  readonly open: boolean;
+  readonly isRejecting: boolean;
+  readonly rejectFeedback: string;
+  readonly onOpenChange: (open: boolean) => void;
+  readonly onRejectFeedbackChange: (value: string) => void;
+  readonly onConfirm: () => void;
 }
 
 export function RequestRejectDialog({
@@ -39,10 +39,10 @@ export function RequestRejectDialog({
             <label className='text-sm font-medium'>Motivo de rechazo</label>
             <Textarea
               value={rejectFeedback}
-              onChange={(event) => onRejectFeedbackChange(event.target.value)}
               placeholder='Escriba el motivo de rechazo'
               rows={4}
               disabled={isRejecting}
+              onChange={(event) => onRejectFeedbackChange(event.target.value)}
             />
           </div>
         </AlertDialogHeader>
@@ -52,8 +52,8 @@ export function RequestRejectDialog({
           </AlertDialogCancel>
           <AlertDialogAction
             className='bg-destructive hover:bg-destructive/90 disabled:bg-destructive cursor-pointer text-white disabled:text-white'
-            onClick={onConfirm}
             disabled={isRejecting}
+            onClick={onConfirm}
           >
             {isRejecting ? 'Rechazando…' : 'Rechazar proforma'}
           </AlertDialogAction>

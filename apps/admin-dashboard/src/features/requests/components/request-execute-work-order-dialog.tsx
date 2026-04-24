@@ -11,13 +11,13 @@ import {
 import type { RequestListRow as RequestRow } from '@/types/domain';
 
 interface RequestExecuteWorkOrderDialogProps {
-  open: boolean;
-  rowToExecuteWorkOrder: RequestRow | null;
-  pendingActionId: string | null;
-  approverLabel: string;
-  nowLabel: string;
-  onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
+  readonly open: boolean;
+  readonly rowToExecuteWorkOrder: RequestRow | null;
+  readonly pendingActionId: string | null;
+  readonly approverLabel: string;
+  readonly nowLabel: string;
+  readonly onOpenChange: (open: boolean) => void;
+  readonly onConfirm: () => void;
 }
 
 export function RequestExecuteWorkOrderDialog({
@@ -58,23 +58,19 @@ export function RequestExecuteWorkOrderDialog({
         <AlertDialogFooter>
           <AlertDialogCancel
             className='cursor-pointer'
-            disabled={
-              !!rowToExecuteWorkOrder &&
-              pendingActionId === rowToExecuteWorkOrder.id
-            }
+            disabled={pendingActionId === rowToExecuteWorkOrder?.id}
           >
             Cancelar
           </AlertDialogCancel>
           <AlertDialogAction
             className='cursor-pointer bg-emerald-600 text-white hover:bg-emerald-600/90 disabled:bg-emerald-600 disabled:text-white'
-            onClick={onConfirm}
             disabled={
               !rowToExecuteWorkOrder ||
               pendingActionId === rowToExecuteWorkOrder.id
             }
+            onClick={onConfirm}
           >
-            {rowToExecuteWorkOrder &&
-            pendingActionId === rowToExecuteWorkOrder.id
+            {pendingActionId === rowToExecuteWorkOrder?.id
               ? 'Ejecutando…'
               : 'Aprobar y ejecutar'}
           </AlertDialogAction>

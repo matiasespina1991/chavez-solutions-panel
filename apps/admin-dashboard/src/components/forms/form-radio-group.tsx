@@ -1,6 +1,6 @@
 'use client';
 
-import { FieldPath, FieldValues } from 'react-hook-form';
+import { type FieldPath, type FieldValues } from 'react-hook-form';
 import {
   FormControl,
   FormDescription,
@@ -11,14 +11,14 @@ import {
 } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { BaseFormFieldProps, RadioGroupOption } from '@/types/base-form';
+import { type BaseFormFieldProps, type RadioGroupOption } from '@/types/base-form';
 
 interface FormRadioGroupProps<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
 > extends BaseFormFieldProps<TFieldValues, TName> {
-  options: RadioGroupOption[];
-  orientation?: 'horizontal' | 'vertical';
+  readonly options: RadioGroupOption[];
+  readonly orientation?: 'horizontal' | 'vertical';
 }
 
 function FormRadioGroup<
@@ -41,16 +41,13 @@ function FormRadioGroup<
       name={name}
       render={({ field }) => (
         <FormItem className={className}>
-          {label && (
-            <FormLabel>
-              {label}
-              {required && <span className='ml-1 text-red-500'>*</span>}
-            </FormLabel>
-          )}
-          {description && <FormDescription>{description}</FormDescription>}
+          {label ? <FormLabel>
+            {label}
+            {required ? <span className='ml-1 text-red-500'>*</span> : null}
+          </FormLabel> : null}
+          {description ? <FormDescription>{description}</FormDescription> : null}
           <FormControl>
             <RadioGroup
-              onValueChange={field.onChange}
               value={field.value}
               disabled={disabled}
               className={
@@ -58,6 +55,7 @@ function FormRadioGroup<
                   ? 'flex flex-row space-x-6'
                   : 'space-y-2'
               }
+              onValueChange={field.onChange}
             >
               {options.map((option) => (
                 <div key={option.value} className='flex items-center space-x-2'>
@@ -83,4 +81,6 @@ function FormRadioGroup<
   );
 }
 
-export { FormRadioGroup, type RadioGroupOption };
+export { FormRadioGroup,  };
+
+export {type RadioGroupOption} from '@/types/base-form';

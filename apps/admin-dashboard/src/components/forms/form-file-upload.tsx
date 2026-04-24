@@ -1,6 +1,6 @@
 'use client';
 
-import { FieldPath, FieldValues } from 'react-hook-form';
+import { type FieldPath, type FieldValues } from 'react-hook-form';
 import {
   FormControl,
   FormDescription,
@@ -9,14 +9,14 @@ import {
   FormLabel,
   FormMessage
 } from '@/components/ui/form';
-import { BaseFormFieldProps, FileUploadConfig } from '@/types/base-form';
+import { type BaseFormFieldProps, type FileUploadConfig } from '@/types/base-form';
 import { FileUploader, FileUploaderProps } from '@/components/file-uploader';
 
 interface FormFileUploadProps<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
 > extends BaseFormFieldProps<TFieldValues, TName> {
-  config?: FileUploadConfig;
+  readonly config?: FileUploadConfig;
 }
 
 function FormFileUpload<
@@ -48,18 +48,14 @@ function FormFileUpload<
       name={name}
       render={({ field }) => (
         <FormItem className={className}>
-          {label && (
-            <FormLabel>
-              {label}
-              {required && <span className='ml-1 text-red-500'>*</span>}
-            </FormLabel>
-          )}
+          {label ? <FormLabel>
+            {label}
+            {required ? <span className='ml-1 text-red-500'>*</span> : null}
+          </FormLabel> : null}
 
           <FormControl>
             <FileUploader
               value={field.value}
-              onValueChange={field.onChange}
-              onUpload={onUpload}
               progresses={progresses}
               accept={acceptedTypes?.reduce(
                 (acc, type) => ({ ...acc, [type]: [] }),
@@ -69,11 +65,13 @@ function FormFileUpload<
               maxFiles={maxFiles}
               multiple={multiple}
               disabled={disabled}
+              onValueChange={field.onChange}
+              onUpload={onUpload}
               {...restConfig}
             />
           </FormControl>
 
-          {description && <FormDescription>{description}</FormDescription>}
+          {description ? <FormDescription>{description}</FormDescription> : null}
           <FormMessage />
         </FormItem>
       )}
@@ -81,4 +79,6 @@ function FormFileUpload<
   );
 }
 
-export { FormFileUpload, type FileUploadConfig };
+export { FormFileUpload,  };
+
+export {type FileUploadConfig} from '@/types/base-form';

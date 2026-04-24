@@ -23,7 +23,7 @@ export const getSortingStateParser = <TData>(
     : null;
 
   return createParser({
-    parse: (value) => {
+    parse(value) {
       try {
         const parsed = JSON.parse(value);
         const result = z.array(sortingItemSchema).safeParse(parsed);
@@ -34,7 +34,7 @@ export const getSortingStateParser = <TData>(
           return null;
         }
 
-        return result.data as ExtendedColumnSort<TData>[];
+        return result.data as Array<ExtendedColumnSort<TData>>;
       } catch {
         return null;
       }
@@ -69,7 +69,7 @@ export const getFiltersStateParser = <TData>(
     : null;
 
   return createParser({
-    parse: (value) => {
+    parse(value) {
       try {
         const parsed = JSON.parse(value);
         const result = z.array(filterItemSchema).safeParse(parsed);
@@ -80,7 +80,7 @@ export const getFiltersStateParser = <TData>(
           return null;
         }
 
-        return result.data as ExtendedColumnFilter<TData>[];
+        return result.data as Array<ExtendedColumnFilter<TData>>;
       } catch {
         return null;
       }

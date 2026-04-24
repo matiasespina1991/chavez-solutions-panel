@@ -1,11 +1,11 @@
 import {
-  ConfigurationServiceItem,
-  ImportedServiceDocument
+  type ConfigurationServiceItem,
+  type ImportedServiceDocument
 } from '@/features/configurator/services/configurations';
 import {
-  FormValues,
-  SelectedService,
-  SelectedServiceGroup
+  type FormValues,
+  type SelectedService,
+  type SelectedServiceGroup
 } from '@/features/configurator/lib/configurator-form-model';
 
 export const normalizeRangeValue = (raw: string) => {
@@ -16,15 +16,15 @@ export const normalizeRangeValue = (raw: string) => {
   const hasDot = value.includes('.');
 
   if (hasComma && hasDot && /^\d{1,3}(,\d{3})+(\.\d+)?$/.test(value)) {
-    return value.replace(/,/g, '');
+    return value.replaceAll(',', '');
   }
 
   if (hasComma && hasDot && /^\d{1,3}(\.\d{3})+(,\d+)?$/.test(value)) {
-    return value.replace(/\./g, '').replace(',', '.');
+    return value.replaceAll('.', '').replace(',', '.');
   }
 
   if (hasComma && hasDot) {
-    return value.replace(/,/g, '');
+    return value.replaceAll(',', '');
   }
 
   if (hasComma && !hasDot) {
@@ -105,16 +105,12 @@ export const mapSelectedServicesToDocument = (
 export const mapServiceGroupsToDocument = (
   groups: SelectedServiceGroup[],
   getServiceId: (service: ImportedServiceDocument) => string
-) => {
-  return groups
-    .map((group) => {
-      return {
-        name: group.name,
-        items: mapSelectedServicesToDocument(group.items, getServiceId)
-      };
-    })
-    .filter((group) => group.items.length > 0);
-};
+) => groups
+  .map((group) => ({
+    name: group.name,
+    items: mapSelectedServicesToDocument(group.items, getServiceId)
+  }))
+  .filter((group) => group.items.length > 0);
 
 export const mapStoredServicesToSelected = (
   services: ConfigurationServiceItem[],
@@ -148,10 +144,10 @@ export const mapStoredServicesToSelected = (
 
 export const mapStoredServiceGroups = (
   grouped:
-    | {
-        name?: string;
-        items?: ConfigurationServiceItem[];
-      }[]
+    | Array<{
+      name?: string;
+      items?: ConfigurationServiceItem[];
+    }>
     | undefined,
   toSelectedService: (
     service: ImportedServiceDocument,

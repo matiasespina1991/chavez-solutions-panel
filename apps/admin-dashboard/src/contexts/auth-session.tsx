@@ -12,7 +12,7 @@ import {
 } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { AppUserRole } from '@/lib/user-role';
+import { type AppUserRole } from '@/lib/user-role';
 
 type PlanTier = 'starter' | 'pro' | 'enterprise';
 
@@ -104,7 +104,7 @@ function mapFirebaseUser(user: User, role: DemoUser['role']): DemoUser {
 export function AuthSessionProvider({
   children
 }: {
-  children: React.ReactNode;
+  readonly children: React.ReactNode;
 }) {
   const [activeOrgId, setActiveOrgId] = useState(demoOrganizations[0].id);
   const [firebaseUser, setFirebaseUser] = useState<DemoUser | null>(null);
@@ -180,8 +180,8 @@ export function AuthSessionProvider({
       authReady,
       authError,
       clearAuthError: () => setAuthError(null),
-      signInWithGoogle: () => signInWithPopup(auth, googleProvider),
-      signInWithEmailPassword: async (email: string, password: string) => {
+      signInWithGoogle: async () => signInWithPopup(auth, googleProvider),
+      async signInWithEmailPassword(email: string, password: string) {
         try {
           setAuthError(null);
           return await signInWithEmailAndPassword(auth, email, password);
@@ -193,7 +193,7 @@ export function AuthSessionProvider({
           throw error;
         }
       },
-      signOut: () => firebaseSignOut(auth)
+      signOut: async () => firebaseSignOut(auth)
     };
   }, [activeOrgId, authReady, authError, firebaseUser]);
 
@@ -209,5 +209,6 @@ export function useAuthSession() {
   if (!ctx) {
     throw new Error('useAuthSession must be used within AuthSessionProvider');
   }
+
   return ctx;
 }

@@ -102,7 +102,7 @@ export const deleteServiceHistory = onCall(async (req) => {
 
     try {
       await copyDocuments(serviceRefs, deletedServicesCollection);
-    } catch (err) {
+    } catch {
       throw new HttpsError(
         'internal',
         'Failed to copy services to deleted history collection.'
@@ -122,7 +122,7 @@ export const deleteServiceHistory = onCall(async (req) => {
         ...(historyDoc.data() || {}),
         deletedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
-  } catch (err) {
+  } catch {
     throw new HttpsError(
       'internal',
       'Failed to copy history metadata to deleted collection.'

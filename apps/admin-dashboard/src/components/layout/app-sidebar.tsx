@@ -103,7 +103,7 @@ export default function AppSidebar() {
                         tooltip={item.title}
                         isActive={pathname === item.url}
                       >
-                        {item.icon && <Icon />}
+                        {item.icon ? <Icon /> : null}
                         <span>{item.title}</span>
                         <IconChevronRight className='ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90' />
                       </SidebarMenuButton>
@@ -153,13 +153,11 @@ export default function AppSidebar() {
                   size='lg'
                   className='data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer'
                 >
-                  {user && (
-                    <UserAvatarProfile
-                      className='h-8 w-8 rounded-lg'
-                      showInfo
-                      user={user}
-                    />
-                  )}
+                  {user ? <UserAvatarProfile
+                    showInfo
+                    className='h-8 w-8 rounded-lg'
+                    user={user}
+                  /> : null}
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -170,13 +168,11 @@ export default function AppSidebar() {
               >
                 <DropdownMenuLabel className='p-0 font-normal'>
                   <div className='px-1 py-1.5'>
-                    {user && (
-                      <UserAvatarProfile
-                        className='h-8 w-8 rounded-lg'
-                        showInfo
-                        user={user}
-                      />
-                    )}
+                    {user ? <UserAvatarProfile
+                      showInfo
+                      className='h-8 w-8 rounded-lg'
+                      user={user}
+                    /> : null}
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />

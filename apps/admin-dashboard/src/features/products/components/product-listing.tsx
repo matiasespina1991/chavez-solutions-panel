@@ -1,4 +1,4 @@
-import { Product } from '@/constants/data';
+import { type Product } from '@/constants/data';
 import { fakeProducts } from '@/constants/mock-api';
 import { searchParamsCache } from '@/lib/searchparams';
 import { ProductTable } from './product-tables';
@@ -17,12 +17,12 @@ export default async function ProductListingPage({}: ProductListingPage) {
     page,
     limit: pageLimit,
     ...(search && { search }),
-    ...(categories && { categories: categories })
+    ...(categories && { categories })
   };
 
   const data = await fakeProducts.getProducts(filters);
   const totalProducts = data.total_products;
-  const products: Product[] = data.products;
+  const {products} = data;
 
   return (
     <ProductTable

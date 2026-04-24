@@ -47,41 +47,41 @@ import {
 } from '@/features/services-catalog/lib/services-catalog-panel-model';
 
 interface ServicesCatalogTableProps {
-  hideColumnsFromTechnique: boolean;
-  visibleEditableColumns: Array<{
+  readonly hideColumnsFromTechnique: boolean;
+  readonly visibleEditableColumns: Array<{
     key: EditableFieldKey;
     label: string;
     minWidth: string;
   }>;
-  allPageSelected: boolean;
-  hasSomePageSelected: boolean;
-  onTogglePageSelection: (checked: boolean) => void;
-  onSortBy: (key: SortableCatalogFieldKey) => void;
-  renderSortIcon: (key: SortableCatalogFieldKey) => ReactNode;
-  isLoading: boolean;
-  pageRows: ServiceCatalogRow[];
-  dirtySet: Set<string>;
-  selectedRowIdsSet: Set<string>;
-  onToggleRowSelection: (rowId: string, checked: boolean) => void;
-  onCellChange: (rowId: string, field: EditableFieldKey, value: string) => void;
-  activeTableAutocomplete: {
+  readonly allPageSelected: boolean;
+  readonly hasSomePageSelected: boolean;
+  readonly onTogglePageSelection: (checked: boolean) => void;
+  readonly onSortBy: (key: SortableCatalogFieldKey) => void;
+  readonly renderSortIcon: (key: SortableCatalogFieldKey) => ReactNode;
+  readonly isLoading: boolean;
+  readonly pageRows: ServiceCatalogRow[];
+  readonly dirtySet: Set<string>;
+  readonly selectedRowIdsSet: Set<string>;
+  readonly onToggleRowSelection: (rowId: string, checked: boolean) => void;
+  readonly onCellChange: (rowId: string, field: EditableFieldKey, value: string) => void;
+  readonly activeTableAutocomplete: {
     rowId: string;
     field: keyof CreateServiceDraft;
   } | null;
-  onCellFocus: (rowId: string, field: keyof CreateServiceDraft) => void;
-  onCellBlur: (field: keyof CreateServiceDraft) => void;
-  onCloseAutocomplete: () => void;
-  getAutocompleteMatches: (key: keyof CreateServiceDraft, query: string) => string[];
-  onResetRow: (rowId: string) => void;
-  isSaving: boolean;
-  isCreatingService: boolean;
-  onEditRow: (row: ServiceCatalogRow) => void;
-  onDuplicateRow: (row: ServiceCatalogRow) => void;
-  onRequestDeleteRow: (row: ServiceCatalogRow) => void;
-  currentPage: number;
-  totalPages: number;
-  onPrevPage: () => void;
-  onNextPage: () => void;
+  readonly onCellFocus: (rowId: string, field: keyof CreateServiceDraft) => void;
+  readonly onCellBlur: (field: keyof CreateServiceDraft) => void;
+  readonly onCloseAutocomplete: () => void;
+  readonly getAutocompleteMatches: (key: keyof CreateServiceDraft, query: string) => string[];
+  readonly onResetRow: (rowId: string) => void;
+  readonly isSaving: boolean;
+  readonly isCreatingService: boolean;
+  readonly onEditRow: (row: ServiceCatalogRow) => void;
+  readonly onDuplicateRow: (row: ServiceCatalogRow) => void;
+  readonly onRequestDeleteRow: (row: ServiceCatalogRow) => void;
+  readonly currentPage: number;
+  readonly totalPages: number;
+  readonly onPrevPage: () => void;
+  readonly onNextPage: () => void;
 }
 
 export function ServicesCatalogTable({
@@ -134,8 +134,8 @@ export function ServicesCatalogTable({
                         ? 'indeterminate'
                         : false
                   }
-                  onCheckedChange={(checked) => onTogglePageSelection(checked === true)}
                   aria-label='Seleccionar filas visibles'
+                  onCheckedChange={(checked) => onTogglePageSelection(checked === true)}
                 />
               </div>
             </TableHead>
@@ -217,10 +217,10 @@ export function ServicesCatalogTable({
                       <Checkbox
                         className='bg-background cursor-pointer !border-[#9a9a9a] shadow-none dark:!border-[#5f5f5f]'
                         checked={selectedRowIdsSet.has(row.id)}
+                        aria-label={`Seleccionar servicio ${row.ID_CONFIG_PARAMETRO || row.id}`}
                         onCheckedChange={(checked) =>
                           onToggleRowSelection(row.id, checked === true)
                         }
-                        aria-label={`Seleccionar servicio ${row.ID_CONFIG_PARAMETRO || row.id}`}
                       />
                     </div>
                   </TableCell>
@@ -252,6 +252,7 @@ export function ServicesCatalogTable({
                         <div className='relative'>
                           <Input
                             value={row[column.key]}
+                            className='h-8'
                             onChange={(event) =>
                               onCellChange(row.id, column.key, event.target.value)
                             }
@@ -260,6 +261,7 @@ export function ServicesCatalogTable({
                               if (!AUTOCOMPLETE_FIELD_KEYS.includes(fieldKey)) {
                                 return;
                               }
+
                               onCellFocus(row.id, fieldKey);
                             }}
                             onBlur={() => {
@@ -267,40 +269,40 @@ export function ServicesCatalogTable({
                               if (!AUTOCOMPLETE_FIELD_KEYS.includes(fieldKey)) {
                                 return;
                               }
+
                               onCellBlur(fieldKey);
                             }}
-                            className='h-8'
                           />
                           {AUTOCOMPLETE_FIELD_KEYS.includes(
                             column.key as keyof CreateServiceDraft
                           ) &&
-                            activeTableAutocomplete?.rowId === row.id &&
-                            activeTableAutocomplete.field ===
-                              (column.key as keyof CreateServiceDraft) &&
-                            getAutocompleteMatches(
-                              column.key as keyof CreateServiceDraft,
-                              row[column.key]
-                            ).length > 0 && (
-                              <div className='bg-popover text-popover-foreground absolute z-50 mt-1 flex max-h-64 w-full flex-col overflow-x-hidden overflow-y-auto rounded-md border shadow-lg'>
-                                {getAutocompleteMatches(
-                                  column.key as keyof CreateServiceDraft,
-                                  row[column.key]
-                                ).map((option) => (
-                                  <button
-                                    key={option}
-                                    type='button'
-                                    className='hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground block w-full cursor-pointer px-3 py-2 text-left text-sm break-words whitespace-normal'
-                                    onMouseDown={(event) => {
-                                      event.preventDefault();
-                                      onCellChange(row.id, column.key, option);
-                                      onCloseAutocomplete();
-                                    }}
-                                  >
-                                    {option}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
+                          activeTableAutocomplete?.rowId === row.id &&
+                          activeTableAutocomplete.field ===
+                          (column.key as keyof CreateServiceDraft) &&
+                          getAutocompleteMatches(
+                            column.key as keyof CreateServiceDraft,
+                            row[column.key]
+                          ).length > 0 && (
+                            <div className='bg-popover text-popover-foreground absolute z-50 mt-1 flex max-h-64 w-full flex-col overflow-x-hidden overflow-y-auto rounded-md border shadow-lg'>
+                              {getAutocompleteMatches(
+                                column.key as keyof CreateServiceDraft,
+                                row[column.key]
+                              ).map((option) => (
+                                <button
+                                  key={option}
+                                  type='button'
+                                  className='hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground block w-full cursor-pointer px-3 py-2 text-left text-sm break-words whitespace-normal'
+                                  onMouseDown={(event) => {
+                                    event.preventDefault();
+                                    onCellChange(row.id, column.key, option);
+                                    onCloseAutocomplete();
+                                  }}
+                                >
+                                  {option}
+                                </button>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
                     </TableCell>
@@ -314,8 +316,8 @@ export function ServicesCatalogTable({
                           variant='ghost'
                           size='sm'
                           className='h-8 px-2'
-                          onClick={() => onResetRow(row.id)}
                           disabled={!isDirty}
+                          onClick={() => onResetRow(row.id)}
                         >
                           <Undo2 className='h-4 w-4' />
                         </Button>

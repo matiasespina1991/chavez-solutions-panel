@@ -1,8 +1,8 @@
 import { DataTableSkeleton } from '@/components/ui/table/data-table-skeleton';
 
 interface WorkOrdersListingStateProps {
-  loading: boolean;
-  hasRows: boolean;
+  readonly loading: boolean;
+  readonly hasRows: boolean;
 }
 
 export function WorkOrdersListingState({

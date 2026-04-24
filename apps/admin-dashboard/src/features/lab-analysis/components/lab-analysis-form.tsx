@@ -87,14 +87,14 @@ export default function LabAnalysisForm() {
           return;
         }
 
-        const value = workOrderSnap.data() as Record<string, unknown>;
+        const value = workOrderSnap.data();
         const rawStatus = String(value.status ?? '').toLowerCase();
         const status: WorkOrderStatus =
           rawStatus === 'issued' ||
           rawStatus === 'paused' ||
           rawStatus === 'completed' ||
           rawStatus === 'cancelled'
-            ? (rawStatus as WorkOrderStatus)
+            ? (rawStatus)
             : 'unknown';
 
         setWorkOrder({
@@ -108,29 +108,29 @@ export default function LabAnalysisForm() {
           typeof value.analyses === 'object' && value.analyses !== null
             ? Array.isArray((value.analyses as { items?: unknown[] }).items)
               ? ((value.analyses as { items?: unknown[] }).items ?? [])
-                  .map((item) => {
-                    const rowItem = item as {
-                      parameterLabelEs?: string;
-                      resultValue?: string;
-                      unit?: string;
-                      method?: string;
-                    };
+                .map((item) => {
+                  const rowItem = item as {
+                    parameterLabelEs?: string;
+                    resultValue?: string;
+                    unit?: string;
+                    method?: string;
+                  };
 
-                    return {
-                      id: createLocalId(),
-                      parameterLabelEs: String(rowItem.parameterLabelEs ?? ''),
-                      resultValue: String(rowItem.resultValue ?? ''),
-                      unit: String(rowItem.unit ?? ''),
-                      method: String(rowItem.method ?? '')
-                    };
-                  })
-                  .filter(
-                    (item) =>
-                      item.parameterLabelEs ||
-                      item.resultValue ||
-                      item.unit ||
-                      item.method
-                  )
+                  return {
+                    id: createLocalId(),
+                    parameterLabelEs: String(rowItem.parameterLabelEs ?? ''),
+                    resultValue: String(rowItem.resultValue ?? ''),
+                    unit: String(rowItem.unit ?? ''),
+                    method: String(rowItem.method ?? '')
+                  };
+                })
+                .filter(
+                  (item) =>
+                    item.parameterLabelEs ||
+                    item.resultValue ||
+                    item.unit ||
+                    item.method
+                )
               : []
             : [];
 
@@ -328,6 +328,7 @@ export default function LabAnalysisForm() {
                   className='md:col-span-4'
                   placeholder='Parámetro'
                   value={row.parameterLabelEs}
+                  disabled={isSaving || isCancelled}
                   onChange={(event) =>
                     updateAnalysisRow(
                       row.id,
@@ -335,45 +336,44 @@ export default function LabAnalysisForm() {
                       event.target.value
                     )
                   }
-                  disabled={isSaving || isCancelled}
                 />
                 <Input
                   className='md:col-span-4'
                   placeholder='Resultado'
                   value={row.resultValue}
+                  disabled={isSaving || isCancelled}
                   onChange={(event) =>
                     updateAnalysisRow(row.id, 'resultValue', event.target.value)
                   }
-                  disabled={isSaving || isCancelled}
                 />
                 <Input
                   className='md:col-span-2'
                   placeholder='Unidad'
                   value={row.unit}
+                  disabled={isSaving || isCancelled}
                   onChange={(event) =>
                     updateAnalysisRow(row.id, 'unit', event.target.value)
                   }
-                  disabled={isSaving || isCancelled}
                 />
                 <div className='flex gap-2 md:col-span-2'>
                   <Input
                     placeholder='Método'
                     value={row.method}
+                    disabled={isSaving || isCancelled}
                     onChange={(event) =>
                       updateAnalysisRow(row.id, 'method', event.target.value)
                     }
-                    disabled={isSaving || isCancelled}
                   />
                   <Button
                     type='button'
                     variant='outline'
                     size='icon'
                     className='cursor-pointer'
-                    onClick={() => removeAnalysisRow(row.id)}
                     disabled={
                       isSaving || isCancelled || analysisRows.length === 1
                     }
                     aria-label='Eliminar fila'
+                    onClick={() => removeAnalysisRow(row.id)}
                   >
                     <IconTrash className='h-4 w-4' />
                   </Button>
@@ -385,8 +385,8 @@ export default function LabAnalysisForm() {
               type='button'
               variant='outline'
               className='cursor-pointer'
-              onClick={addAnalysisRow}
               disabled={isSaving || isCancelled}
+              onClick={addAnalysisRow}
             >
               <IconPlus className='mr-1 h-4 w-4' /> Agregar análisis
             </Button>
@@ -396,10 +396,10 @@ export default function LabAnalysisForm() {
             <label className='text-sm font-medium'>Notas de laboratorio</label>
             <Textarea
               value={labNotes}
-              onChange={(event) => setLabNotes(event.target.value)}
               placeholder='Notas adicionales del laboratorio'
               rows={4}
               disabled={isSaving || isCancelled}
+              onChange={(event) => setLabNotes(event.target.value)}
             />
           </div>
 
@@ -421,8 +421,8 @@ export default function LabAnalysisForm() {
             <Button
               type='button'
               className='cursor-pointer bg-black text-white hover:bg-black/90 disabled:bg-black disabled:text-white'
-              onClick={handleSave}
               disabled={isSaving || isCancelled}
+              onClick={handleSave}
             >
               {isSaving ? 'Guardando…' : 'Guardar análisis'}
             </Button>

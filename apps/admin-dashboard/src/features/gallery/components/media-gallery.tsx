@@ -30,7 +30,7 @@ import {
   IconMovie,
   IconPhoto
 } from '@tabler/icons-react';
-import { MediaDoc, uploadMediaFiles } from '@/lib/media-upload';
+import { type MediaDoc, uploadMediaFiles } from '@/lib/media-upload';
 import { toast } from 'sonner';
 
 const MAX_UPLOAD_SIZE = 250 * 1024 * 1024;
@@ -50,34 +50,61 @@ function getPreviewPath(media: MediaDoc) {
 
 function getProcessingLabel(stage?: string) {
   switch (stage) {
-    case 'created':
+    case 'created': {
       return 'Preparando';
-    case 'download_start':
+    }
+
+    case 'download_start': {
       return 'Preparando';
-    case 'downloaded':
+    }
+
+    case 'downloaded': {
       return 'Preparando';
-    case 'metadata':
+    }
+
+    case 'metadata': {
       return 'Obteniendo metadata';
-    case 'poster_generated':
+    }
+
+    case 'poster_generated': {
       return 'Procesando portada';
-    case 'poster_uploaded':
+    }
+
+    case 'poster_uploaded': {
       return 'Procesando portada';
-    case 'variants_ready':
+    }
+
+    case 'variants_ready': {
       return 'Creando variantes';
-    case 'transcode_360':
+    }
+
+    case 'transcode_360': {
       return 'Transcodificando 360p';
-    case 'transcode_720':
+    }
+
+    case 'transcode_720': {
       return 'Transcodificando 720p';
-    case 'transcode_1080':
+    }
+
+    case 'transcode_1080': {
       return 'Transcodificando 1080p';
-    case 'derivatives_ready':
+    }
+
+    case 'derivatives_ready': {
       return 'Derivados listos';
-    case 'original_deleted':
+    }
+
+    case 'original_deleted': {
       return 'Limpiando';
-    case 'done':
+    }
+
+    case 'done': {
       return 'Listo';
-    default:
+    }
+
+    default: {
       return 'Procesando';
+    }
   }
 }
 
@@ -96,6 +123,7 @@ function toDate(value: unknown): Date | null {
       const maybeDate = value.toDate();
       return maybeDate instanceof Date ? maybeDate : null;
     }
+
     if (
       'seconds' in value &&
       typeof (value as { seconds?: unknown }).seconds === 'number'
@@ -145,11 +173,11 @@ function formatCreatedAt(value: unknown) {
 }
 
 type MediaCardProps = {
-  media: MediaDoc;
-  isSelected?: boolean;
-  onPreviewClick?: () => void;
-  onSelect?: () => void;
-  dataMediaId?: string;
+  readonly media: MediaDoc;
+  readonly isSelected?: boolean;
+  readonly onPreviewClick?: () => void;
+  readonly onSelect?: () => void;
+  readonly dataMediaId?: string;
 };
 
 function MediaCard({
@@ -170,7 +198,7 @@ function MediaCard({
   const [localTitle, setLocalTitle] = useState(media.title ?? '');
   const [isSaving, setIsSaving] = useState(false);
   const loadStartRef = useRef(0);
-  const loadTimeoutRef = useRef<number | null>(null);
+  const loadTimeoutRef = useRef<ReturnType<typeof globalThis.setTimeout> | null>(null);
   const titleRef = useRef<HTMLSpanElement | null>(null);
   const draftTitleRef = useRef(media.title ?? '');
   const savingRef = useRef(false);
@@ -198,7 +226,7 @@ function MediaCard({
     setIsPreviewLoaded(false);
     loadStartRef.current = Date.now();
     if (loadTimeoutRef.current !== null) {
-      window.clearTimeout(loadTimeoutRef.current);
+      globalThis.clearTimeout(loadTimeoutRef.current);
       loadTimeoutRef.current = null;
     }
   }, [src]);
@@ -210,7 +238,7 @@ function MediaCard({
     element.focus();
     const range = document.createRange();
     range.selectNodeContents(element);
-    const selection = window.getSelection();
+    const selection = globalThis.getSelection();
     selection?.removeAllRanges();
     selection?.addRange(range);
   }, [isEditing]);
@@ -250,17 +278,17 @@ function MediaCard({
       className={cn(
         'border-border/60 bg-card group/media-card relative flex h-full flex-col overflow-hidden rounded-lg border shadow-xs',
         isSelected &&
-          'ring-offset-background ring-2 ring-[#006cd1]/40 ring-offset-2'
+        'ring-offset-background ring-2 ring-[#006cd1]/40 ring-offset-2'
       )}
     >
       <button
         type='button'
         aria-label='Abrir vista previa'
-        onClick={onPreviewClick}
         className={cn(
           'group/preview bg-muted focus-visible:ring-ring/50 relative aspect-[4/3] w-full overflow-hidden text-left transition outline-none focus-visible:ring-2',
           onPreviewClick ? 'cursor-pointer' : 'cursor-default'
         )}
+        onClick={onPreviewClick}
       >
         {hasSource && src ? (
           <img
@@ -278,7 +306,8 @@ function MediaCard({
                 setIsPreviewLoaded(true);
                 return;
               }
-              loadTimeoutRef.current = window.setTimeout(() => {
+
+              loadTimeoutRef.current = globalThis.setTimeout(() => {
                 setIsPreviewLoaded(true);
                 loadTimeoutRef.current = null;
               }, remaining);
@@ -286,9 +315,10 @@ function MediaCard({
             onError={() => {
               setIsPreviewLoaded(false);
               if (loadTimeoutRef.current !== null) {
-                window.clearTimeout(loadTimeoutRef.current);
+                globalThis.clearTimeout(loadTimeoutRef.current);
                 loadTimeoutRef.current = null;
               }
+
               handleError();
             }}
           />
@@ -317,12 +347,12 @@ function MediaCard({
                   r='10'
                   stroke='currentColor'
                   strokeWidth='4'
-                ></circle>
+                />
                 <path
                   className='opacity-75'
                   fill='currentColor'
                   d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
-                ></path>
+                />
               </svg>
             )}
             {media.processed ? 'Sin vista previa' : <p>Procesando…</p>}
@@ -410,8 +440,8 @@ function MediaCard({
       >
         <span
           ref={titleRef}
-          contentEditable={isEditing && !isSaving}
           suppressContentEditableWarning
+          contentEditable={isEditing ? !isSaving : undefined}
           role='textbox'
           aria-label='Editar título'
           className={cn(
@@ -436,6 +466,7 @@ function MediaCard({
               event.preventDefault();
               saveTitle();
             }
+
             if (event.key === 'Escape') {
               event.preventDefault();
               setIsEditing(false);
@@ -479,29 +510,29 @@ function UploadCard({
   onUpload,
   progresses
 }: {
-  onUpload: (files: File[]) => Promise<void>;
-  progresses: Record<string, number>;
+  readonly onUpload: (files: File[]) => Promise<void>;
+  readonly progresses: Record<string, number>;
 }) {
   return (
     <div className='border-border/60 bg-card flex h-full flex-col overflow-hidden rounded-lg border shadow-xs'>
       <div className='flex flex-1 p-5'>
         <FileUploader
-          onUpload={onUpload}
+          multiple
+          compact
           progresses={progresses}
           accept={{ 'image/*': [], 'video/*': [] }}
           maxFiles={12}
           maxSize={MAX_UPLOAD_SIZE}
-          multiple
           containerClassName='flex-1 gap-3'
           className='h-full w-full flex-1'
-          compact
+          onUpload={onUpload}
         />
       </div>
     </div>
   );
 }
 
-function MediaGallerySkeleton({ rows = 6 }: { rows?: number }) {
+function MediaGallerySkeleton({ rows = 6 }: { readonly rows?: number }) {
   const items = Array.from({ length: rows });
   return (
     <div className='grid auto-rows-fr grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5'>
@@ -529,8 +560,8 @@ function MediaGallerySkeleton({ rows = 6 }: { rows?: number }) {
 }
 
 type MediaGalleryProps = {
-  selectedId?: string | null;
-  onSelectionChange?: (media: MediaDoc | null) => void;
+  readonly selectedId?: string | null;
+  readonly onSelectionChange?: (media: MediaDoc | null) => void;
 };
 
 export default function MediaGallery({
@@ -569,7 +600,7 @@ export default function MediaGallery({
       const target = event.target as HTMLElement | null;
       if (!target) return;
       if (target.isContentEditable) return;
-      const tagName = target.tagName;
+      const {tagName} = target;
       if (
         tagName === 'INPUT' ||
         tagName === 'TEXTAREA' ||
@@ -577,22 +608,24 @@ export default function MediaGallery({
       ) {
         return;
       }
+
       if (event.key === 'ArrowLeft') {
         event.preventDefault();
         goPrev();
       }
+
       if (event.key === 'ArrowRight') {
         event.preventDefault();
         goNext();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    globalThis.addEventListener('keydown', handleKeyDown);
+    return () => globalThis.removeEventListener('keydown', handleKeyDown);
   }, [activeIndex, canGoPrev, canGoNext]);
 
   const lightboxImageAsset = useMemo(() => {
-    if (!activeMedia || activeMedia.type !== 'image') return null;
+    if (activeMedia?.type !== 'image') return null;
     const candidates = [
       activeMedia.paths?.derivatives?.webp_large,
       activeMedia.paths?.derivatives?.webp_medium,
@@ -609,7 +642,7 @@ export default function MediaGallery({
   }, [activeMedia]);
 
   const lightboxVideoAsset = useMemo(() => {
-    if (!activeMedia || activeMedia.type !== 'video') return null;
+    if (activeMedia?.type !== 'video') return null;
     const candidates = [
       activeMedia.paths?.derivatives?.webm_1080,
       activeMedia.paths?.derivatives?.webm_720,
@@ -625,7 +658,7 @@ export default function MediaGallery({
   }, [activeMedia]);
 
   const lightboxPosterAsset = useMemo(() => {
-    if (!activeMedia || activeMedia.type !== 'video') return null;
+    if (activeMedia?.type !== 'video') return null;
     return {
       storagePath: activeMedia.paths?.poster?.storagePath ?? null,
       downloadURL: activeMedia.paths?.poster?.downloadURL ?? null
@@ -652,6 +685,7 @@ export default function MediaGallery({
       setActiveIndex(null);
       return;
     }
+
     if (activeIndex > items.length - 1) {
       setActiveIndex(items.length - 1);
     }
@@ -744,7 +778,7 @@ export default function MediaGallery({
         <MediaGallerySkeleton />
       ) : (
         <div className='grid auto-rows-fr grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5'>
-          <UploadCard onUpload={handleUpload} progresses={progresses} />
+          <UploadCard progresses={progresses} onUpload={handleUpload} />
           {items.map((media, index) => (
             <MediaCard
               key={media.id}
@@ -791,9 +825,9 @@ export default function MediaGallery({
                     ? 'hover:bg-background'
                     : 'pointer-events-none opacity-40'
                 )}
-                onClick={goPrev}
                 disabled={!canGoPrev}
                 aria-label='Anterior'
+                onClick={goPrev}
               >
                 <IconChevronLeft className='h-5 w-5' />
               </button>
@@ -805,9 +839,9 @@ export default function MediaGallery({
                     ? 'hover:bg-background'
                     : 'pointer-events-none opacity-40'
                 )}
-                onClick={goNext}
                 disabled={!canGoNext}
                 aria-label='Siguiente'
+                onClick={goNext}
               >
                 <IconChevronRight className='h-5 w-5' />
               </button>
@@ -831,6 +865,7 @@ export default function MediaGallery({
                           event.preventDefault();
                           void saveDialogTitle();
                         }
+
                         if (event.key === 'Escape') {
                           event.preventDefault();
                           setIsDialogTitleEditing(false);
@@ -855,7 +890,7 @@ export default function MediaGallery({
                   <div className='text-muted-foreground text-xs'>
                     {activeMedia.originalFilename
                       ? 'Archivo Original: ' +
-                        activeMedia.originalFilename?.trim()
+                      activeMedia.originalFilename?.trim()
                       : ''}
                   </div>
                   <div className='text-muted-foreground text-xs'>
@@ -870,8 +905,8 @@ export default function MediaGallery({
                       <video
                         playsInline
                         autoPlay
-                        className='h-full max-h-full w-full max-w-full cursor-pointer object-contain'
                         controls
+                        className='h-full max-h-full w-full max-w-full cursor-pointer object-contain'
                         poster={lightboxPosterSrc || undefined}
                         src={lightboxVideoSrc}
                         onLoadedData={() => setIsLightboxLoaded(true)}
@@ -903,23 +938,23 @@ export default function MediaGallery({
                     </div>
                   )}
                   {(activeMedia.type === 'video' && hasVideoSource) ||
-                  (activeMedia.type === 'image' && hasImageSource) ? (
-                    <div
-                      className={cn(
-                        'bg-background/60 pointer-events-none absolute inset-0 flex items-center justify-center transition-opacity duration-300',
-                        isLightboxLoaded ? 'opacity-0' : 'opacity-100'
-                      )}
-                    >
-                      <img
-                        src='/assets/system/loaders/loader.webp'
-                        alt='Cargando...'
+                    (activeMedia.type === 'image' && hasImageSource) ? (
+                      <div
                         className={cn(
-                          'w-[1.8rem]transition-opacity h-[1.8rem] duration-300',
-                          isLightboxLoaded ? 'opacity-0' : 'opacity-60'
+                          'bg-background/60 pointer-events-none absolute inset-0 flex items-center justify-center transition-opacity duration-300',
+                          isLightboxLoaded ? 'opacity-0' : 'opacity-100'
                         )}
-                      />
-                    </div>
-                  ) : null}
+                      >
+                        <img
+                          src='/assets/system/loaders/loader.webp'
+                          alt='Cargando...'
+                          className={cn(
+                            'w-[1.8rem]transition-opacity h-[1.8rem] duration-300',
+                            isLightboxLoaded ? 'opacity-0' : 'opacity-60'
+                          )}
+                        />
+                      </div>
+                    ) : null}
                 </div>
               </div>
             </div>

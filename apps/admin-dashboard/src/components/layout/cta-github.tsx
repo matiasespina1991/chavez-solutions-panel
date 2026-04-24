@@ -3,7 +3,7 @@ import { IconBrandGithub } from '@tabler/icons-react';
 
 export default function CtaGithub() {
   return (
-    <Button variant='ghost' asChild size='sm' className='group hidden sm:flex'>
+    <Button asChild variant='ghost' size='sm' className='group hidden sm:flex'>
       <a
         href='https://github.com/Kiranism/next-shadcn-dashboard-starter'
         rel='noopener noreferrer'
