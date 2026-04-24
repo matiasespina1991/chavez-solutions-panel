@@ -145,7 +145,7 @@ export default function ContactForm() {
       }
     };
 
-    loadContact();
+    void loadContact();
 
     return () => {
       isMounted = false;

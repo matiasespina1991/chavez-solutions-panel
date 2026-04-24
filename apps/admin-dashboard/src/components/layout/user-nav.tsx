@@ -66,7 +66,7 @@ export function UserNav() {
             cursor: 'pointer'
           }}
           onClick={() => {
-            signOut();
+            void signOut();
             router.push('/auth/sign-in');
           }}
         >

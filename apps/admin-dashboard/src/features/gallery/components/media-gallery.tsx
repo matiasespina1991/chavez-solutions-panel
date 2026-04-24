@@ -459,12 +459,14 @@ function MediaCard({
             draftTitleRef.current = event.currentTarget.textContent ?? '';
           }}
           onBlur={() => {
-            if (isEditing) saveTitle();
+            if (isEditing) {
+              void saveTitle();
+            }
           }}
           onKeyDown={(event) => {
             if (event.key === 'Enter') {
               event.preventDefault();
-              saveTitle();
+              void saveTitle();
             }
 
             if (event.key === 'Escape') {

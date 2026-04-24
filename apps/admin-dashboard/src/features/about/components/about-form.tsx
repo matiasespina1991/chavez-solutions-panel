@@ -206,7 +206,7 @@ export default function AboutForm() {
       }
     };
 
-    loadAbout();
+    void loadAbout();
 
     return () => {
       isMounted = false;

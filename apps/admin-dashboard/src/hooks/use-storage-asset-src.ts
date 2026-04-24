@@ -94,7 +94,7 @@ export function useStorageAssetSrc(
       !cachedSigned &&
       !resolvingRef.current
     ) {
-      attemptSigned();
+      void attemptSigned();
     }
   }, [preferDirect, storagePath, cachedSigned, attemptSigned]);
 
@@ -109,7 +109,7 @@ export function useStorageAssetSrc(
       case 'direct': {
         fallbackToStorage();
         triedSignedRef.current = false;
-        attemptSigned();
+        void attemptSigned();
     
         break;
       }
@@ -119,7 +119,7 @@ export function useStorageAssetSrc(
           return;
         }
 
-        attemptSigned();
+        void attemptSigned();
     
         break;
       }
@@ -128,7 +128,7 @@ export function useStorageAssetSrc(
         clearCachedSignedUrl(storagePath);
         triedSignedRef.current = false;
         fallbackToStorage();
-        attemptSigned();
+        void attemptSigned();
     
         break;
       }

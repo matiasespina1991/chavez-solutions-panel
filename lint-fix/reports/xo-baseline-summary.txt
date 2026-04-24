@@ -1,30 +1,20 @@
 files=326
-errors=116
-warnings=5
-fixable_errors=2
+errors=39
+warnings=1
+fixable_errors=3
 fixable_warnings=1
 
 top_rules:
-    23 react/no-array-index-key
-    15 @typescript-eslint/no-floating-promises
-    13 react/prop-types
-     6 new-cap
-     5 react/jsx-no-constructed-context-values
-     5 @typescript-eslint/no-base-to-string
-     4 react-hooks/incompatible-library
-     4 @typescript-eslint/no-empty-function
-     4 react/function-component-definition
      2 react/no-danger
      2 unknown
      2 react/no-unknown-property
      2 unicorn/prefer-logical-operator-over-ternary
      2 @typescript-eslint/use-unknown-in-catch-callback-variable
-     2 react-hooks/preserve-manual-memoization
      2 react/button-has-type
-     2 react-hooks/purity
      2 @typescript-eslint/no-empty-object-type
      2 react/no-unescaped-entities
      2 no-unsafe-optional-chaining
+     2 @stylistic/padding-line-between-statements
      1 no-alert
      1 react/no-unused-prop-types
      1 @typescript-eslint/promise-function-async
@@ -35,3 +25,13 @@ top_rules:
      1 react/jsx-pascal-case
      1 radix
      1 @typescript-eslint/consistent-type-assertions
+     1 react-hooks/refs
+     1 @typescript-eslint/no-unused-expressions
+     1 @typescript-eslint/prefer-optional-chain
+     1 no-return-assign
+     1 eqeqeq
+     1 @typescript-eslint/no-redeclare
+     1 no-empty-pattern
+     1 react/hook-use-state
+     1 unicorn/prefer-array-some
+     1 @eslint-community/eslint-comments/disable-enable-pair
