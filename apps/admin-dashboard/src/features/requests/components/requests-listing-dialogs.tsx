@@ -1,54 +1,9 @@
-import type { RequestListRow as RequestRow } from '@/types/domain';
 import { RequestDeleteDialog } from '@/features/requests/components/request-delete-dialog';
 import { RequestExecuteWorkOrderDialog } from '@/features/requests/components/request-execute-work-order-dialog';
 import { RequestRejectDialog } from '@/features/requests/components/request-reject-dialog';
 import { RequestSummaryDialog } from '@/features/requests/components/request-summary-dialog';
 import { RequestWorkOrderToggleDialog } from '@/features/requests/components/request-work-order-toggle-dialog';
-
-interface RequestsListingDialogsProps {
-  readonly isViewDialogOpen: boolean;
-  readonly selectedRow: RequestRow | null;
-  readonly canShowExecuteWorkOrderButton: boolean;
-  readonly canApproveSelectedRow: boolean;
-  readonly canEditSelectedRow: boolean;
-  readonly pendingActionId: string | null;
-  readonly isDialogDownloading: boolean;
-  readonly onSetViewDialogOpen: (open: boolean) => void;
-  readonly onOpenExecuteWorkOrderDialog: (row: RequestRow) => void;
-  readonly onWorkOrderAction: (row: RequestRow) => Promise<void>;
-  readonly onDialogEdit: () => void;
-  readonly onDialogDownload: () => void;
-  readonly onDialogDelete: () => void;
-  readonly onDialogResume: () => void;
-  readonly isExecuteWorkOrderDialogOpen: boolean;
-  readonly rowToExecuteWorkOrder: RequestRow | null;
-  readonly approverLabel: string;
-  readonly nowLabel: string;
-  readonly onSetExecuteWorkOrderDialogOpen: (open: boolean) => void;
-  readonly onSetRowToExecuteWorkOrder: (row: RequestRow | null) => void;
-  readonly onConfirmExecuteWorkOrder: () => Promise<void>;
-  readonly isWorkOrderToggleDialogOpen: boolean;
-  readonly isTogglingWorkOrder: boolean;
-  readonly workOrderToggleAction: 'pause' | 'resume' | null;
-  readonly workOrderToggleNotes: string;
-  readonly onSetWorkOrderToggleDialogOpen: (open: boolean) => void;
-  readonly onSetRowToToggleWorkOrder: (row: RequestRow | null) => void;
-  readonly onSetWorkOrderToggleAction: (action: 'pause' | 'resume' | null) => void;
-  readonly onSetWorkOrderToggleNotes: (notes: string) => void;
-  readonly onConfirmWorkOrderToggle: () => Promise<void>;
-  readonly isDeleteDialogOpen: boolean;
-  readonly isDeleting: boolean;
-  readonly onSetDeleteDialogOpen: (open: boolean) => void;
-  readonly onSetRowToDelete: (row: RequestRow | null) => void;
-  readonly onConfirmDelete: () => Promise<void>;
-  readonly isRejectDialogOpen: boolean;
-  readonly isRejecting: boolean;
-  readonly rejectFeedback: string;
-  readonly onSetRejectDialogOpen: (open: boolean) => void;
-  readonly onSetRowToReject: (row: RequestRow | null) => void;
-  readonly onSetRejectFeedback: (value: string) => void;
-  readonly onConfirmReject: () => Promise<void>;
-}
+import type { RequestsListingDialogsProps } from '@/features/requests/lib/request-component-types';
 
 export function RequestsListingDialogs({
   isViewDialogOpen,

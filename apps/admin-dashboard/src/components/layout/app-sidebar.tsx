@@ -33,20 +33,14 @@ import { UserAvatarProfile } from '@/components/user-avatar-profile';
 import { navItems } from '@/config/nav-config';
 import { useFilteredNavItems } from '@/hooks/use-nav';
 import {
-  IconBell,
   IconChevronRight,
-  IconChevronsDown,
-  IconChevronsUp,
-  IconCreditCard,
   IconLogout,
-  IconSettings,
-  IconUserCircle
+  IconSettings
 } from '@tabler/icons-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
 import { Icons } from '../icons';
-import { OrgSwitcher } from '../org-switcher';
 import { useAuthSession } from '@/contexts/auth-session';
 
 export default function AppSidebar() {
@@ -82,7 +76,6 @@ export default function AppSidebar() {
             />
           </div>
         )}
-        {/* <OrgSwitcher /> */}
       </SidebarHeader>
       <SidebarContent className='overflow-x-hidden'>
         <SidebarGroup>
@@ -178,20 +171,6 @@ export default function AppSidebar() {
                 <DropdownMenuSeparator />
 
                 <DropdownMenuGroup>
-                  {/* <DropdownMenuItem
-                    onClick={() => router.push('/dashboard/profile')}
-                  >
-                    <IconUserCircle className='mr-2 h-4 w-4' />
-                    Profile
-                  </DropdownMenuItem> */}
-                  {/* {activeOrganization && (
-                    <DropdownMenuItem
-                      onClick={() => router.push('/dashboard/billing')}
-                    >
-                      <IconCreditCard className='mr-2 h-4 w-4' />
-                      Billing
-                    </DropdownMenuItem>
-                  )} */}
                   <DropdownMenuItem
                     style={{
                       cursor: 'pointer'

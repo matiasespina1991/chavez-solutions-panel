@@ -1,17 +1,4 @@
-import type { RequestListRow as RequestRow } from '@/types/domain';
-
-interface RequestDialogBanner {
-  className: string;
-  text: string;
-}
-
-interface RequestSummaryBannerProps {
-  readonly row: RequestRow;
-  readonly banner: RequestDialogBanner | null;
-  readonly onExecute: (row: RequestRow) => void;
-  readonly onEdit: () => void;
-  readonly onResume: () => void;
-}
+import type { RequestSummaryBannerProps } from '@/features/requests/lib/request-component-types';
 
 export function RequestSummaryBanner({
   row,

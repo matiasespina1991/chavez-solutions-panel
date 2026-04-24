@@ -2,27 +2,13 @@ import {
   DialogHeaderActions,
   type DialogHeaderAction
 } from '@/components/ui/dialog-header-actions';
-import type { RequestListRow as RequestRow } from '@/types/domain';
+import type { RequestSummaryActionsProps } from '@/features/requests/lib/request-component-types';
 import {
   IconDownload,
   IconPencil,
   IconPlayerPlayFilled,
   IconTrash
 } from '@tabler/icons-react';
-
-interface RequestSummaryActionsProps {
-  readonly selectedRow: RequestRow | null;
-  readonly canShowExecuteWorkOrderButton: boolean;
-  readonly canApproveSelectedRow: boolean;
-  readonly canEditSelectedRow: boolean;
-  readonly pendingActionId: string | null;
-  readonly isDialogDownloading: boolean;
-  readonly onOpenExecuteWorkOrderDialog: (row: RequestRow) => void;
-  readonly onWorkOrderAction: (row: RequestRow) => void;
-  readonly onEdit: () => void;
-  readonly onDownload: () => void;
-  readonly onDelete: () => void;
-}
 
 export function RequestSummaryActions({
   selectedRow,

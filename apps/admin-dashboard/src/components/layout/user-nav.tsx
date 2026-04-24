@@ -44,12 +44,6 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          {/* <DropdownMenuItem onClick={() => router.push('/dashboard/profile')}>
-            Profile
-          </DropdownMenuItem> */}
-          {/* <DropdownMenuItem onClick={() => router.push('/dashboard/billing')}>
-            Billing
-          </DropdownMenuItem> */}
           <DropdownMenuItem
             style={{
               cursor: 'pointer'
@@ -58,7 +52,6 @@ export function UserNav() {
           >
             Configuración
           </DropdownMenuItem>
-          {/* <DropdownMenuItem>New Team</DropdownMenuItem> */}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem

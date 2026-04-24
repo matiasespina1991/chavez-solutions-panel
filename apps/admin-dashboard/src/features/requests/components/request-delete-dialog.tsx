@@ -8,13 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from '@/components/ui/alert-dialog';
-
-interface RequestDeleteDialogProps {
-  readonly open: boolean;
-  readonly isDeleting: boolean;
-  readonly onOpenChange: (open: boolean) => void;
-  readonly onConfirm: () => void;
-}
+import type { RequestDeleteDialogProps } from '@/features/requests/lib/request-component-types';
 
 export function RequestDeleteDialog({
   open,

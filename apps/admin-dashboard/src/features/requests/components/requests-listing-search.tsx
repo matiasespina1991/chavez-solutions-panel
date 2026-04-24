@@ -1,10 +1,6 @@
 import { Input } from '@/components/ui/input';
 import { IconSearch } from '@tabler/icons-react';
-
-interface RequestsListingSearchProps {
-  readonly searchQuery: string;
-  readonly onSearchQueryChange: (value: string) => void;
-}
+import type { RequestsListingSearchProps } from '@/features/requests/lib/request-component-types';
 
 export function RequestsListingSearch({
   searchQuery,

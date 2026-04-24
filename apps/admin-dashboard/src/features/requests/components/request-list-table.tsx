@@ -15,38 +15,16 @@ import {
   hasIssuedWorkOrder,
   isExpiredProforma
 } from '@/features/requests/lib/request-status';
-import type { RequestListRow as RequestRow } from '@/types/domain';
+import type {
+  RequestListSortKey,
+  RequestListTableProps
+} from '@/features/requests/lib/request-component-types';
 import {
   IconDotsVertical,
   IconPlayerPauseFilled,
   IconPlayerPlayFilled,
   IconTrash
 } from '@tabler/icons-react';
-
-export type RequestListSortKey =
-  | 'reference'
-  | 'client'
-  | 'samples'
-  | 'analyses'
-  | 'status'
-  | 'notes'
-  | 'total'
-  | 'updatedAt';
-
-interface RequestListTableProps {
-  readonly visibleRows: RequestRow[];
-  readonly hasVisibleRows: boolean;
-  readonly pendingActionId: string | null;
-  readonly isDeleting: boolean;
-  readonly onSort: (key: RequestListSortKey) => void;
-  readonly getSortIndicator: (key: RequestListSortKey) => string;
-  readonly onOpenSummary: (row: RequestRow) => void;
-  readonly onEdit: (row: RequestRow) => void;
-  readonly onExecuteWorkOrder: (row: RequestRow) => void;
-  readonly onOpenRejectDialog: (row: RequestRow) => void;
-  readonly onToggleWorkOrder: (row: RequestRow) => void;
-  readonly onOpenDeleteDialog: (row: RequestRow) => void;
-}
 
 export function RequestListTable({
   visibleRows,
