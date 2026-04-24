@@ -46,9 +46,11 @@ export const getRowStatusLabel = (row: RequestRow) => {
       ? 'Proforma aprobada'
       : 'Proforma lista';
   }
+
   if (row.status === 'draft' && row.approvalStatus === 'rejected') {
     return 'Proforma rechazada';
   }
+
   return REQUEST_STATUS_LABEL_MAP[row.status];
 };
 
@@ -59,9 +61,11 @@ export const getStatusDisplayLabel = (row: RequestRow) => {
       ? 'Proforma aprobada'
       : '🟡 Proforma lista';
   }
+
   if (row.status === 'draft' && row.approvalStatus === 'rejected') {
     return '❌ Proforma rechazada';
   }
+
   if (row.status === 'draft') return '(Borrador)';
   if (row.status === 'work_order_paused') return '⏸️ OT pausada';
   if (row.status === 'work_order_completed') return '✅ Finalizada';

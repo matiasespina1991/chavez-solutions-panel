@@ -13,8 +13,8 @@ import { cn } from '@/lib/utils';
 import { ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
 
 interface DataTablePaginationProps<TData> extends React.ComponentProps<'div'> {
-  table: Table<TData>;
-  pageSizeOptions?: number[];
+  readonly table: Table<TData>;
+  readonly pageSizeOptions?: number[];
 }
 
 export function DataTablePagination<TData>({
@@ -74,8 +74,8 @@ export function DataTablePagination<TData>({
             variant='outline'
             size='icon'
             className='hidden size-8 lg:flex'
-            onClick={() => table.setPageIndex(0)}
             disabled={!table.getCanPreviousPage()}
+            onClick={() => table.setPageIndex(0)}
           >
             <ChevronsLeft />
           </Button>
@@ -84,8 +84,8 @@ export function DataTablePagination<TData>({
             variant='outline'
             size='icon'
             className='size-8'
-            onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
+            onClick={() => table.previousPage()}
           >
             <ChevronLeftIcon />
           </Button>
@@ -94,8 +94,8 @@ export function DataTablePagination<TData>({
             variant='outline'
             size='icon'
             className='size-8'
-            onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
+            onClick={() => table.nextPage()}
           >
             <ChevronRightIcon />
           </Button>
@@ -104,8 +104,8 @@ export function DataTablePagination<TData>({
             variant='outline'
             size='icon'
             className='hidden size-8 lg:flex'
-            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
             disabled={!table.getCanNextPage()}
+            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
           >
             <ChevronsRight />
           </Button>

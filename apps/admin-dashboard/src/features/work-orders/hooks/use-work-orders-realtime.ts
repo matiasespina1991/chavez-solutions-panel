@@ -19,10 +19,11 @@ export function useWorkOrdersRealtime() {
     const requestsQuery = query(collection(db, FIRESTORE_COLLECTIONS.REQUESTS));
     const unsubscribe = onSnapshot(requestsQuery, (snapshot) => {
       const nextMap: Record<string, RequestServiceItem[]> = {};
-      snapshot.docs.forEach((docSnap) => {
-        const value = docSnap.data() as Record<string, unknown>;
+      for (const docSnap of snapshot.docs) {
+        const value = docSnap.data();
         nextMap[docSnap.id] = getRequestServiceItemsFromDoc(value);
-      });
+      }
+
       setSourceRequestServicesById(nextMap);
     });
 
@@ -41,7 +42,7 @@ export function useWorkOrdersRealtime() {
         const nextRows: WorkOrderRow[] = snapshot.docs.map((docSnap) =>
           buildWorkOrderRowFromDoc(
             docSnap.id,
-            docSnap.data() as Record<string, unknown>,
+            docSnap.data(),
             sourceRequestServicesById
           )
         );

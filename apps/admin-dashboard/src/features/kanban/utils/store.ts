@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { v4 as uuid } from 'uuid';
 import { persist } from 'zustand/middleware';
-import { UniqueIdentifier } from '@dnd-kit/core';
-import { Column } from '../components/board-column';
+import { type UniqueIdentifier } from '@dnd-kit/core';
+import { type Column } from '../components/board-column';
 
 export type Status = 'TODO' | 'IN_PROGRESS' | 'DONE';
 
@@ -75,7 +75,7 @@ export const useTaskStore = create<State & Actions>()(
         set((state) => ({
           columns: [
             ...state.columns,
-            { title, id: state.columns.length ? title.toUpperCase() : 'TODO' }
+            { title, id: state.columns.length > 0 ? title.toUpperCase() : 'TODO' }
           ]
         })),
       dragTask: (id: string | null) => set({ draggedTask: id }),

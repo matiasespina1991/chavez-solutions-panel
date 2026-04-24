@@ -1,6 +1,6 @@
 'use client';
 
-import { FieldPath, FieldValues } from 'react-hook-form';
+import { type FieldPath, type FieldValues } from 'react-hook-form';
 import { format } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
 import {
@@ -18,13 +18,13 @@ import {
   PopoverContent,
   PopoverTrigger
 } from '@/components/ui/popover';
-import { BaseFormFieldProps, DatePickerConfig } from '@/types/base-form';
+import { type BaseFormFieldProps, type DatePickerConfig } from '@/types/base-form';
 
 interface FormDatePickerProps<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
 > extends BaseFormFieldProps<TFieldValues, TName> {
-  config?: DatePickerConfig;
+  readonly config?: DatePickerConfig;
 }
 
 function FormDatePicker<
@@ -53,12 +53,10 @@ function FormDatePicker<
       name={name}
       render={({ field }) => (
         <FormItem className={`flex flex-col ${className}`}>
-          {label && (
-            <FormLabel>
-              {label}
-              {required && <span className='ml-1 text-red-500'>*</span>}
-            </FormLabel>
-          )}
+          {label ? <FormLabel>
+            {label}
+            {required ? <span className='ml-1 text-red-500'>*</span> : null}
+          </FormLabel> : null}
           <Popover>
             <PopoverTrigger asChild>
               <FormControl>
@@ -80,9 +78,9 @@ function FormDatePicker<
             </PopoverTrigger>
             <PopoverContent className='w-auto p-0' align='start'>
               <Calendar
+                initialFocus
                 mode='single'
                 selected={field.value}
-                onSelect={field.onChange}
                 disabled={(date) => {
                   if (minDate && date < minDate) return true;
                   if (maxDate && date > maxDate) return true;
@@ -90,11 +88,11 @@ function FormDatePicker<
                     (disabledDate) => date.getTime() === disabledDate.getTime()
                   );
                 }}
-                initialFocus
+                onSelect={field.onChange}
               />
             </PopoverContent>
           </Popover>
-          {description && <FormDescription>{description}</FormDescription>}
+          {description ? <FormDescription>{description}</FormDescription> : null}
           <FormMessage />
         </FormItem>
       )}

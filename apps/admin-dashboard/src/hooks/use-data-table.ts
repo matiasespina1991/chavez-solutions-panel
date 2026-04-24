@@ -42,15 +42,15 @@ const THROTTLE_MS = 50;
 
 interface UseDataTableProps<TData>
   extends Omit<
-      TableOptions<TData>,
-      | 'state'
-      | 'pageCount'
-      | 'getCoreRowModel'
-      | 'manualPagination'
-    >,
-    Required<Pick<TableOptions<TData>, 'pageCount'>> {
+    TableOptions<TData>,
+    | 'state'
+    | 'pageCount'
+    | 'getCoreRowModel'
+    | 'manualPagination'
+  >,
+  Required<Pick<TableOptions<TData>, 'pageCount'>> {
   initialState?: Omit<Partial<TableState>, 'sorting'> & {
-    sorting?: ExtendedColumnSort<TData>[];
+    sorting?: Array<ExtendedColumnSort<TData>>;
   };
   history?: 'push' | 'replace';
   debounceMs?: number;
@@ -67,7 +67,7 @@ interface UseDataTableProps<TData>
 export function useDataTable<TData>(props: UseDataTableProps<TData>) {
   const {
     columns,
-    pageCount = -1,
+    pageCount,
     initialState,
     history = 'replace',
     debounceMs = DEBOUNCE_MS,
@@ -122,12 +122,10 @@ export function useDataTable<TData>(props: UseDataTableProps<TData>) {
       .withDefault(initialState?.pagination?.pageSize ?? 10)
   );
 
-  const pagination: PaginationState = React.useMemo(() => {
-    return {
-      pageIndex: page - 1, // zero-based index -> one-based index
-      pageSize: perPage
-    };
-  }, [page, perPage]);
+  const pagination: PaginationState = React.useMemo(() => ({
+    pageIndex: page - 1, // zero-based index -> one-based index
+    pageSize: perPage
+  }), [page, perPage]);
 
   const onPaginationChange = React.useCallback(
     (updaterOrValue: Updater<PaginationState>) => {
@@ -143,11 +141,9 @@ export function useDataTable<TData>(props: UseDataTableProps<TData>) {
     [pagination, setPage, setPerPage]
   );
 
-  const columnIds = React.useMemo(() => {
-    return new Set(
-      columns.map((column) => column.id).filter(Boolean) as string[]
-    );
-  }, [columns]);
+  const columnIds = React.useMemo(() => new Set(
+    columns.map((column) => column.id).filter(Boolean) as string[]
+  ), [columns]);
 
   const [sorting, setSorting] = useQueryState(
     SORT_KEY,
@@ -160,9 +156,9 @@ export function useDataTable<TData>(props: UseDataTableProps<TData>) {
     (updaterOrValue: Updater<SortingState>) => {
       if (typeof updaterOrValue === 'function') {
         const newSorting = updaterOrValue(sorting);
-        setSorting(newSorting as ExtendedColumnSort<TData>[]);
+        setSorting(newSorting as Array<ExtendedColumnSort<TData>>);
       } else {
-        setSorting(updaterOrValue as ExtendedColumnSort<TData>[]);
+        setSorting(updaterOrValue as Array<ExtendedColumnSort<TData>>);
       }
     },
     [sorting, setSorting]
@@ -192,6 +188,7 @@ export function useDataTable<TData>(props: UseDataTableProps<TData>) {
       } else {
         acc[column.id ?? ''] = parseAsString.withOptions(queryStateOptions);
       }
+
       return acc;
     }, {});
   }, [filterableColumns, queryStateOptions, enableAdvancedFilter]);
@@ -217,6 +214,7 @@ export function useDataTable<TData>(props: UseDataTableProps<TData>) {
             value
           });
         }
+
         return filters;
       },
       []
@@ -242,6 +240,7 @@ export function useDataTable<TData>(props: UseDataTableProps<TData>) {
           if (filterableColumns.find((column) => column.id === filter.id)) {
             acc[filter.id] = filter.value as string | string[];
           }
+
           return acc;
         }, {});
 

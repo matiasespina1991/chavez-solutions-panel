@@ -33,8 +33,8 @@ function getIsValidRange(value: unknown): value is RangeValue {
 }
 
 interface DataTableSliderFilterProps<TData> {
-  column: Column<TData, unknown>;
-  title?: string;
+  readonly column: Column<TData>;
+  readonly title?: string;
 }
 
 export function DataTableSliderFilter<TData>({
@@ -81,13 +81,9 @@ export function DataTableSliderFilter<TData>({
     return { min: minValue, max: maxValue, step };
   }, [column, defaultRange]);
 
-  const range = React.useMemo((): RangeValue => {
-    return columnFilterValue ?? [min, max];
-  }, [columnFilterValue, min, max]);
+  const range = React.useMemo((): RangeValue => columnFilterValue ?? [min, max], [columnFilterValue, min, max]);
 
-  const formatValue = React.useCallback((value: number) => {
-    return value.toLocaleString(undefined, { maximumFractionDigits: 0 });
-  }, []);
+  const formatValue = React.useCallback((value: number) => value.toLocaleString(undefined, { maximumFractionDigits: 0 }), []);
 
   const onFromInputChange = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -123,6 +119,7 @@ export function DataTableSliderFilter<TData>({
       if (event.target instanceof HTMLDivElement) {
         event.stopPropagation();
       }
+
       column.setFilterValue(undefined);
     },
     [column]
@@ -180,14 +177,12 @@ export function DataTableSliderFilter<TData>({
                 min={min}
                 max={max}
                 value={range[0]?.toString()}
-                onChange={onFromInputChange}
                 className={cn('h-8 w-24', unit && 'pr-8')}
+                onChange={onFromInputChange}
               />
-              {unit && (
-                <span className='bg-accent text-muted-foreground absolute top-0 right-0 bottom-0 flex items-center rounded-r-md px-2 text-sm'>
-                  {unit}
-                </span>
-              )}
+              {unit ? <span className='bg-accent text-muted-foreground absolute top-0 right-0 bottom-0 flex items-center rounded-r-md px-2 text-sm'>
+                {unit}
+              </span> : null}
             </div>
             <Label htmlFor={`${id}-to`} className='sr-only'>
               to
@@ -204,14 +199,12 @@ export function DataTableSliderFilter<TData>({
                 min={min}
                 max={max}
                 value={range[1]?.toString()}
-                onChange={onToInputChange}
                 className={cn('h-8 w-24', unit && 'pr-8')}
+                onChange={onToInputChange}
               />
-              {unit && (
-                <span className='bg-accent text-muted-foreground absolute top-0 right-0 bottom-0 flex items-center rounded-r-md px-2 text-sm'>
-                  {unit}
-                </span>
-              )}
+              {unit ? <span className='bg-accent text-muted-foreground absolute top-0 right-0 bottom-0 flex items-center rounded-r-md px-2 text-sm'>
+                {unit}
+              </span> : null}
             </div>
           </div>
           <Label htmlFor={`${id}-slider`} className='sr-only'>

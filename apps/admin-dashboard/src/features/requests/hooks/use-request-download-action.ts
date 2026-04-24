@@ -34,7 +34,7 @@ export const useRequestDownloadAction = (
       const link = document.createElement('a');
       link.href = result.downloadURL;
       link.download = result.fileName;
-      document.body.appendChild(link);
+      document.body.append(link);
       link.click();
       link.remove();
       toast.success('PDF de proforma descargado.');

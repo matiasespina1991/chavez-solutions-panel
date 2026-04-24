@@ -12,7 +12,7 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import {
-  ChartConfig,
+  type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent
@@ -67,7 +67,7 @@ export function AreaGraph() {
                 <stop
                   offset='5%'
                   stopColor='var(--color-desktop)'
-                  stopOpacity={1.0}
+                  stopOpacity={1}
                 />
                 <stop
                   offset='95%'

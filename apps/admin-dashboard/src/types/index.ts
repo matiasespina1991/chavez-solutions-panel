@@ -1,4 +1,4 @@
-import { Icons } from '@/components/icons';
+import { type Icons } from '@/components/icons';
 
 export interface PermissionCheck {
   permission?: string;
@@ -32,15 +32,15 @@ export interface NavItemWithOptionalChildren extends NavItem {
 
 export interface FooterItem {
   title: string;
-  items: {
+  items: Array<{
     title: string;
     href: string;
     external?: boolean;
-  }[];
+  }>;
 }
 
 export type MainNavItem = NavItemWithOptionalChildren;
 
 export type SidebarNavItem = NavItemWithChildren;
 
-export * from './domain';
+export type * from './domain';

@@ -2,7 +2,7 @@
 
 import { Check, ChevronDown, Search, X } from 'lucide-react';
 import { IconFilterPlus } from '@tabler/icons-react';
-import { Dispatch, SetStateAction } from 'react';
+import { type Dispatch, type SetStateAction } from 'react';
 
 import {
   AlertDialog,
@@ -42,7 +42,7 @@ import {
   type DialogFilters,
   type ServiceFilterOption
 } from '@/features/configurator/lib/configurator-form-model';
-import { ImportedServiceDocument } from '@/features/configurator/services/configurations';
+import { type ImportedServiceDocument } from '@/features/configurator/services/configurations';
 
 type LockedServiceCursorHint = {
   visible: boolean;
@@ -51,39 +51,39 @@ type LockedServiceCursorHint = {
 };
 
 interface ConfiguratorServicesDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  activeComboMatrix: string | null;
-  dialogSelectedServiceIds: string[];
-  selectedDialogServiceLabels: string[];
-  dialogComboTitle: string;
-  isAddFilterDropdownOpen: boolean;
-  setIsAddFilterDropdownOpen: (open: boolean) => void;
-  dialogFilterOptionsByKey: Record<DialogFilterKey, ServiceFilterOption[]>;
-  dialogFilters: DialogFilters;
-  handleToggleDialogFilterValue: (key: DialogFilterKey, value: string) => void;
-  activeDialogFiltersCount: number;
-  dialogSearchTerm: string;
-  setDialogSearchTerm: (value: string) => void;
-  handleClearDialogFilters: () => void;
-  isAppliedFiltersExpanded: boolean;
-  setIsAppliedFiltersExpanded: Dispatch<SetStateAction<boolean>>;
-  handleRemoveDialogFilterValue: (key: DialogFilterKey, value: string) => void;
-  filteredAvailableServices: ImportedServiceDocument[];
-  areAllVisibleSelected: boolean;
-  visibleServiceIds: string[];
-  handleSelectAllVisibleToggle: (
+  readonly open: boolean;
+  readonly onOpenChange: (open: boolean) => void;
+  readonly activeComboMatrix: string | null;
+  readonly dialogSelectedServiceIds: string[];
+  readonly selectedDialogServiceLabels: string[];
+  readonly dialogComboTitle: string;
+  readonly isAddFilterDropdownOpen: boolean;
+  readonly setIsAddFilterDropdownOpen: (open: boolean) => void;
+  readonly dialogFilterOptionsByKey: Record<DialogFilterKey, ServiceFilterOption[]>;
+  readonly dialogFilters: DialogFilters;
+  readonly handleToggleDialogFilterValue: (key: DialogFilterKey, value: string) => void;
+  readonly activeDialogFiltersCount: number;
+  readonly dialogSearchTerm: string;
+  readonly setDialogSearchTerm: (value: string) => void;
+  readonly handleClearDialogFilters: () => void;
+  readonly isAppliedFiltersExpanded: boolean;
+  readonly setIsAppliedFiltersExpanded: Dispatch<SetStateAction<boolean>>;
+  readonly handleRemoveDialogFilterValue: (key: DialogFilterKey, value: string) => void;
+  readonly filteredAvailableServices: ImportedServiceDocument[];
+  readonly areAllVisibleSelected: boolean;
+  readonly visibleServiceIds: string[];
+  readonly handleSelectAllVisibleToggle: (
     checked: boolean,
     visibleServiceIds: string[]
   ) => void;
-  isLoadingAvailableServices: boolean;
-  availableServices: ImportedServiceDocument[];
-  getMatEnsayoLabel: (service: ImportedServiceDocument) => string;
-  dialogLockedServiceIds: string[];
-  handleToggleServiceSelection: (serviceId: string) => void;
-  lockedServiceCursorHint: LockedServiceCursorHint;
-  setLockedServiceCursorHint: Dispatch<SetStateAction<LockedServiceCursorHint>>;
-  handleAddServicesToForm: () => void;
+  readonly isLoadingAvailableServices: boolean;
+  readonly availableServices: ImportedServiceDocument[];
+  readonly getMatEnsayoLabel: (service: ImportedServiceDocument) => string;
+  readonly dialogLockedServiceIds: string[];
+  readonly handleToggleServiceSelection: (serviceId: string) => void;
+  readonly lockedServiceCursorHint: LockedServiceCursorHint;
+  readonly setLockedServiceCursorHint: Dispatch<SetStateAction<LockedServiceCursorHint>>;
+  readonly handleAddServicesToForm: () => void;
 }
 
 export function ConfiguratorServicesDialog({
@@ -213,16 +213,16 @@ export function ConfiguratorServicesDialog({
                             <DropdownMenuCheckboxItem
                               key={`${filterKey}-${option.value}`}
                               checked={isChecked}
+                              className={`w-full pr-2 ${
+                                isUnavailable ? 'text-muted-foreground' : ''
+                              }`}
+                              disabled={isDisabled}
                               onCheckedChange={() =>
                                 handleToggleDialogFilterValue(
                                   filterKey,
                                   option.value
                                 )
                               }
-                              className={`w-full pr-2 ${
-                                isUnavailable ? 'text-muted-foreground' : ''
-                              }`}
-                              disabled={isDisabled}
                             >
                               <span
                                 className='min-w-0 flex-1 truncate'
@@ -341,30 +341,30 @@ export function ConfiguratorServicesDialog({
             <Search className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2' />
             <Input
               value={dialogSearchTerm}
-              onChange={(event) => setDialogSearchTerm(event.target.value)}
               placeholder='Buscar por parámetro, método, norma, tabla, unidad o material...'
               className='w-full pl-9'
+              onChange={(event) => setDialogSearchTerm(event.target.value)}
             />
           </div>
           {filteredAvailableServices.length > 1 &&
-          filteredAvailableServices.length <= 30 ? (
-            <div className='flex shrink-0 items-center gap-2'>
-              <label className='text-muted-foreground flex shrink-0 cursor-pointer items-center gap-2 text-xs sm:text-sm'>
-                <Checkbox
-                  checked={areAllVisibleSelected}
-                  onCheckedChange={(checked) =>
-                    handleSelectAllVisibleToggle(
-                      checked === true,
-                      visibleServiceIds
-                    )
-                  }
-                  disabled={filteredAvailableServices.length === 0}
-                  className='cursor-pointer'
-                />
-                Seleccionar todos
-              </label>
-            </div>
-          ) : null}
+            filteredAvailableServices.length <= 30 ? (
+              <div className='flex shrink-0 items-center gap-2'>
+                <label className='text-muted-foreground flex shrink-0 cursor-pointer items-center gap-2 text-xs sm:text-sm'>
+                  <Checkbox
+                    checked={areAllVisibleSelected}
+                    disabled={filteredAvailableServices.length === 0}
+                    className='cursor-pointer'
+                    onCheckedChange={(checked) =>
+                      handleSelectAllVisibleToggle(
+                        checked === true,
+                        visibleServiceIds
+                      )
+                    }
+                  />
+                  Seleccionar todos
+                </label>
+              </div>
+            ) : null}
         </div>
 
         <div className='min-h-0 flex-1 overflow-y-auto pr-1'>
@@ -399,8 +399,8 @@ export function ConfiguratorServicesDialog({
                           ? 'border-black/60 bg-black/10 dark:border-white/70 dark:bg-white/10'
                           : 'hover:bg-muted/50 border-border'
                     }`}
-                    onClick={() => handleToggleServiceSelection(serviceId)}
                     disabled={isLockedSelection}
+                    onClick={() => handleToggleServiceSelection(serviceId)}
                   >
                     <div className='flex w-full items-start justify-between gap-2'>
                       <div className='space-y-1'>
@@ -503,12 +503,12 @@ export function ConfiguratorServicesDialog({
           <AlertDialogCancel className='cursor-pointer'>Cancelar</AlertDialogCancel>
           <AlertDialogAction
             className='cursor-pointer bg-black text-white hover:bg-black/90'
-            onClick={handleAddServicesToForm}
             disabled={
               isLoadingAvailableServices ||
               availableServices.length === 0 ||
               dialogSelectedServiceIds.length === 0
             }
+            onClick={handleAddServicesToForm}
           >
             Agregar seleccionados
           </AlertDialogAction>

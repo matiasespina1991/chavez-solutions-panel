@@ -6,48 +6,48 @@ import { RequestSummaryDialog } from '@/features/requests/components/request-sum
 import { RequestWorkOrderToggleDialog } from '@/features/requests/components/request-work-order-toggle-dialog';
 
 interface RequestsListingDialogsProps {
-  isViewDialogOpen: boolean;
-  selectedRow: RequestRow | null;
-  canShowExecuteWorkOrderButton: boolean;
-  canApproveSelectedRow: boolean;
-  canEditSelectedRow: boolean;
-  pendingActionId: string | null;
-  isDialogDownloading: boolean;
-  onSetViewDialogOpen: (open: boolean) => void;
-  onOpenExecuteWorkOrderDialog: (row: RequestRow) => void;
-  onWorkOrderAction: (row: RequestRow) => Promise<void>;
-  onDialogEdit: () => void;
-  onDialogDownload: () => void;
-  onDialogDelete: () => void;
-  onDialogResume: () => void;
-  isExecuteWorkOrderDialogOpen: boolean;
-  rowToExecuteWorkOrder: RequestRow | null;
-  approverLabel: string;
-  nowLabel: string;
-  onSetExecuteWorkOrderDialogOpen: (open: boolean) => void;
-  onSetRowToExecuteWorkOrder: (row: RequestRow | null) => void;
-  onConfirmExecuteWorkOrder: () => Promise<void>;
-  isWorkOrderToggleDialogOpen: boolean;
-  isTogglingWorkOrder: boolean;
-  workOrderToggleAction: 'pause' | 'resume' | null;
-  workOrderToggleNotes: string;
-  onSetWorkOrderToggleDialogOpen: (open: boolean) => void;
-  onSetRowToToggleWorkOrder: (row: RequestRow | null) => void;
-  onSetWorkOrderToggleAction: (action: 'pause' | 'resume' | null) => void;
-  onSetWorkOrderToggleNotes: (notes: string) => void;
-  onConfirmWorkOrderToggle: () => Promise<void>;
-  isDeleteDialogOpen: boolean;
-  isDeleting: boolean;
-  onSetDeleteDialogOpen: (open: boolean) => void;
-  onSetRowToDelete: (row: RequestRow | null) => void;
-  onConfirmDelete: () => Promise<void>;
-  isRejectDialogOpen: boolean;
-  isRejecting: boolean;
-  rejectFeedback: string;
-  onSetRejectDialogOpen: (open: boolean) => void;
-  onSetRowToReject: (row: RequestRow | null) => void;
-  onSetRejectFeedback: (value: string) => void;
-  onConfirmReject: () => Promise<void>;
+  readonly isViewDialogOpen: boolean;
+  readonly selectedRow: RequestRow | null;
+  readonly canShowExecuteWorkOrderButton: boolean;
+  readonly canApproveSelectedRow: boolean;
+  readonly canEditSelectedRow: boolean;
+  readonly pendingActionId: string | null;
+  readonly isDialogDownloading: boolean;
+  readonly onSetViewDialogOpen: (open: boolean) => void;
+  readonly onOpenExecuteWorkOrderDialog: (row: RequestRow) => void;
+  readonly onWorkOrderAction: (row: RequestRow) => Promise<void>;
+  readonly onDialogEdit: () => void;
+  readonly onDialogDownload: () => void;
+  readonly onDialogDelete: () => void;
+  readonly onDialogResume: () => void;
+  readonly isExecuteWorkOrderDialogOpen: boolean;
+  readonly rowToExecuteWorkOrder: RequestRow | null;
+  readonly approverLabel: string;
+  readonly nowLabel: string;
+  readonly onSetExecuteWorkOrderDialogOpen: (open: boolean) => void;
+  readonly onSetRowToExecuteWorkOrder: (row: RequestRow | null) => void;
+  readonly onConfirmExecuteWorkOrder: () => Promise<void>;
+  readonly isWorkOrderToggleDialogOpen: boolean;
+  readonly isTogglingWorkOrder: boolean;
+  readonly workOrderToggleAction: 'pause' | 'resume' | null;
+  readonly workOrderToggleNotes: string;
+  readonly onSetWorkOrderToggleDialogOpen: (open: boolean) => void;
+  readonly onSetRowToToggleWorkOrder: (row: RequestRow | null) => void;
+  readonly onSetWorkOrderToggleAction: (action: 'pause' | 'resume' | null) => void;
+  readonly onSetWorkOrderToggleNotes: (notes: string) => void;
+  readonly onConfirmWorkOrderToggle: () => Promise<void>;
+  readonly isDeleteDialogOpen: boolean;
+  readonly isDeleting: boolean;
+  readonly onSetDeleteDialogOpen: (open: boolean) => void;
+  readonly onSetRowToDelete: (row: RequestRow | null) => void;
+  readonly onConfirmDelete: () => Promise<void>;
+  readonly isRejectDialogOpen: boolean;
+  readonly isRejecting: boolean;
+  readonly rejectFeedback: string;
+  readonly onSetRejectDialogOpen: (open: boolean) => void;
+  readonly onSetRowToReject: (row: RequestRow | null) => void;
+  readonly onSetRejectFeedback: (value: string) => void;
+  readonly onConfirmReject: () => Promise<void>;
 }
 
 export function RequestsListingDialogs({
@@ -125,11 +125,11 @@ export function RequestsListingDialogs({
         nowLabel={nowLabel}
         onOpenChange={(open) => {
           if (
-            rowToExecuteWorkOrder &&
-            pendingActionId === rowToExecuteWorkOrder.id
+            pendingActionId === rowToExecuteWorkOrder?.id
           ) {
             return;
           }
+
           onSetExecuteWorkOrderDialogOpen(open);
           if (!open) {
             onSetRowToExecuteWorkOrder(null);

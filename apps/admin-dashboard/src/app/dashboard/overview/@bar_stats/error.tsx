@@ -8,8 +8,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useTransition } from 'react';
 
 interface StatsErrorProps {
-  error: Error;
-  reset: () => void; // Add reset function from error boundary
+  readonly error: Error;
+  readonly reset: () => void; // Add reset function from error boundary
 }
 export default function StatsError({ error, reset }: StatsErrorProps) {
   const router = useRouter();
@@ -26,6 +26,7 @@ export default function StatsError({ error, reset }: StatsErrorProps) {
       reset();
     });
   };
+
   return (
     <Card className='border-red-500'>
       <CardHeader className='flex flex-col items-stretch space-y-0 border-b p-0 sm:flex-row'>
@@ -45,10 +46,10 @@ export default function StatsError({ error, reset }: StatsErrorProps) {
             Unable to display statistics at this time
           </p>
           <Button
-            onClick={() => reload()}
             variant='outline'
             className='min-w-[120px]'
             disabled={isPending}
+            onClick={() => reload()}
           >
             Try again
           </Button>

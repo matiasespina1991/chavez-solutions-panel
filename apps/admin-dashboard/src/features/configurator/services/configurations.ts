@@ -166,9 +166,7 @@ const toConfigurationStatus = (
   return 'draft';
 };
 
-const toIsWorkOrder = (type: ConfigurationType): boolean => {
-  return type === 'work_order' || type === 'both';
-};
+const toIsWorkOrder = (type: ConfigurationType): boolean => type === 'work_order' || type === 'both';
 
 export const createConfiguration = async (
   data: Omit<ConfigurationDocument, 'id' | 'createdAt' | 'updatedAt'>
@@ -182,11 +180,11 @@ export const createConfiguration = async (
     status: toRequestStatus(data.status),
     ...(data.status === 'final'
       ? {
-          approval: {
-            status: 'pending',
-            updatedAt: serverTimestamp()
-          }
+        approval: {
+          status: 'pending',
+          updatedAt: serverTimestamp()
         }
+      }
       : {}),
     linkedWorkOrderId: null,
     createdAt: serverTimestamp(),
@@ -204,8 +202,8 @@ export const updateConfiguration = async (
   const currentSnapshot = await getDoc(docRef);
   const currentData = currentSnapshot.exists()
     ? (currentSnapshot.data() as {
-        linkedWorkOrderId?: string | null;
-      })
+      linkedWorkOrderId?: string | null;
+    })
     : null;
   const linkedWorkOrderId = currentData?.linkedWorkOrderId;
   const { type, ...restData } = data;
@@ -217,17 +215,17 @@ export const updateConfiguration = async (
     ...(data.status ? { status: toRequestStatus(data.status) } : {}),
     ...(data.status === 'final'
       ? {
-          approval: {
-            status: 'pending',
-            updatedAt: serverTimestamp()
-          }
+        approval: {
+          status: 'pending',
+          updatedAt: serverTimestamp()
         }
+      }
       : {}),
     updatedAt: serverTimestamp()
   } as any;
 
   const shouldSyncNotesToWorkOrder =
-    typeof data.notes === 'string' && !!linkedWorkOrderId;
+    typeof data.notes === 'string' && Boolean(linkedWorkOrderId);
 
   if (shouldSyncNotesToWorkOrder && linkedWorkOrderId) {
     const batch = writeBatch(db);
@@ -263,27 +261,27 @@ export const getConfigurationById = async (
       data.services !== null &&
       !Array.isArray(data.services)
         ? {
-            items: Array.isArray(
-              (data.services as { items?: ConfigurationServiceItem[] }).items
-            )
-              ? ((data.services as { items?: ConfigurationServiceItem[] })
-                  .items ?? [])
-              : [],
-            grouped: Array.isArray(
-              (data.services as { grouped?: ConfigurationServiceGroup[] })
-                .grouped
-            )
-              ? ((data.services as { grouped?: ConfigurationServiceGroup[] })
-                  .grouped ?? [])
-              : []
-          }
+          items: Array.isArray(
+            (data.services as { items?: ConfigurationServiceItem[] }).items
+          )
+            ? ((data.services as { items?: ConfigurationServiceItem[] })
+              .items ?? [])
+            : [],
+          grouped: Array.isArray(
+            (data.services as { grouped?: ConfigurationServiceGroup[] })
+              .grouped
+          )
+            ? ((data.services as { grouped?: ConfigurationServiceGroup[] })
+              .grouped ?? [])
+            : []
+        }
         : {
-            items: Array.isArray(data.services)
-              ? (data.services as unknown as ConfigurationServiceItem[])
-              : [],
-            grouped: []
-          }
-  } as ConfigurationDocument;
+          items: Array.isArray(data.services)
+            ? (data.services)
+            : [],
+          grouped: []
+        }
+  };
 };
 
 export const listImportedServices = async (): Promise<
@@ -291,7 +289,7 @@ export const listImportedServices = async (): Promise<
 > => {
   const snapshot = await getDocs(collection(db, SERVICES_COLLECTION));
   return snapshot.docs.map((serviceDoc) => {
-    const data = serviceDoc.data() as Record<string, unknown>;
+    const data = serviceDoc.data();
     const rawPrice =
       typeof data.PRECIO === 'number'
         ? data.PRECIO

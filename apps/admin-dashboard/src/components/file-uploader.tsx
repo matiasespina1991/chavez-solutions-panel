@@ -23,7 +23,7 @@ export interface FileUploaderProps
    * @default undefined
    * @example value={files}
    */
-  value?: File[];
+  readonly value?: File[];
 
   /**
    * Function to be called when the value changes.
@@ -31,7 +31,7 @@ export interface FileUploaderProps
    * @default undefined
    * @example onValueChange={(files) => setFiles(files)}
    */
-  onValueChange?: React.Dispatch<React.SetStateAction<File[]>>;
+  readonly onValueChange?: React.Dispatch<React.SetStateAction<File[]>>;
 
   /**
    * Function to be called when files are uploaded.
@@ -39,7 +39,7 @@ export interface FileUploaderProps
    * @default undefined
    * @example onUpload={(files) => uploadFiles(files)}
    */
-  onUpload?: (files: File[]) => Promise<void>;
+  readonly onUpload?: (files: File[]) => Promise<void>;
 
   /**
    * Progress of the uploaded files.
@@ -47,7 +47,7 @@ export interface FileUploaderProps
    * @default undefined
    * @example progresses={{ "file1.png": 50 }}
    */
-  progresses?: Record<string, number>;
+  readonly progresses?: Record<string, number>;
 
   /**
    * Accepted file types for the uploader.
@@ -58,7 +58,7 @@ export interface FileUploaderProps
    * ```
    * @example accept={["image/png", "image/jpeg"]}
    */
-  accept?: DropzoneProps['accept'];
+  readonly accept?: DropzoneProps['accept'];
 
   /**
    * Maximum file size for the uploader.
@@ -66,7 +66,7 @@ export interface FileUploaderProps
    * @default 1024 * 1024 * 2 // 2MB
    * @example maxSize={1024 * 1024 * 2} // 2MB
    */
-  maxSize?: DropzoneProps['maxSize'];
+  readonly maxSize?: DropzoneProps['maxSize'];
 
   /**
    * Maximum number of files for the uploader.
@@ -74,7 +74,7 @@ export interface FileUploaderProps
    * @default 1
    * @example maxFiles={5}
    */
-  maxFiles?: DropzoneProps['maxFiles'];
+  readonly maxFiles?: DropzoneProps['maxFiles'];
 
   /**
    * Whether the uploader should accept multiple files.
@@ -82,7 +82,7 @@ export interface FileUploaderProps
    * @default false
    * @example multiple
    */
-  multiple?: boolean;
+  readonly multiple?: boolean;
 
   /**
    * Whether the uploader is disabled.
@@ -90,27 +90,27 @@ export interface FileUploaderProps
    * @default false
    * @example disabled
    */
-  disabled?: boolean;
+  readonly disabled?: boolean;
 
   /**
    * Additional class names for the uploader container.
    */
-  containerClassName?: string;
+  readonly containerClassName?: string;
 
   /**
    * Use compact copy sizes for tight layouts.
    */
-  compact?: boolean;
+  readonly compact?: boolean;
 
   /**
    * Optional action to open a gallery picker instead of uploading.
    */
-  onPickFromGallery?: () => void;
+  readonly onPickFromGallery?: () => void;
 
   /**
    * Override dropdown menu labels.
    */
-  pickerMenuLabels?: {
+  readonly pickerMenuLabels?: {
     computer?: string;
     gallery?: string;
   };
@@ -170,9 +170,9 @@ export function FileUploader(props: FileUploaderProps) {
       setFiles(updatedFiles);
 
       if (rejectedFiles.length > 0) {
-        rejectedFiles.forEach(({ file }) => {
+        for (const { file } of rejectedFiles) {
           toast.error(`El archivo ${file.name} fue rechazado.`);
-        });
+        }
       }
 
       if (
@@ -188,6 +188,7 @@ export function FileUploader(props: FileUploaderProps) {
         if (uploadToastIdRef.current) {
           toast.dismiss(uploadToastIdRef.current);
         }
+
         processingToastShownRef.current = false;
         uploadToastIdRef.current = toast.loading(`Subiendo ${target}...`);
 
@@ -239,17 +240,17 @@ export function FileUploader(props: FileUploaderProps) {
     }
   }, [files, progresses]);
 
-  React.useEffect(() => {
-    return () => {
+  React.useEffect(() => 
+    () => {
       if (!files) return;
-      files.forEach((file) => {
+      for (const file of files) {
         if (isFileWithPreview(file)) {
           URL.revokeObjectURL(file.preview);
         }
-      });
-    };
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  , []);
 
   const isDisabled = disabled || (files?.length ?? 0) >= maxFiles;
   const showPickerMenu = Boolean(onPickFromGallery);
@@ -257,10 +258,10 @@ export function FileUploader(props: FileUploaderProps) {
   const galleryLabel = pickerMenuLabels?.gallery ?? 'Agregar desde galería';
   const isUploading = Boolean(
     files?.length &&
-      files.some((file) => {
-        const progress = progresses?.[file.name];
-        return typeof progress !== 'number' || progress < 100;
-      })
+    files.some((file) => {
+      const progress = progresses?.[file.name];
+      return typeof progress !== 'number' || progress < 100;
+    })
   );
 
   React.useEffect(() => {
@@ -270,14 +271,16 @@ export function FileUploader(props: FileUploaderProps) {
       if (menuRef.current.contains(event.target as Node)) return;
       setMenuOpen(false);
     };
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setMenuOpen(false);
     };
-    window.addEventListener('pointerdown', handlePointerDown);
-    window.addEventListener('keydown', handleKeyDown);
+
+    globalThis.addEventListener('pointerdown', handlePointerDown);
+    globalThis.addEventListener('keydown', handleKeyDown);
     return () => {
-      window.removeEventListener('pointerdown', handlePointerDown);
-      window.removeEventListener('keydown', handleKeyDown);
+      globalThis.removeEventListener('pointerdown', handlePointerDown);
+      globalThis.removeEventListener('keydown', handleKeyDown);
     };
   }, [menuVisible]);
 
@@ -286,11 +289,12 @@ export function FileUploader(props: FileUploaderProps) {
       setMenuVisible(true);
       return;
     }
+
     if (!menuVisible) return;
-    const timeout = window.setTimeout(() => {
+    const timeout = globalThis.setTimeout(() => {
       setMenuVisible(false);
     }, 180);
-    return () => window.clearTimeout(timeout);
+    return () => globalThis.clearTimeout(timeout);
   }, [menuOpen, menuVisible]);
 
   return (
@@ -301,13 +305,13 @@ export function FileUploader(props: FileUploaderProps) {
       )}
     >
       <Dropzone
-        onDrop={onDrop}
         accept={accept}
         maxSize={maxSize}
         maxFiles={maxFiles}
         multiple={maxFiles > 1 || multiple}
         disabled={isDisabled}
         noClick={showPickerMenu}
+        onDrop={onDrop}
       >
         {({ getRootProps, getInputProps, isDragActive, open }) => {
           const handleMenuClick = (
@@ -319,13 +323,14 @@ export function FileUploader(props: FileUploaderProps) {
             setMenuPosition({ x: event.clientX, y: event.clientY });
             setMenuOpen((prev) => !prev);
           };
+
           const dropzone = (
             <div
               {...getRootProps(
                 showPickerMenu
                   ? {
-                      onPointerDown: handleMenuClick
-                    }
+                    onPointerDown: handleMenuClick
+                  }
                   : undefined
               )}
               className={cn(
@@ -449,8 +454,8 @@ export function FileUploader(props: FileUploaderProps) {
               <FileCard
                 key={index}
                 file={file}
-                onRemove={() => onRemove(index)}
                 progress={progresses?.[file.name]}
+                onRemove={() => onRemove(index)}
               />
             ))}
           </div>
@@ -461,9 +466,9 @@ export function FileUploader(props: FileUploaderProps) {
 }
 
 interface FileCardProps {
-  file: File;
-  onRemove: () => void;
-  progress?: number;
+  readonly file: File;
+  readonly onRemove: () => void;
+  readonly progress?: number;
 }
 
 function FileCard({ file, progress, onRemove }: FileCardProps) {
@@ -473,12 +478,12 @@ function FileCard({ file, progress, onRemove }: FileCardProps) {
         {isFileWithPreview(file) ? (
           file.type.startsWith('video/') ? (
             <video
+              muted
+              playsInline
               src={file.preview}
               className='h-12 w-12 shrink-0 rounded-md object-cover'
               width={48}
               height={48}
-              muted
-              playsInline
               preload='metadata'
               onLoadedMetadata={(event) => {
                 event.currentTarget.currentTime = 0.1;
@@ -519,9 +524,9 @@ function FileCard({ file, progress, onRemove }: FileCardProps) {
           type='button'
           variant='ghost'
           size='icon'
-          onClick={onRemove}
           disabled={progress !== undefined && progress < 100}
           className='size-8 rounded-full'
+          onClick={onRemove}
         >
           <IconX className='text-muted-foreground' />
           <span className='sr-only'>Eliminar archivo</span>

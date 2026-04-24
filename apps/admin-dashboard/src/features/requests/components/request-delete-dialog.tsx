@@ -10,10 +10,10 @@ import {
 } from '@/components/ui/alert-dialog';
 
 interface RequestDeleteDialogProps {
-  open: boolean;
-  isDeleting: boolean;
-  onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
+  readonly open: boolean;
+  readonly isDeleting: boolean;
+  readonly onOpenChange: (open: boolean) => void;
+  readonly onConfirm: () => void;
 }
 
 export function RequestDeleteDialog({
@@ -38,8 +38,8 @@ export function RequestDeleteDialog({
           </AlertDialogCancel>
           <AlertDialogAction
             className='bg-destructive hover:bg-destructive/90 cursor-pointer text-white'
-            onClick={onConfirm}
             disabled={isDeleting}
+            onClick={onConfirm}
           >
             {isDeleting ? 'Eliminando…' : 'Eliminar Solicitud'}
           </AlertDialogAction>

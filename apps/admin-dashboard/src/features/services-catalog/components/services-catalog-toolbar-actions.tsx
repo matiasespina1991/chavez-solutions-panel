@@ -2,15 +2,15 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Pencil, Plus, Save, Trash2 } from 'lucide-react';
 
 interface ServicesCatalogToolbarActionsProps {
-  selectedRowsCount: number;
-  dirtyRowsCount: number;
-  hasSingleSelectedRow: boolean;
-  isSaving: boolean;
-  isCreatingService: boolean;
-  isDeletingService: boolean;
-  onPrimaryAction: () => void;
-  onRequestBulkDelete: () => void;
-  onSaveChanges: () => void;
+  readonly selectedRowsCount: number;
+  readonly dirtyRowsCount: number;
+  readonly hasSingleSelectedRow: boolean;
+  readonly isSaving: boolean;
+  readonly isCreatingService: boolean;
+  readonly isDeletingService: boolean;
+  readonly onPrimaryAction: () => void;
+  readonly onRequestBulkDelete: () => void;
+  readonly onSaveChanges: () => void;
 }
 
 export function ServicesCatalogToolbarActions({
@@ -31,8 +31,8 @@ export function ServicesCatalogToolbarActions({
         variant='outline'
         size='sm'
         className='cursor-pointer'
-        onClick={onPrimaryAction}
         disabled={isSaving || isCreatingService || isDeletingService}
+        onClick={onPrimaryAction}
       >
         {hasSingleSelectedRow ? (
           <Pencil className='h-4 w-4' />
@@ -53,8 +53,8 @@ export function ServicesCatalogToolbarActions({
           type='button'
           size='sm'
           className='cursor-pointer bg-black text-white hover:bg-black/90 dark:bg-black dark:text-white dark:hover:bg-black/90'
-          onClick={onRequestBulkDelete}
           disabled={isSaving || isCreatingService || isDeletingService}
+          onClick={onRequestBulkDelete}
         >
           <Trash2 className='h-4 w-4' />
           Eliminar servicio(s)
@@ -63,8 +63,8 @@ export function ServicesCatalogToolbarActions({
         <Button
           type='button'
           size='sm'
-          onClick={onSaveChanges}
           disabled={isSaving || isCreatingService || dirtyRowsCount === 0}
+          onClick={onSaveChanges}
         >
           {isSaving ? (
             <Loader2 className='h-4 w-4 animate-spin' />

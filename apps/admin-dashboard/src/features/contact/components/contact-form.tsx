@@ -55,9 +55,9 @@ function SortableContactRow({
   onChange,
   onRemove
 }: {
-  item: ContactItem;
-  onChange: (next: ContactItem) => void;
-  onRemove: () => void;
+  readonly item: ContactItem;
+  readonly onChange: (next: ContactItem) => void;
+  readonly onRemove: () => void;
 }) {
   const {
     attributes,
@@ -82,8 +82,8 @@ function SortableContactRow({
       )}
     >
       <button
-        type='button'
         ref={setActivatorNodeRef}
+        type='button'
         className='text-muted-foreground hover:text-foreground inline-flex h-9 w-9 cursor-grab items-center justify-center rounded-md transition-colors active:cursor-grabbing'
         aria-label='Reordenar contacto'
         {...attributes}
@@ -131,6 +131,7 @@ export default function ContactForm() {
           if (isMounted) setLoading(false);
           return;
         }
+
         const data = docSnap.data() as ContactDoc | undefined;
         const normalized = normalizeContactItems(data?.items ?? []);
         if (isMounted) {
@@ -239,7 +240,7 @@ export default function ContactForm() {
         ) : null}
         {!loading ? (
           <>
-            {contactItems.length ? (
+            {contactItems.length > 0 ? (
               <DndContext sensors={sensors} onDragEnd={handleContactDragEnd}>
                 <SortableContext
                   items={contactIds}

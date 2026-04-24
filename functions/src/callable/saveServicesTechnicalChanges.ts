@@ -59,6 +59,7 @@ const normalizePatchValue = (value: unknown): TechnicalServicePatchValue => {
     if (!Number.isFinite(value)) {
       throw new HttpsError('invalid-argument', 'Patch number is not finite.');
     }
+
     return value;
   }
 
@@ -96,12 +97,14 @@ export const saveServicesTechnicalChanges = onCall(
       if (!id) {
         throw new HttpsError('invalid-argument', 'Each change requires an id.');
       }
+
       if (dedupedIds.has(id)) {
         throw new HttpsError(
           'invalid-argument',
           `Duplicated service id in changes payload: ${id}`
         );
       }
+
       dedupedIds.add(id);
 
       const patchSource = change.patch ?? {};

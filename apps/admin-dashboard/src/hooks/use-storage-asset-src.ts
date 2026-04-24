@@ -55,6 +55,7 @@ export function useStorageAssetSrc(
     } else {
       setMode(cachedSigned ? 'signed' : 'storage');
     }
+
     triedSignedRef.current = Boolean(cachedSigned);
   }, [initialSrc, storagePath, cachedSigned, directUrl]);
 
@@ -67,11 +68,11 @@ export function useStorageAssetSrc(
         const signedUrl = await resolveSignedUrl(storagePath);
         setSrc(signedUrl);
         setMode('signed');
-      } catch (err) {
+      } catch (error) {
         console.error(
           '[useStorageAssetSrc] Signed URL resolution failed',
           storagePath,
-          err
+          error
         );
         clearCachedSignedUrl(storagePath);
         setSrc(storageUrl);
@@ -104,20 +105,34 @@ export function useStorageAssetSrc(
 
   const handleError = useCallback(() => {
     if (!storagePath) return;
-    if (mode === 'direct') {
-      fallbackToStorage();
-      triedSignedRef.current = false;
-      attemptSigned();
-    } else if (mode === 'storage') {
-      if (triedSignedRef.current) {
-        return;
+    switch (mode) {
+      case 'direct': {
+        fallbackToStorage();
+        triedSignedRef.current = false;
+        attemptSigned();
+    
+        break;
       }
-      attemptSigned();
-    } else if (mode === 'signed') {
-      clearCachedSignedUrl(storagePath);
-      triedSignedRef.current = false;
-      fallbackToStorage();
-      attemptSigned();
+
+      case 'storage': {
+        if (triedSignedRef.current) {
+          return;
+        }
+
+        attemptSigned();
+    
+        break;
+      }
+
+      case 'signed': {
+        clearCachedSignedUrl(storagePath);
+        triedSignedRef.current = false;
+        fallbackToStorage();
+        attemptSigned();
+    
+        break;
+      }
+    // No default
     }
   }, [attemptSigned, fallbackToStorage, mode, storagePath]);
 

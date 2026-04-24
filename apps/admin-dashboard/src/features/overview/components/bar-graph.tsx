@@ -11,7 +11,7 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import {
-  ChartConfig,
+  type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent
@@ -240,13 +240,11 @@ export function BarGraph() {
                 <ChartTooltipContent
                   className='w-[150px]'
                   nameKey='views'
-                  labelFormatter={(value) => {
-                    return new Date(value).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric'
-                    });
-                  }}
+                  labelFormatter={(value) => new Date(value).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                  })}
                 />
               }
             />

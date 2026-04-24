@@ -8,7 +8,7 @@ import { searchParamsCache, serialize } from '@/lib/searchparams';
 import { cn } from '@/lib/utils';
 import { IconPlus } from '@tabler/icons-react';
 import Link from 'next/link';
-import { SearchParams } from 'nuqs/server';
+import { type SearchParams } from 'nuqs/server';
 import { Suspense } from 'react';
 
 export const metadata = {
@@ -16,7 +16,7 @@ export const metadata = {
 };
 
 type pageProps = {
-  searchParams: Promise<SearchParams>;
+  readonly searchParams: Promise<SearchParams>;
 };
 
 export default async function Page(props: pageProps) {

@@ -36,15 +36,17 @@ const routeMapping: Record<string, BreadcrumbItem[]> = {
 function buildNavTitleMap() {
   const map = new Map<string, string>();
   const walk = (items: typeof navItems) => {
-    items.forEach((item) => {
+    for (const item of items) {
       if (item.url && item.url !== '#') {
         map.set(item.url, item.title);
       }
+
       if (item.items?.length) {
         walk(item.items);
       }
-    });
+    }
   };
+
   walk(navItems);
   return map;
 }

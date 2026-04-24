@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 
-import { ImportedServiceDocument } from '@/features/configurator/services/configurations';
+import { type ImportedServiceDocument } from '@/features/configurator/services/configurations';
 import {
   type DialogFilterKey,
   type DialogFilters,
@@ -190,10 +190,10 @@ export function useConfiguratorServiceDialog({
 
   const matrixOptionsForCombo = useMemo(() => {
     const counts = new Map<string, number>();
-    availableServices.forEach((service) => {
+    for (const service of availableServices) {
       const label = getMatrizLabel(service);
       counts.set(label, (counts.get(label) || 0) + 1);
-    });
+    }
 
     return Array.from(counts.entries())
       .map(([value, count]) => ({ value, count }))
@@ -220,25 +220,25 @@ export function useConfiguratorServiceDialog({
 
       const next = {} as Record<DialogFilterKey, ServiceFilterOption[]>;
 
-      (Object.keys(DIALOG_FILTER_LABELS) as DialogFilterKey[]).forEach((key) => {
+      for (const key of (Object.keys(DIALOG_FILTER_LABELS) as DialogFilterKey[])) {
         const labelReader = readLabelByKey[key];
         const counts = new Map<string, number>();
 
-        matrixScopedAvailableServices.forEach((service) => {
+        for (const service of matrixScopedAvailableServices) {
           const label = labelReader(service);
           if (!counts.has(label)) counts.set(label, 0);
-        });
+        }
 
-        matrixScopedAvailableServices.forEach((service) => {
-          if (!serviceMatchesDialogFilters(service, key)) return;
+        for (const service of matrixScopedAvailableServices) {
+          if (!serviceMatchesDialogFilters(service, key)) continue;
           const label = labelReader(service);
           counts.set(label, (counts.get(label) || 0) + 1);
-        });
+        }
 
         next[key] = Array.from(counts.entries())
           .map(([value, count]) => ({ value, count }))
           .sort((a, b) => a.value.localeCompare(b.value, 'es'));
-      });
+      }
 
       return next;
     }, [matrixScopedAvailableServices, dialogFilters]);

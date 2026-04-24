@@ -11,12 +11,12 @@
 - `depends_on`:
   - LINT-0002
 - `acceptance`:
-  - [ ] Estrategia documentada con comandos concretos.
-  - [ ] No rompe `npm run lint` actual.
+  - [x] Estrategia documentada con comandos concretos.
+  - [x] No rompe `npm run lint` actual.
 - `validation_commands`:
   - `cd apps/admin-dashboard && npm run lint`
   - `cd functions && npm run lint`
-- `status`: `todo`
+- `status`: `approved`
 
 ## LINT-1002 - Activar autofix seguro de estilo
 
@@ -28,12 +28,12 @@
 - `depends_on`:
   - LINT-1001
 - `acceptance`:
-  - [ ] Se reduce significativamente `@stylistic/indent`.
-  - [ ] Build/tsc siguen pasando.
+  - [x] Se reduce significativamente `@stylistic/indent`.
+  - [x] Build/tsc siguen pasando.
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
   - `cd functions && npm run build`
-- `status`: `todo`
+- `status`: `approved`
 
 ## LINT-1003 - Estabilizar import resolution y extensiones
 
@@ -46,9 +46,15 @@
 - `depends_on`:
   - LINT-1001
 - `acceptance`:
-  - [ ] `import-x/extensions` cae por debajo de baseline inicial.
-  - [ ] Sin regresion en imports TS path aliases.
+  - [x] `import-x/extensions` cae por debajo de baseline inicial.
+  - [x] Sin regresion en imports TS path aliases.
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
   - `cd apps/admin-dashboard && npm run build`
-- `status`: `todo`
+- `status`: `approved`
+
+## Resultado de fase
+
+- Config XO separada por workspace (`lint-fix/config/xo-admin.cjs`, `lint-fix/config/xo-functions.cjs`).
+- Scripts operativos por workspace y baseline (`lint-fix/scripts/xo-admin.sh`, `xo-functions.sh`, `xo-baseline.sh`).
+- `apps/admin-dashboard/package.json` actualizado para lint estable (`eslint src`).

@@ -34,6 +34,7 @@ const parseCsvRows = (csvContent: string): string[][] => {
       } else {
         inQuotes = !inQuotes;
       }
+
       continue;
     }
 
@@ -76,6 +77,7 @@ const parseCsvRecords = (csvContent: string): CsvRecord[] => {
     if (index === 0) {
       return normalized.replace(/^\uFEFF/, '');
     }
+
     return normalized;
   });
 

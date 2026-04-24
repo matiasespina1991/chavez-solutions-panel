@@ -1,23 +1,23 @@
 'use client';
 
-import { ReactNode } from 'react';
-import { UseFormReturn } from 'react-hook-form';
+import { type ReactNode } from 'react';
+import { type UseFormReturn } from 'react-hook-form';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { TabsContent } from '@/components/ui/tabs';
-import { FormValues, SelectedServiceGroup } from '@/features/configurator/lib/configurator-form-model';
+import { type FormValues, type SelectedServiceGroup } from '@/features/configurator/lib/configurator-form-model';
 import { ProformaSummaryPanel } from '@/features/proformas/components/proforma-summary-panel';
 
 interface ConfiguratorSummaryTabProps {
-  form: UseFormReturn<FormValues>;
-  validDaysValue: number | undefined;
-  validUntilLabel: string;
-  summaryServiceGroups: SelectedServiceGroup[];
-  summarySubtotal: number;
-  summaryTaxPercent: number;
-  summaryTotal: number;
-  summaryNotes: string;
-  renderTabActions: () => ReactNode;
+  readonly form: UseFormReturn<FormValues>;
+  readonly validDaysValue: number | undefined;
+  readonly validUntilLabel: string;
+  readonly summaryServiceGroups: SelectedServiceGroup[];
+  readonly summarySubtotal: number;
+  readonly summaryTaxPercent: number;
+  readonly summaryTotal: number;
+  readonly summaryNotes: string;
+  readonly renderTabActions: () => ReactNode;
 }
 
 export function ConfiguratorSummaryTab({
@@ -36,6 +36,7 @@ export function ConfiguratorSummaryTab({
       <Card className='border-0 p-0 shadow-none'>
         <CardContent className='space-y-5 px-6 py-5'>
           <ProformaSummaryPanel
+            showTotalUsdSuffix
             typeLabel='Proforma'
             reference={form.getValues('reference') || '—'}
             validDaysLabel={validDaysValue ? `${validDaysValue} días` : '—'}
@@ -70,7 +71,6 @@ export function ConfiguratorSummaryTab({
               total: summaryTotal
             }}
             notes={summaryNotes}
-            showTotalUsdSuffix
           />
 
           {renderTabActions()}

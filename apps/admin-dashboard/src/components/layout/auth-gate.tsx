@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
 import { useAuthSession } from '@/contexts/auth-session';
 
-export default function AuthGate({ children }: { children: React.ReactNode }) {
+export default function AuthGate({ children }: { readonly children: React.ReactNode }) {
   const { user, authReady } = useAuthSession();
   const pathname = usePathname();
   const router = useRouter();
@@ -18,10 +18,12 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
     if (!authReady) {
       return;
     }
+
     if (isAuthRoute && user) {
       router.replace('/dashboard/configurator');
       return;
     }
+
     if (!isAuthRoute && !user) {
       router.replace('/auth/sign-in');
     }
@@ -81,12 +83,12 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
           }}
         >
           <Image
+            priority
             src='/assets/branding/logos/chavez_solutions/world-logo.png'
             alt='Chavez Solutions'
             width={160}
             height={64}
             className='h-auto max-h-10 w-auto'
-            priority
           />
         </motion.div>
         {/* <svg

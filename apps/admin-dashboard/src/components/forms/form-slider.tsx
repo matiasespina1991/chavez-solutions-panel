@@ -1,6 +1,6 @@
 'use client';
 
-import { FieldPath, FieldValues } from 'react-hook-form';
+import { type FieldPath, type FieldValues } from 'react-hook-form';
 import {
   FormControl,
   FormDescription,
@@ -10,14 +10,14 @@ import {
   FormMessage
 } from '@/components/ui/form';
 import { Slider } from '@/components/ui/slider';
-import { BaseFormFieldProps, SliderConfig } from '@/types/base-form';
+import { type BaseFormFieldProps, type SliderConfig } from '@/types/base-form';
 
 interface FormSliderProps<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
 > extends BaseFormFieldProps<TFieldValues, TName> {
-  config: SliderConfig;
-  showValue?: boolean;
+  readonly config: SliderConfig;
+  readonly showValue?: boolean;
 }
 
 function FormSlider<
@@ -42,12 +42,10 @@ function FormSlider<
       name={name}
       render={({ field }) => (
         <FormItem className={className}>
-          {label && (
-            <FormLabel>
-              {label}
-              {required && <span className='ml-1 text-red-500'>*</span>}
-            </FormLabel>
-          )}
+          {label ? <FormLabel>
+            {label}
+            {required ? <span className='ml-1 text-red-500'>*</span> : null}
+          </FormLabel> : null}
           <FormControl>
             <div className='px-3'>
               <Slider
@@ -55,23 +53,21 @@ function FormSlider<
                 max={max}
                 step={step}
                 value={[field.value || min]}
-                onValueChange={(value) => field.onChange(value[0])}
                 disabled={disabled}
+                onValueChange={(value) => field.onChange(value[0])}
               />
-              {showValue && (
-                <div className='text-muted-foreground mt-1 flex justify-between text-sm'>
-                  <span>{formatValue ? formatValue(min) : min}</span>
-                  <span>
-                    {formatValue
-                      ? formatValue(field.value || min)
-                      : field.value || min}
-                  </span>
-                  <span>{formatValue ? formatValue(max) : max}</span>
-                </div>
-              )}
+              {showValue ? <div className='text-muted-foreground mt-1 flex justify-between text-sm'>
+                <span>{formatValue ? formatValue(min) : min}</span>
+                <span>
+                  {formatValue
+                    ? formatValue(field.value || min)
+                    : field.value || min}
+                </span>
+                <span>{formatValue ? formatValue(max) : max}</span>
+              </div> : null}
             </div>
           </FormControl>
-          {description && <FormDescription>{description}</FormDescription>}
+          {description ? <FormDescription>{description}</FormDescription> : null}
           <FormMessage />
         </FormItem>
       )}

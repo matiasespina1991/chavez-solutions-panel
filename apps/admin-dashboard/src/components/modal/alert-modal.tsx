@@ -37,22 +37,22 @@ export const AlertModal: React.FC<AlertModalProps> = ({
         <Button
           disabled={loading}
           variant='outline'
+          className='cursor-pointer'
           onClick={(event) => {
             event.stopPropagation();
             onClose();
           }}
-          className='cursor-pointer'
         >
           Cancelar
         </Button>
         <Button
           disabled={loading}
           variant='destructive'
+          className='cursor-pointer'
           onClick={(event) => {
             event.stopPropagation();
             onConfirm();
           }}
-          className='cursor-pointer'
         >
           Eliminar
         </Button>

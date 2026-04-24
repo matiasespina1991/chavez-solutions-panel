@@ -10,17 +10,17 @@ import {
 } from '@/components/ui/alert-dialog';
 
 interface ServicesCatalogConfirmDialogsProps {
-  isDiscardCreateDialogOpen: boolean;
-  onSetDiscardCreateDialogOpen: (open: boolean) => void;
-  onConfirmDiscardCreateServiceDraft: () => void;
-  isBulkDeleteDialogOpen: boolean;
-  onSetBulkDeleteDialogOpen: (open: boolean) => void;
-  isRowDeleteDialogOpen: boolean;
-  onSetRowDeleteDialogOpen: (open: boolean) => void;
-  isDeletingService: boolean;
-  selectedRowsCount: number;
-  onConfirmBulkDeleteRows: () => void;
-  onConfirmDeleteRow: () => void;
+  readonly isDiscardCreateDialogOpen: boolean;
+  readonly onSetDiscardCreateDialogOpen: (open: boolean) => void;
+  readonly onConfirmDiscardCreateServiceDraft: () => void;
+  readonly isBulkDeleteDialogOpen: boolean;
+  readonly onSetBulkDeleteDialogOpen: (open: boolean) => void;
+  readonly isRowDeleteDialogOpen: boolean;
+  readonly onSetRowDeleteDialogOpen: (open: boolean) => void;
+  readonly isDeletingService: boolean;
+  readonly selectedRowsCount: number;
+  readonly onConfirmBulkDeleteRows: () => void;
+  readonly onConfirmDeleteRow: () => void;
 }
 
 export function ServicesCatalogConfirmDialogs({
@@ -90,8 +90,8 @@ export function ServicesCatalogConfirmDialogs({
             </AlertDialogCancel>
             <AlertDialogAction
               className='cursor-pointer bg-black text-white hover:bg-black/90 dark:bg-black dark:text-white dark:hover:bg-black/90'
-              onClick={onConfirmBulkDeleteRows}
               disabled={isDeletingService || selectedRowsCount === 0}
+              onClick={onConfirmBulkDeleteRows}
             >
               {isDeletingService ? 'Eliminando…' : 'Eliminar'}
             </AlertDialogAction>
@@ -124,8 +124,8 @@ export function ServicesCatalogConfirmDialogs({
             </AlertDialogCancel>
             <AlertDialogAction
               className='cursor-pointer bg-black text-white hover:bg-black/90 dark:bg-black dark:text-white dark:hover:bg-black/90'
-              onClick={onConfirmDeleteRow}
               disabled={isDeletingService}
+              onClick={onConfirmDeleteRow}
             >
               {isDeletingService ? 'Eliminando…' : 'Eliminar'}
             </AlertDialogAction>

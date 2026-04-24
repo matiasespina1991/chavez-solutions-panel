@@ -20,6 +20,7 @@ export function UserNav() {
   if (!user) {
     return null;
   }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -28,10 +29,10 @@ export function UserNav() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
+        forceMount
         className='w-56'
         align='end'
         sideOffset={10}
-        forceMount
       >
         <DropdownMenuLabel className='font-normal'>
           <div className='flex flex-col space-y-1'>

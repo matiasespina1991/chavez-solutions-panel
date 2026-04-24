@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 import { Cross2Icon } from '@radix-ui/react-icons';
 
 interface DataTableToolbarProps<TData> extends React.ComponentProps<'div'> {
-  table: Table<TData>;
+  readonly table: Table<TData>;
 }
 
 export function DataTableToolbar<TData>({
@@ -47,18 +47,16 @@ export function DataTableToolbar<TData>({
         {columns.map((column) => (
           <DataTableToolbarFilter key={column.id} column={column} />
         ))}
-        {isFiltered && (
-          <Button
-            aria-label='Reset filters'
-            variant='outline'
-            size='sm'
-            className='border-dashed'
-            onClick={onReset}
-          >
-            <Cross2Icon />
-            Reiniciar
-          </Button>
-        )}
+        {isFiltered ? <Button
+          aria-label='Reset filters'
+          variant='outline'
+          size='sm'
+          className='border-dashed'
+          onClick={onReset}
+        >
+          <Cross2Icon />
+          Reiniciar
+        </Button> : null}
       </div>
       <div className='flex items-center gap-2'>
         {children}
@@ -67,6 +65,7 @@ export function DataTableToolbar<TData>({
     </div>
   );
 }
+
 interface DataTableToolbarFilterProps<TData> {
   column: Column<TData>;
 }
@@ -81,17 +80,18 @@ function DataTableToolbarFilter<TData>({
       if (!columnMeta?.variant) return null;
 
       switch (columnMeta.variant) {
-        case 'text':
+        case 'text': {
           return (
             <Input
               placeholder={columnMeta.placeholder ?? columnMeta.label}
               value={(column.getFilterValue() as string) ?? ''}
-              onChange={(event) => column.setFilterValue(event.target.value)}
               className='h-8 w-40 lg:w-56'
+              onChange={(event) => column.setFilterValue(event.target.value)}
             />
           );
+        }
 
-        case 'number':
+        case 'number': {
           return (
             <div className='relative'>
               <Input
@@ -99,27 +99,27 @@ function DataTableToolbarFilter<TData>({
                 inputMode='numeric'
                 placeholder={columnMeta.placeholder ?? columnMeta.label}
                 value={(column.getFilterValue() as string) ?? ''}
-                onChange={(event) => column.setFilterValue(event.target.value)}
                 className={cn('h-8 w-[120px]', columnMeta.unit && 'pr-8')}
+                onChange={(event) => column.setFilterValue(event.target.value)}
               />
-              {columnMeta.unit && (
-                <span className='bg-accent text-muted-foreground absolute top-0 right-0 bottom-0 flex items-center rounded-r-md px-2 text-sm'>
-                  {columnMeta.unit}
-                </span>
-              )}
+              {columnMeta.unit ? <span className='bg-accent text-muted-foreground absolute top-0 right-0 bottom-0 flex items-center rounded-r-md px-2 text-sm'>
+                {columnMeta.unit}
+              </span> : null}
             </div>
           );
+        }
 
-        case 'range':
+        case 'range': {
           return (
             <DataTableSliderFilter
               column={column}
               title={columnMeta.label ?? column.id}
             />
           );
+        }
 
         case 'date':
-        case 'dateRange':
+        case 'dateRange': {
           return (
             <DataTableDateFilter
               column={column}
@@ -127,9 +127,10 @@ function DataTableToolbarFilter<TData>({
               multiple={columnMeta.variant === 'dateRange'}
             />
           );
+        }
 
         case 'select':
-        case 'multiSelect':
+        case 'multiSelect': {
           return (
             <DataTableFacetedFilter
               column={column}
@@ -138,9 +139,11 @@ function DataTableToolbarFilter<TData>({
               multiple={columnMeta.variant === 'multiSelect'}
             />
           );
+        }
 
-        default:
+        default: {
           return null;
+        }
       }
     }, [column, columnMeta]);
 

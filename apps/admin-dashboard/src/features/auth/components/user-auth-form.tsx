@@ -47,8 +47,8 @@ export default function UserAuthForm() {
     <>
       <Form
         form={form}
-        onSubmit={form.handleSubmit(onSubmit)}
         className='w-full space-y-2'
+        onSubmit={form.handleSubmit(onSubmit)}
       >
         <FormInput
           control={form.control}

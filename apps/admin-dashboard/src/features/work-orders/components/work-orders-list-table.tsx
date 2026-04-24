@@ -16,14 +16,14 @@ import { IconDotsVertical } from '@tabler/icons-react';
 import type { WorkOrderSortKey } from '@/features/work-orders/hooks/use-work-orders-list-view-model';
 
 interface WorkOrdersListTableProps {
-  visibleRows: WorkOrderRow[];
-  hasVisibleRows: boolean;
-  pendingActionId: string | null;
-  onSort: (key: WorkOrderSortKey) => void;
-  getSortIndicator: (key: WorkOrderSortKey) => string;
-  onOpenSummary: (row: WorkOrderRow) => void;
-  onOpenLabAnalysis: (row: WorkOrderRow) => void;
-  onOpenCompleteDialog: (row: WorkOrderRow) => void;
+  readonly visibleRows: WorkOrderRow[];
+  readonly hasVisibleRows: boolean;
+  readonly pendingActionId: string | null;
+  readonly onSort: (key: WorkOrderSortKey) => void;
+  readonly getSortIndicator: (key: WorkOrderSortKey) => string;
+  readonly onOpenSummary: (row: WorkOrderRow) => void;
+  readonly onOpenLabAnalysis: (row: WorkOrderRow) => void;
+  readonly onOpenCompleteDialog: (row: WorkOrderRow) => void;
 }
 
 export function WorkOrdersListTable({
@@ -105,7 +105,7 @@ export function WorkOrdersListTable({
                   Notas{getSortIndicator('notes')}
                 </button>
               </th>
-              <th className='w-10 px-1 py-3 text-right md:w-12 md:px-2'></th>
+              <th className='w-10 px-1 py-3 text-right md:w-12 md:px-2' />
             </tr>
           </thead>
           <tbody>
@@ -217,11 +217,11 @@ export function WorkOrdersListTable({
                           {isWorkOrderCompleted || isWorkOrderCancelled ? null : (
                             <DropdownMenuItem
                               className='cursor-pointer transition-colors duration-150'
+                              disabled={pendingActionId === row.id}
                               onClick={(event) => {
                                 event.stopPropagation();
                                 onOpenCompleteDialog(row);
                               }}
-                              disabled={pendingActionId === row.id}
                             >
                               Finalizar orden de trabajo
                             </DropdownMenuItem>

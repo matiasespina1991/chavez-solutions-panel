@@ -10,14 +10,14 @@ import {
 import { cn } from '@/lib/utils';
 
 interface DataTableSkeletonProps extends React.ComponentProps<'div'> {
-  columnCount: number;
-  rowCount?: number;
-  filterCount?: number;
-  cellWidths?: string[];
-  withViewOptions?: boolean;
-  withPagination?: boolean;
-  shrinkZero?: boolean;
-  firstCellVariant?: 'poster';
+  readonly columnCount: number;
+  readonly rowCount?: number;
+  readonly filterCount?: number;
+  readonly cellWidths?: string[];
+  readonly withViewOptions?: boolean;
+  readonly withPagination?: boolean;
+  readonly shrinkZero?: boolean;
+  readonly firstCellVariant?: 'poster';
 }
 
 export function DataTableSkeleton({
@@ -43,8 +43,8 @@ export function DataTableSkeleton({
         <div className='flex flex-1 items-center gap-2'>
           {filterCount > 0
             ? Array.from({ length: filterCount }).map((_, i) => (
-                <Skeleton key={i} className='h-7 w-[4.5rem] border-dashed' />
-              ))
+              <Skeleton key={i} className='h-7 w-[4.5rem] border-dashed' />
+            ))
             : null}
         </div>
         {withViewOptions ? (

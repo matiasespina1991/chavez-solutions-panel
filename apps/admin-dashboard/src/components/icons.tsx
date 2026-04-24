@@ -14,7 +14,7 @@ import {
   IconLayoutDashboard,
   IconLoader2,
   IconLogin,
-  IconProps,
+  type IconProps,
   IconShoppingBag,
   IconMoon,
   IconDotsVertical,

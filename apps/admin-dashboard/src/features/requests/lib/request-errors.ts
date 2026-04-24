@@ -58,12 +58,14 @@ export const getFriendlyRequestErrorMessage = (
   ) {
     return 'La proforma debe estar aprobada antes de emitir una orden de trabajo.';
   }
+
   if (
     errorMessage.includes('Draft service requests cannot be approved.') ||
     errorMessage.includes('Draft proformas cannot be approved.')
   ) {
     return 'No se puede aprobar una solicitud en borrador.';
   }
+
   if (
     errorMessage.includes(
       'This service request cannot be approved in its current status.'
@@ -72,12 +74,14 @@ export const getFriendlyRequestErrorMessage = (
   ) {
     return 'No se puede aprobar esta solicitud en su estado actual.';
   }
+
   if (
     errorMessage.includes('feedback is required to reject a service request.') ||
     errorMessage.includes('feedback is required to reject a proforma.')
   ) {
     return 'Debe ingresar un motivo de rechazo.';
   }
+
   if (
     errorMessage.includes(
       'This service request cannot be rejected in its current status.'
@@ -86,6 +90,7 @@ export const getFriendlyRequestErrorMessage = (
   ) {
     return 'No se puede rechazar esta solicitud en su estado actual.';
   }
+
   if (
     errorMessage.includes('Only submitted service requests can be rejected.') ||
     errorMessage.includes('Only submitted proformas can be rejected.')

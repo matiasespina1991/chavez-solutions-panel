@@ -11,7 +11,7 @@ function InputOTP({
   containerClassName,
   ...props
 }: React.ComponentProps<typeof OTPInput> & {
-  containerClassName?: string;
+  readonly containerClassName?: string;
 }) {
   return (
     <OTPInput
@@ -41,7 +41,7 @@ function InputOTPSlot({
   className,
   ...props
 }: React.ComponentProps<'div'> & {
-  index: number;
+  readonly index: number;
 }) {
   const inputOTPContext = React.useContext(OTPInputContext);
   const { char, hasFakeCaret, isActive } = inputOTPContext?.slots[index] ?? {};
@@ -57,11 +57,9 @@ function InputOTPSlot({
       {...props}
     >
       {char}
-      {hasFakeCaret && (
-        <div className='pointer-events-none absolute inset-0 flex items-center justify-center'>
-          <div className='animate-caret-blink bg-foreground h-4 w-px duration-1000' />
-        </div>
-      )}
+      {hasFakeCaret ? <div className='pointer-events-none absolute inset-0 flex items-center justify-center'>
+        <div className='animate-caret-blink bg-foreground h-4 w-px duration-1000' />
+      </div> : null}
     </div>
   );
 }

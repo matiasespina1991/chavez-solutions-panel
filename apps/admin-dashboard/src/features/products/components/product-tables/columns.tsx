@@ -1,24 +1,24 @@
 'use client';
 import { Badge } from '@/components/ui/badge';
 import { DataTableColumnHeader } from '@/components/ui/table/data-table-column-header';
-import { Product } from '@/constants/data';
-import { Column, ColumnDef } from '@tanstack/react-table';
+import { type Product } from '@/constants/data';
+import { type Column, type ColumnDef } from '@tanstack/react-table';
 import { CheckCircle2, Text, XCircle } from 'lucide-react';
 import Image from 'next/image';
 import { CellAction } from './cell-action';
 import { CATEGORY_OPTIONS } from './options';
 
-export const columns: ColumnDef<Product>[] = [
+export const columns: Array<ColumnDef<Product>> = [
   {
     accessorKey: 'photo_url',
     header: 'IMAGE',
-    cell: ({ row }) => {
+    cell({ row }) {
       return (
         <div className='relative aspect-square'>
           <Image
+            fill
             src={row.getValue('photo_url')}
             alt={row.getValue('name')}
-            fill
             className='rounded-lg'
           />
         </div>
@@ -28,7 +28,7 @@ export const columns: ColumnDef<Product>[] = [
   {
     id: 'name',
     accessorKey: 'name',
-    header: ({ column }: { column: Column<Product, unknown> }) => (
+    header: ({ column }: { column: Column<Product> }) => (
       <DataTableColumnHeader column={column} title='Name' />
     ),
     cell: ({ cell }) => <div>{cell.getValue<Product['name']>()}</div>,
@@ -43,10 +43,10 @@ export const columns: ColumnDef<Product>[] = [
   {
     id: 'category',
     accessorKey: 'category',
-    header: ({ column }: { column: Column<Product, unknown> }) => (
+    header: ({ column }: { column: Column<Product> }) => (
       <DataTableColumnHeader column={column} title='Category' />
     ),
-    cell: ({ cell }) => {
+    cell({ cell }) {
       const status = cell.getValue<Product['category']>();
       const Icon = status === 'active' ? CheckCircle2 : XCircle;
 

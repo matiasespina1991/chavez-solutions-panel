@@ -3,12 +3,12 @@ import { Input } from '@/components/ui/input';
 import { Search, X } from 'lucide-react';
 
 interface ServicesCatalogFiltersBarProps {
-  query: string;
-  onQueryChange: (value: string) => void;
-  hideColumnsFromTechnique: boolean;
-  onHideColumnsFromTechniqueChange: (checked: boolean) => void;
-  filteredRowsCount: number;
-  dirtyRowsCount: number;
+  readonly query: string;
+  readonly onQueryChange: (value: string) => void;
+  readonly hideColumnsFromTechnique: boolean;
+  readonly onHideColumnsFromTechniqueChange: (checked: boolean) => void;
+  readonly filteredRowsCount: number;
+  readonly dirtyRowsCount: number;
 }
 
 export function ServicesCatalogFiltersBar({
@@ -26,9 +26,9 @@ export function ServicesCatalogFiltersBar({
           <Search className='text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2' />
           <Input
             value={query}
-            onChange={(event) => onQueryChange(event.target.value)}
             placeholder='Buscar por parámetro, norma, técnica, tabla o matriz...'
             className='pr-9 pl-9'
+            onChange={(event) => onQueryChange(event.target.value)}
           />
           {query.trim().length > 0 ? (
             <button
@@ -45,11 +45,11 @@ export function ServicesCatalogFiltersBar({
         <label className='text-muted-foreground inline-flex shrink-0 cursor-pointer items-center gap-2 text-sm'>
           <Checkbox
             checked={hideColumnsFromTechnique}
+            aria-label='Alternar vista compacta'
+            className='bg-background cursor-pointer !border-[#9a9a9a] shadow-none dark:!border-[#5f5f5f]'
             onCheckedChange={(checked) =>
               onHideColumnsFromTechniqueChange(checked === true)
             }
-            aria-label='Alternar vista compacta'
-            className='bg-background cursor-pointer !border-[#9a9a9a] shadow-none dark:!border-[#5f5f5f]'
           />
           <span>Vista resumida</span>
         </label>

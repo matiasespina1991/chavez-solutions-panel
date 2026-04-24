@@ -1,6 +1,6 @@
 'use client';
 
-import { FieldPath, FieldValues } from 'react-hook-form';
+import { type FieldPath, type FieldValues } from 'react-hook-form';
 import {
   FormControl,
   FormDescription,
@@ -10,17 +10,17 @@ import {
   FormMessage
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { BaseFormFieldProps } from '@/types/base-form';
+import { type BaseFormFieldProps } from '@/types/base-form';
 
 interface FormInputProps<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
 > extends BaseFormFieldProps<TFieldValues, TName> {
-  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url';
-  placeholder?: string;
-  step?: string | number;
-  min?: string | number;
-  max?: string | number;
+  readonly type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url';
+  readonly placeholder?: string;
+  readonly step?: string | number;
+  readonly min?: string | number;
+  readonly max?: string | number;
 }
 
 function FormInput<
@@ -46,12 +46,10 @@ function FormInput<
       name={name}
       render={({ field }) => (
         <FormItem className={className}>
-          {label && (
-            <FormLabel className='gap-0.5'>
-              {label}
-              {required && <span className='text-red-500'>*</span>}
-            </FormLabel>
-          )}
+          {label ? <FormLabel className='gap-0.5'>
+            {label}
+            {required ? <span className='text-red-500'>*</span> : null}
+          </FormLabel> : null}
           <FormControl>
             <Input
               type={type}
@@ -63,15 +61,15 @@ function FormInput<
               {...field}
               onChange={(e) => {
                 if (type === 'number') {
-                  const value = e.target.value;
-                  field.onChange(value === '' ? undefined : parseFloat(value));
+                  const {value} = e.target;
+                  field.onChange(value === '' ? undefined : Number.parseFloat(value));
                 } else {
                   field.onChange(e.target.value);
                 }
               }}
             />
           </FormControl>
-          {description && <FormDescription>{description}</FormDescription>}
+          {description ? <FormDescription>{description}</FormDescription> : null}
           <FormMessage />
         </FormItem>
       )}

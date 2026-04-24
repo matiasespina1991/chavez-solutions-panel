@@ -20,8 +20,8 @@ import {
 
 interface DataTableColumnHeaderProps<TData, TValue>
   extends React.ComponentProps<typeof DropdownMenuTrigger> {
-  column: Column<TData, TValue>;
-  title: string;
+  readonly column: Column<TData, TValue>;
+  readonly title: string;
 }
 
 export function DataTableColumnHeader<TData, TValue>({

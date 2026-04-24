@@ -11,13 +11,13 @@ import type {
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 
 export const mapRequestSnapshotDocToRow = (
-  docSnap: QueryDocumentSnapshot<DocumentData>
+  docSnap: QueryDocumentSnapshot
 ): RequestRow => {
-  const value = docSnap.data() as Record<string, unknown>;
+  const value = docSnap.data();
 
   const isWorkOrder = Boolean(value.isWorkOrder);
   const matrix = normalizeMatrixArray(value.matrix);
-  const status = (value.status as RequestStatus) ?? ('draft' as RequestStatus);
+  const status = (value.status as RequestStatus) ?? ('draft');
 
   const rawApprovalStatus =
     typeof value.approval === 'object' && value.approval !== null
@@ -38,12 +38,12 @@ export const mapRequestSnapshotDocToRow = (
   const approvalActorEmail =
     typeof value.approval === 'object' && value.approval !== null
       ? String(
-          (
-            value.approval as {
-              approvedBy?: { email?: string | null } | null;
-            }
-          ).approvedBy?.email ?? ''
-        ).trim() || null
+        (
+          value.approval as {
+            approvedBy?: { email?: string | null } | null;
+          }
+        ).approvedBy?.email ?? ''
+      ).trim() || null
       : null;
   const total =
     typeof value.pricing === 'object' && value.pricing !== null
@@ -86,41 +86,41 @@ export const mapRequestSnapshotDocToRow = (
   const client =
     typeof value.client === 'object' && value.client !== null
       ? {
-          businessName: String(
-            (value.client as { businessName?: string }).businessName ?? ''
-          ),
-          taxId: String((value.client as { taxId?: string }).taxId ?? ''),
-          contactName: String(
-            (value.client as { contactName?: string }).contactName ?? ''
-          ),
-          address: String((value.client as { address?: string }).address ?? ''),
-          city: String((value.client as { city?: string }).city ?? ''),
-          email: String((value.client as { email?: string }).email ?? ''),
-          phone: String((value.client as { phone?: string }).phone ?? '')
-        }
+        businessName: String(
+          (value.client as { businessName?: string }).businessName ?? ''
+        ),
+        taxId: String((value.client as { taxId?: string }).taxId ?? ''),
+        contactName: String(
+          (value.client as { contactName?: string }).contactName ?? ''
+        ),
+        address: String((value.client as { address?: string }).address ?? ''),
+        city: String((value.client as { city?: string }).city ?? ''),
+        email: String((value.client as { email?: string }).email ?? ''),
+        phone: String((value.client as { phone?: string }).phone ?? '')
+      }
       : {
-          businessName: '',
-          taxId: '',
-          contactName: '',
-          address: '',
-          city: '',
-          email: '',
-          phone: ''
-        };
+        businessName: '',
+        taxId: '',
+        contactName: '',
+        address: '',
+        city: '',
+        email: '',
+        phone: ''
+      };
 
   const sampleItems =
     typeof value.samples === 'object' && value.samples !== null
       ? Array.isArray((value.samples as { items?: unknown[] }).items)
         ? ((value.samples as { items?: unknown[] }).items ?? []).map((item) => {
-            const rowItem = item as {
-              sampleCode?: string;
-              sampleType?: string;
-            };
-            return {
-              sampleCode: String(rowItem.sampleCode ?? '—'),
-              sampleType: String(rowItem.sampleType ?? 'Sin tipo')
-            };
-          })
+          const rowItem = item as {
+            sampleCode?: string;
+            sampleType?: string;
+          };
+          return {
+            sampleCode: String(rowItem.sampleCode ?? '—'),
+            sampleType: String(rowItem.sampleType ?? 'Sin tipo')
+          };
+        })
         : []
       : [];
 
@@ -128,15 +128,15 @@ export const mapRequestSnapshotDocToRow = (
     typeof value.analyses === 'object' && value.analyses !== null
       ? Array.isArray((value.analyses as { items?: unknown[] }).items)
         ? ((value.analyses as { items?: unknown[] }).items ?? []).map((item) => {
-            const rowItem = item as {
-              parameterLabelEs?: string;
-              unitPrice?: number | null;
-            };
-            return {
-              parameterLabelEs: String(rowItem.parameterLabelEs ?? 'Parámetro'),
-              unitPrice: Number(rowItem.unitPrice ?? 0)
-            };
-          })
+          const rowItem = item as {
+            parameterLabelEs?: string;
+            unitPrice?: number | null;
+          };
+          return {
+            parameterLabelEs: String(rowItem.parameterLabelEs ?? 'Parámetro'),
+            unitPrice: Number(rowItem.unitPrice ?? 0)
+          };
+        })
         : []
       : [];
 
@@ -151,59 +151,59 @@ export const mapRequestSnapshotDocToRow = (
 
   const serviceItems = Array.isArray(rawServiceItems)
     ? rawServiceItems.map((item, index) => {
-        const rowItem = item as {
-          serviceId?: string;
-          parameterId?: string;
-          parameterLabel?: string;
-          tableLabel?: string | null;
-          unit?: string | null;
-          method?: string | null;
-          rangeMin?: string;
-          rangeMax?: string;
-          quantity?: number;
-          unitPrice?: number | null;
-          discountAmount?: number | null;
-        };
-        const unitPrice = Number(rowItem.unitPrice ?? 0);
-        const discountAmount = Number(rowItem.discountAmount ?? 0);
-        return {
-          serviceId: String(rowItem.serviceId ?? rowItem.parameterId ?? `service-${index}`),
-          parameterId: String(rowItem.parameterId ?? rowItem.serviceId ?? `p-${index}`),
-          parameterLabel: String(
-            rowItem.parameterLabel ?? rowItem.parameterId ?? 'Servicio'
-          ),
-          tableLabel:
+      const rowItem = item as {
+        serviceId?: string;
+        parameterId?: string;
+        parameterLabel?: string;
+        tableLabel?: string | null;
+        unit?: string | null;
+        method?: string | null;
+        rangeMin?: string;
+        rangeMax?: string;
+        quantity?: number;
+        unitPrice?: number | null;
+        discountAmount?: number | null;
+      };
+      const unitPrice = Number(rowItem.unitPrice ?? 0);
+      const discountAmount = Number(rowItem.discountAmount ?? 0);
+      return {
+        serviceId: String(rowItem.serviceId ?? rowItem.parameterId ?? `service-${index}`),
+        parameterId: String(rowItem.parameterId ?? rowItem.serviceId ?? `p-${index}`),
+        parameterLabel: String(
+          rowItem.parameterLabel ?? rowItem.parameterId ?? 'Servicio'
+        ),
+        tableLabel:
             typeof rowItem.tableLabel === 'string' ? rowItem.tableLabel : null,
-          unit: typeof rowItem.unit === 'string' ? rowItem.unit : null,
-          method: typeof rowItem.method === 'string' ? rowItem.method : null,
-          rangeMin: String(rowItem.rangeMin ?? ''),
-          rangeMax: String(rowItem.rangeMax ?? ''),
-          quantity: Math.max(1, Number(rowItem.quantity ?? 1)),
-          unitPrice: Number.isFinite(unitPrice) ? unitPrice : 0,
-          discountAmount:
+        unit: typeof rowItem.unit === 'string' ? rowItem.unit : null,
+        method: typeof rowItem.method === 'string' ? rowItem.method : null,
+        rangeMin: String(rowItem.rangeMin ?? ''),
+        rangeMax: String(rowItem.rangeMax ?? ''),
+        quantity: Math.max(1, Number(rowItem.quantity ?? 1)),
+        unitPrice: Number.isFinite(unitPrice) ? unitPrice : 0,
+        discountAmount:
             Number.isFinite(discountAmount) && discountAmount >= 0
               ? discountAmount
               : 0
-        };
-      })
+      };
+    })
     : [];
 
   const normalizedServiceItems =
     serviceItems.length > 0
       ? serviceItems
       : analysisItems.map((analysis, index) => ({
-          serviceId: `legacy-${index}`,
-          parameterId: `legacy-${index}`,
-          parameterLabel: analysis.parameterLabelEs,
-          tableLabel: null,
-          unit: null,
-          method: null,
-          rangeMin: '',
-          rangeMax: '',
-          quantity: agreedCount > 0 ? agreedCount : 1,
-          unitPrice: Number(analysis.unitPrice ?? 0),
-          discountAmount: 0
-        }));
+        serviceId: `legacy-${index}`,
+        parameterId: `legacy-${index}`,
+        parameterLabel: analysis.parameterLabelEs,
+        tableLabel: null,
+        unit: null,
+        method: null,
+        rangeMin: '',
+        rangeMax: '',
+        quantity: agreedCount > 0 ? agreedCount : 1,
+        unitPrice: Number(analysis.unitPrice ?? 0),
+        discountAmount: 0
+      }));
 
   const rawGroupedServiceItems =
     value.services &&
@@ -214,68 +214,68 @@ export const mapRequestSnapshotDocToRow = (
 
   const serviceGroups = Array.isArray(rawGroupedServiceItems)
     ? rawGroupedServiceItems
-        .map((group, groupIndex) => {
-          const groupValue = group as {
-            name?: string;
-            items?: unknown[];
-          };
-          const mappedItems = Array.isArray(groupValue.items)
-            ? groupValue.items.map((item, itemIndex) => {
-                const rowItem = item as {
-                  serviceId?: string;
-                  parameterId?: string;
-                  parameterLabel?: string;
-                  tableLabel?: string | null;
-                  unit?: string | null;
-                  method?: string | null;
-                  rangeMin?: string | null;
-                  rangeMax?: string | null;
-                  quantity?: number;
-                  unitPrice?: number | null;
-                  discountAmount?: number | null;
-                };
-                const unitPrice = Number(rowItem.unitPrice ?? 0);
-                const discountAmount = Number(rowItem.discountAmount ?? 0);
-                return {
-                  serviceId: String(
-                    rowItem.serviceId ??
-                      rowItem.parameterId ??
-                      `grouped-service-${groupIndex}-${itemIndex}`
-                  ),
-                  parameterId: String(
-                    rowItem.parameterId ??
-                      rowItem.serviceId ??
-                      `grouped-parameter-${groupIndex}-${itemIndex}`
-                  ),
-                  parameterLabel: String(
-                    rowItem.parameterLabel ?? rowItem.parameterId ?? 'Servicio'
-                  ),
-                  tableLabel:
+      .map((group, groupIndex) => {
+        const groupValue = group as {
+          name?: string;
+          items?: unknown[];
+        };
+        const mappedItems = Array.isArray(groupValue.items)
+          ? groupValue.items.map((item, itemIndex) => {
+            const rowItem = item as {
+              serviceId?: string;
+              parameterId?: string;
+              parameterLabel?: string;
+              tableLabel?: string | null;
+              unit?: string | null;
+              method?: string | null;
+              rangeMin?: string | null;
+              rangeMax?: string | null;
+              quantity?: number;
+              unitPrice?: number | null;
+              discountAmount?: number | null;
+            };
+            const unitPrice = Number(rowItem.unitPrice ?? 0);
+            const discountAmount = Number(rowItem.discountAmount ?? 0);
+            return {
+              serviceId: String(
+                rowItem.serviceId ??
+                rowItem.parameterId ??
+                `grouped-service-${groupIndex}-${itemIndex}`
+              ),
+              parameterId: String(
+                rowItem.parameterId ??
+                rowItem.serviceId ??
+                `grouped-parameter-${groupIndex}-${itemIndex}`
+              ),
+              parameterLabel: String(
+                rowItem.parameterLabel ?? rowItem.parameterId ?? 'Servicio'
+              ),
+              tableLabel:
                     typeof rowItem.tableLabel === 'string'
                       ? rowItem.tableLabel
                       : null,
-                  unit: typeof rowItem.unit === 'string' ? rowItem.unit : null,
-                  method:
+              unit: typeof rowItem.unit === 'string' ? rowItem.unit : null,
+              method:
                     typeof rowItem.method === 'string' ? rowItem.method : null,
-                  rangeMin: String(rowItem.rangeMin ?? ''),
-                  rangeMax: String(rowItem.rangeMax ?? ''),
-                  quantity: Math.max(1, Number(rowItem.quantity ?? 1)),
-                  unitPrice: Number.isFinite(unitPrice) ? unitPrice : 0,
-                  discountAmount:
+              rangeMin: String(rowItem.rangeMin ?? ''),
+              rangeMax: String(rowItem.rangeMax ?? ''),
+              quantity: Math.max(1, Number(rowItem.quantity ?? 1)),
+              unitPrice: Number.isFinite(unitPrice) ? unitPrice : 0,
+              discountAmount:
                     Number.isFinite(discountAmount) && discountAmount >= 0
                       ? discountAmount
                       : 0
-                };
-              })
-            : [];
+            };
+          })
+          : [];
 
-          return {
-            id: `group-${groupIndex}`,
-            name: String(groupValue.name?.trim() || `Combo ${groupIndex + 1}`),
-            items: mappedItems
-          };
-        })
-        .filter((group) => group.items.length > 0)
+        return {
+          id: `group-${groupIndex}`,
+          name: String(groupValue.name?.trim() || `Combo ${groupIndex + 1}`),
+          items: mappedItems
+        };
+      })
+      .filter((group) => group.items.length > 0)
     : [];
 
   const normalizedServiceGroups =
@@ -283,24 +283,24 @@ export const mapRequestSnapshotDocToRow = (
       ? serviceGroups
       : normalizedServiceItems.length > 0
         ? [
-            {
-              id: 'fallback-group',
-              name: 'Combo 1',
-              items: normalizedServiceItems.map((item) => ({
-                serviceId: item.serviceId,
-                parameterId: item.parameterId,
-                parameterLabel: item.parameterLabel,
-                tableLabel: item.tableLabel,
-                unit: item.unit,
-                method: item.method,
-                rangeMin: item.rangeMin,
-                rangeMax: item.rangeMax,
-                quantity: item.quantity,
-                unitPrice: item.unitPrice,
-                discountAmount: item.discountAmount
-              }))
-            }
-          ]
+          {
+            id: 'fallback-group',
+            name: 'Combo 1',
+            items: normalizedServiceItems.map((item) => ({
+              serviceId: item.serviceId,
+              parameterId: item.parameterId,
+              parameterLabel: item.parameterLabel,
+              tableLabel: item.tableLabel,
+              unit: item.unit,
+              method: item.method,
+              rangeMin: item.rangeMin,
+              rangeMax: item.rangeMax,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              discountAmount: item.discountAmount
+            }))
+          }
+        ]
         : [];
 
   return {

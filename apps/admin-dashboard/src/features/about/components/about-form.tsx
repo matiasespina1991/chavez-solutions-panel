@@ -56,9 +56,9 @@ function MediaPreviewCard({
   onRemove,
   actions
 }: {
-  media: MediaDoc;
-  onRemove?: () => void;
-  actions?: ReactNode;
+  readonly media: MediaDoc;
+  readonly onRemove?: () => void;
+  readonly actions?: ReactNode;
 }) {
   const previewPath = getPreviewPath(media);
   const { src, hasSource, handleError } = useStorageAssetSrc(
@@ -96,8 +96,8 @@ function MediaPreviewCard({
           type='button'
           variant='ghost'
           size='icon'
-          onClick={onRemove}
           className='cursor-pointer'
+          onClick={onRemove}
         >
           <IconTrash className='h-4 w-4' />
         </Button>
@@ -250,8 +250,8 @@ export default function AboutForm() {
       <CardContent>
         <Form
           form={form}
-          onSubmit={form.handleSubmit(onSubmit)}
           className='space-y-8'
+          onSubmit={form.handleSubmit(onSubmit)}
         >
           {loading ? (
             <div className='space-y-2'>
@@ -273,11 +273,11 @@ export default function AboutForm() {
               <div className='flex flex-col gap-8 lg:flex-row lg:items-start'>
                 <div className='flex flex-1 flex-col gap-6 lg:flex-[3]'>
                   <FormInput
+                    required
                     control={form.control}
                     name='title'
                     label='Título'
                     placeholder='Ingresá el título'
-                    required
                   />
 
                   <FormQuill
@@ -309,11 +309,11 @@ export default function AboutForm() {
                       />
                     ) : null}
                     <FileUploader
-                      onUpload={handleImageUpload}
                       progresses={imageProgress}
                       accept={{ 'image/*': [] }}
                       maxFiles={1}
                       maxSize={MAX_UPLOAD_SIZE}
+                      onUpload={handleImageUpload}
                       onPickFromGallery={() => setIsImagePickerOpen(true)}
                     />
                   </div>
@@ -344,11 +344,11 @@ export default function AboutForm() {
 
         <MediaPickerDialog
           open={isImagePickerOpen}
-          onOpenChange={setIsImagePickerOpen}
           title='Seleccionar imagen'
           description='Selecciona una imagen para About Me.'
           selectionMode='single'
           allowedTypes={['image']}
+          onOpenChange={setIsImagePickerOpen}
           onConfirm={(items) => {
             const media = items[0];
             if (media) {
@@ -366,12 +366,12 @@ function ImagePreviewCard({
   media,
   onRemove
 }: {
-  media: MediaDoc;
-  onRemove: () => void;
+  readonly media: MediaDoc;
+  readonly onRemove: () => void;
 }) {
   const previewPath =
     media.type === 'image'
-      ? (media.paths?.derivatives?.['low']?.storagePath ??
+      ? (media.paths?.derivatives?.low?.storagePath ??
         media.paths?.original?.storagePath)
       : null;
 
@@ -387,8 +387,8 @@ function ImagePreviewCard({
           <img
             src={src}
             alt={media.title || 'Image'}
-            onError={handleError}
             className='h-full w-full object-cover'
+            onError={handleError}
           />
         ) : (
           <div className='bg-muted h-full w-full animate-pulse' />
@@ -401,8 +401,8 @@ function ImagePreviewCard({
         type='button'
         variant='ghost'
         size='icon'
-        onClick={onRemove}
         className='text-muted-foreground hover:text-destructive flex-shrink-0'
+        onClick={onRemove}
       >
         <IconTrash className='h-4 w-4' />
       </Button>

@@ -111,21 +111,21 @@ export const useWorkOrderActions = ({
         prev.map((row) =>
           row.id === rowToToggleWorkOrder.id
             ? {
-                ...row,
-                status: nextStatus,
-                notes: workOrderToggleNotes
-              }
+              ...row,
+              status: nextStatus,
+              notes: workOrderToggleNotes
+            }
             : row
         )
       );
 
       setSelectedRow((prev) =>
-        prev && prev.id === rowToToggleWorkOrder.id
+        prev?.id === rowToToggleWorkOrder.id
           ? {
-              ...prev,
-              status: nextStatus,
-              notes: workOrderToggleNotes
-            }
+            ...prev,
+            status: nextStatus,
+            notes: workOrderToggleNotes
+          }
           : prev
       );
 
@@ -195,25 +195,25 @@ export const useWorkOrderActions = ({
         prev.map((entry) =>
           entry.id === row.id
             ? {
-                ...entry,
-                status: 'converted_to_work_order',
-                approvalStatus: 'approved',
-                approvalActorEmail: approverEmail,
-                isWorkOrder: true
-              }
-            : entry
-        )
-      );
-
-      setSelectedRow((prev) =>
-        prev && prev.id === row.id
-          ? {
-              ...prev,
+              ...entry,
               status: 'converted_to_work_order',
               approvalStatus: 'approved',
               approvalActorEmail: approverEmail,
               isWorkOrder: true
             }
+            : entry
+        )
+      );
+
+      setSelectedRow((prev) =>
+        prev?.id === row.id
+          ? {
+            ...prev,
+            status: 'converted_to_work_order',
+            approvalStatus: 'approved',
+            approvalActorEmail: approverEmail,
+            isWorkOrder: true
+          }
           : prev
       );
     } catch (error) {
@@ -242,7 +242,7 @@ export const useWorkOrderActions = ({
   };
 
   const handleDialogResumeWorkOrder = () => {
-    if (!selectedRow || selectedRow.status !== 'work_order_paused') return;
+    if (selectedRow?.status !== 'work_order_paused') return;
     openWorkOrderToggleDialog(selectedRow);
   };
 

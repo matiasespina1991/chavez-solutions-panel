@@ -1,15 +1,15 @@
 'use client';
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Task, useTaskStore } from '../utils/store';
+import { type Task, useTaskStore } from '../utils/store';
 import { hasDraggableData } from '../utils';
 import {
-  Announcements,
+  type Announcements,
   DndContext,
   DragOverlay,
   MouseSensor,
   TouchSensor,
-  UniqueIdentifier,
+  type UniqueIdentifier,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -17,8 +17,7 @@ import {
   type DragStartEvent
 } from '@dnd-kit/core';
 import { SortableContext, arrayMove } from '@dnd-kit/sortable';
-import type { Column } from './board-column';
-import { BoardColumn, BoardContainer } from './board-column';
+import { type Column, BoardColumn, BoardContainer  } from './board-column';
 import NewSectionDialog from './new-section-dialog';
 import { TaskCard } from './task-card';
 // import { coordinateGetter } from "./multipleContainersKeyboardPreset";
@@ -53,7 +52,7 @@ export function KanbanBoard() {
   const tasks = useTaskStore((state) => state.tasks);
   const setTasks = useTaskStore((state) => state.setTasks);
   const [activeColumn, setActiveColumn] = useState<Column | null>(null);
-  const [isMounted, setIsMounted] = useState<Boolean>(false);
+  const [isMounted, setIsMounted] = useState<boolean>(false);
 
   const [activeTask, setActiveTask] = useState<Task | null>(null);
 
@@ -89,12 +88,14 @@ export function KanbanBoard() {
     onDragStart({ active }) {
       if (!hasDraggableData(active)) return;
       if (active.data.current?.type === 'Column') {
-        const startColumnIdx = columnsId.findIndex((id) => id === active.id);
+        const startColumnIdx = columnsId.indexOf(active.id);
         const startColumn = columns[startColumnIdx];
         return `Picked up Column ${startColumn?.title} at position: ${
           startColumnIdx + 1
         } of ${columnsId.length}`;
-      } else if (active.data.current?.type === 'Task') {
+      }
+
+      if (active.data.current?.type === 'Task') {
         pickedUpTaskColumn.current = active.data.current.task.status;
         const { tasksInColumn, taskPosition, column } = getDraggingTaskData(
           active.id,
@@ -112,11 +113,13 @@ export function KanbanBoard() {
         active.data.current?.type === 'Column' &&
         over.data.current?.type === 'Column'
       ) {
-        const overColumnIdx = columnsId.findIndex((id) => id === over.id);
+        const overColumnIdx = columnsId.indexOf(over.id);
         return `Column ${active.data.current.column.title} was moved over ${
           over.data.current.column.title
         } at position ${overColumnIdx + 1} of ${columnsId.length}`;
-      } else if (
+      }
+
+      if (
         active.data.current?.type === 'Task' &&
         over.data.current?.type === 'Task'
       ) {
@@ -131,6 +134,7 @@ export function KanbanBoard() {
             taskPosition + 1
           } of ${tasksInColumn.length}`;
         }
+
         return `Task was moved over position ${taskPosition + 1} of ${
           tasksInColumn.length
         } in column ${column?.title}`;
@@ -141,18 +145,21 @@ export function KanbanBoard() {
         pickedUpTaskColumn.current = 'TODO';
         return;
       }
+
       if (
         active.data.current?.type === 'Column' &&
         over.data.current?.type === 'Column'
       ) {
-        const overColumnPosition = columnsId.findIndex((id) => id === over.id);
+        const overColumnPosition = columnsId.indexOf(over.id);
 
         return `Column ${
           active.data.current.column.title
         } was dropped into position ${overColumnPosition + 1} of ${
           columnsId.length
         }`;
-      } else if (
+      }
+
+      if (
         active.data.current?.type === 'Task' &&
         over.data.current?.type === 'Task'
       ) {
@@ -165,10 +172,12 @@ export function KanbanBoard() {
             taskPosition + 1
           } of ${tasksInColumn.length}`;
         }
+
         return `Task was dropped into position ${taskPosition + 1} of ${
           tasksInColumn.length
         } in column ${column?.title}`;
       }
+
       pickedUpTaskColumn.current = 'TODO';
     },
     onDragCancel({ active }) {
@@ -203,21 +212,19 @@ export function KanbanBoard() {
               )}
             </Fragment>
           ))}
-          {!columns.length && <NewSectionDialog />}
+          {columns.length === 0 && <NewSectionDialog />}
         </SortableContext>
       </BoardContainer>
 
-      {'document' in window &&
+      {'document' in globalThis &&
         createPortal(
           <DragOverlay>
-            {activeColumn && (
-              <BoardColumn
-                isOverlay
-                column={activeColumn}
-                tasks={tasks.filter((task) => task.status === activeColumn.id)}
-              />
-            )}
-            {activeTask && <TaskCard task={activeTask} isOverlay />}
+            {activeColumn ? <BoardColumn
+              isOverlay
+              column={activeColumn}
+              tasks={tasks.filter((task) => task.status === activeColumn.id)}
+            /> : null}
+            {activeTask ? <TaskCard isOverlay task={activeTask} /> : null}
           </DragOverlay>,
           document.body
         )}
@@ -234,7 +241,7 @@ export function KanbanBoard() {
 
     if (data?.type === 'Task') {
       setActiveTask(data.task);
-      return;
+      
     }
   }
 

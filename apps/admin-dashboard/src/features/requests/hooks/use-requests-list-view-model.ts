@@ -55,41 +55,58 @@ export const useRequestsListViewModel = (
       let compare = 0;
 
       switch (sortKey) {
-        case 'reference':
+        case 'reference': {
           compare = collator.compare(left.reference, right.reference);
           break;
-        case 'client':
+        }
+
+        case 'client': {
           compare = collator.compare(
             left.clientBusinessName,
             right.clientBusinessName
           );
           break;
-        case 'samples':
+        }
+
+        case 'samples': {
           compare = left.analysesCount - right.analysesCount;
           break;
-        case 'analyses':
+        }
+
+        case 'analyses': {
           compare = left.analysesCount - right.analysesCount;
           break;
-        case 'status':
+        }
+
+        case 'status': {
           compare = collator.compare(
             getRowStatusLabel(left),
             getRowStatusLabel(right)
           );
           break;
-        case 'notes':
+        }
+
+        case 'notes': {
           compare = collator.compare(
             getString(left.notes),
             getString(right.notes)
           );
           break;
-        case 'total':
+        }
+
+        case 'total': {
           compare = left.total - right.total;
           break;
-        case 'updatedAt':
+        }
+
+        case 'updatedAt': {
           compare = left.updatedAtMs - right.updatedAtMs;
           break;
-        default:
+        }
+
+        default: {
           compare = 0;
+        }
       }
 
       if (compare === 0) {

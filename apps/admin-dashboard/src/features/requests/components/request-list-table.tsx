@@ -34,18 +34,18 @@ export type RequestListSortKey =
   | 'updatedAt';
 
 interface RequestListTableProps {
-  visibleRows: RequestRow[];
-  hasVisibleRows: boolean;
-  pendingActionId: string | null;
-  isDeleting: boolean;
-  onSort: (key: RequestListSortKey) => void;
-  getSortIndicator: (key: RequestListSortKey) => string;
-  onOpenSummary: (row: RequestRow) => void;
-  onEdit: (row: RequestRow) => void;
-  onExecuteWorkOrder: (row: RequestRow) => void;
-  onOpenRejectDialog: (row: RequestRow) => void;
-  onToggleWorkOrder: (row: RequestRow) => void;
-  onOpenDeleteDialog: (row: RequestRow) => void;
+  readonly visibleRows: RequestRow[];
+  readonly hasVisibleRows: boolean;
+  readonly pendingActionId: string | null;
+  readonly isDeleting: boolean;
+  readonly onSort: (key: RequestListSortKey) => void;
+  readonly getSortIndicator: (key: RequestListSortKey) => string;
+  readonly onOpenSummary: (row: RequestRow) => void;
+  readonly onEdit: (row: RequestRow) => void;
+  readonly onExecuteWorkOrder: (row: RequestRow) => void;
+  readonly onOpenRejectDialog: (row: RequestRow) => void;
+  readonly onToggleWorkOrder: (row: RequestRow) => void;
+  readonly onOpenDeleteDialog: (row: RequestRow) => void;
 }
 
 export function RequestListTable({
@@ -131,7 +131,7 @@ export function RequestListTable({
                   Notas{getSortIndicator('notes')}
                 </button>
               </th>
-              <th className='w-10 px-1 py-3 text-right md:w-12 md:px-2'></th>
+              <th className='w-10 px-1 py-3 text-right md:w-12 md:px-2' />
             </tr>
           </thead>
           <tbody>
@@ -174,11 +174,9 @@ export function RequestListTable({
                       </span>
                     ) : null}
 
-                    {isProformaExpired && (
-                      <span className='text-muted-foreground ml-1 text-xs'>
-                        (vencida)
-                      </span>
-                    )}
+                    {isProformaExpired ? <span className='text-muted-foreground ml-1 text-xs'>
+                      (vencida)
+                    </span> : null}
                   </td>
                   <td
                     className={`w-[8rem] px-3 py-3 md:w-[11rem] md:px-4 ${
@@ -281,11 +279,11 @@ export function RequestListTable({
                               {canApproveProforma ? (
                                 <DropdownMenuItem
                                   className='cursor-pointer justify-start text-emerald-600 transition-colors duration-150 focus:text-emerald-600'
+                                  disabled={pendingActionId === row.id}
                                   onClick={(event) => {
                                     event.stopPropagation();
                                     onExecuteWorkOrder(row);
                                   }}
-                                  disabled={pendingActionId === row.id}
                                 >
                                   Ejecutar orden de trabajo
                                 </DropdownMenuItem>
@@ -293,11 +291,11 @@ export function RequestListTable({
                               {canRejectProforma ? (
                                 <DropdownMenuItem
                                   className='text-destructive focus:text-destructive cursor-pointer justify-start transition-colors duration-150'
+                                  disabled={pendingActionId === row.id}
                                   onClick={(event) => {
                                     event.stopPropagation();
                                     onOpenRejectDialog(row);
                                   }}
-                                  disabled={pendingActionId === row.id}
                                 >
                                   Rechazar proforma
                                 </DropdownMenuItem>
@@ -345,11 +343,11 @@ export function RequestListTable({
                                         ? 'text-emerald-600 focus:text-emerald-600'
                                         : 'text-destructive focus:text-destructive'
                                   }`}
+                                  disabled={pendingActionId === row.id}
                                   onClick={(event) => {
                                     event.stopPropagation();
                                     onToggleWorkOrder(row);
                                   }}
-                                  disabled={pendingActionId === row.id}
                                 >
                                   {workOrderIssued ? (
                                     isWorkOrderPaused ? (
@@ -382,11 +380,11 @@ export function RequestListTable({
                               )}
                               <DropdownMenuItem
                                 className='text-destructive focus:text-destructive cursor-pointer transition-colors duration-150'
+                                disabled={isDeleting}
                                 onClick={(event) => {
                                   event.stopPropagation();
                                   onOpenDeleteDialog(row);
                                 }}
-                                disabled={isDeleting}
                               >
                                 <span className='inline-flex items-center justify-start gap-0'>
                                   <IconTrash

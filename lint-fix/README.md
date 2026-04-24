@@ -9,12 +9,19 @@ Este directorio es la fuente de verdad para bajar deuda de lint detectada por `x
 
 Reducir el baseline de `xo` en fases controladas, sin romper runtime ni flujo productivo.
 
-## Baseline actual (2026-04-23)
+## Baseline inicial (2026-04-23)
 
 - `files`: 326
 - `errors`: 39,380
 - `warnings`: 115
 - `fixable_errors`: 37,471
+
+## Estado post Fase 2 (2026-04-24)
+
+- `files`: 326
+- `errors`: 116
+- `warnings`: 5
+- `fixable_errors`: 2
 
 Fuente:
 

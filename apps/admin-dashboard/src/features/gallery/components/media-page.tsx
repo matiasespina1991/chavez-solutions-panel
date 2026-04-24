@@ -76,14 +76,15 @@ function SelectedMediaChip({
   className = '',
   onClick
 }: {
-  onClear: () => void;
-  className?: string;
-  onClick?: () => void;
+  readonly onClear: () => void;
+  readonly className?: string;
+  readonly onClick?: () => void;
 }) {
   return (
     <div
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
+      className={`text-foreground inline-flex h-11 cursor-pointer items-center gap-2 rounded-full px-3 text-sm font-medium opacity-100 ${className}`}
       onClick={onClick}
       onKeyDown={(event) => {
         if (!onClick) return;
@@ -92,18 +93,17 @@ function SelectedMediaChip({
           onClick();
         }
       }}
-      className={`text-foreground inline-flex h-11 cursor-pointer items-center gap-2 rounded-full px-3 text-sm font-medium opacity-100 ${className}`}
     >
       <Tooltip>
         <TooltipTrigger asChild>
           <button
             type='button'
+            className='text-foreground inline-flex h-4 w-4 cursor-pointer items-center justify-center rounded-full bg-[#80808012] transition-colors hover:bg-[#80808024]'
+            aria-label='Deseleccionar archivo'
             onClick={(event) => {
               event.stopPropagation();
               onClear();
             }}
-            className='text-foreground inline-flex h-4 w-4 cursor-pointer items-center justify-center rounded-full bg-[#80808012] transition-colors hover:bg-[#80808024]'
-            aria-label='Deseleccionar archivo'
           >
             <IconX className='h-3 w-3' />
           </button>
@@ -123,7 +123,7 @@ export default function MediaPage() {
   const actionBarRef = useRef<HTMLDivElement | null>(null);
   const isVideoSelection = selectedMedia?.type === 'video';
   const imageDownloadAsset = useMemo<AssetFile | null>(() => {
-    if (!selectedMedia || selectedMedia.type !== 'image') return null;
+    if (selectedMedia?.type !== 'image') return null;
     const imageCandidates = [
       selectedMedia.paths?.derivatives?.webp_large,
       selectedMedia.paths?.derivatives?.webp_medium,
@@ -199,6 +199,7 @@ export default function MediaPage() {
     if (selectedMedia.originalFilename?.trim()) {
       return selectedMedia.originalFilename.trim();
     }
+
     const rawPath = imageDownloadAsset?.storagePath ?? '';
     const lastSegment = rawPath ? (rawPath.split('/').pop() ?? '') : '';
     if (lastSegment) return lastSegment;
@@ -303,7 +304,7 @@ export default function MediaPage() {
       link.href = downloadUrl;
       link.download = fileName;
       link.rel = 'noopener';
-      document.body.appendChild(link);
+      document.body.append(link);
       link.click();
       link.remove();
     } catch (error) {
@@ -372,9 +373,9 @@ export default function MediaPage() {
           selectedMedia ? (
             <div ref={actionBarRef} className='flex items-center gap-2'>
               <SelectedMediaChip
+                className='border-0 bg-transparent px-0 shadow-none'
                 onClear={handleClearSelection}
                 onClick={handleScrollToSelected}
-                className='border-0 bg-transparent px-0 shadow-none'
               />
               {isVideoSelection ? (
                 <DropdownMenu>
@@ -394,8 +395,8 @@ export default function MediaPage() {
                       <DropdownMenuItem
                         key={variant.key}
                         disabled={!variant.canDownload}
-                        onClick={() => handleVideoVariantDownload(variant)}
                         className='flex cursor-pointer items-center justify-between gap-4'
+                        onClick={() => handleVideoVariantDownload(variant)}
                       >
                         <span>{variant.label}</span>
                         <span className='text-muted-foreground text-xs'>
@@ -420,8 +421,8 @@ export default function MediaPage() {
                 type='button'
                 variant='destructive'
                 disabled={isDeleting}
-                onClick={() => setConfirmOpen(true)}
                 className='h-11'
+                onClick={() => setConfirmOpen(true)}
               >
                 <IconTrash className='h-4 w-4' />
                 Eliminar
@@ -446,9 +447,9 @@ export default function MediaPage() {
           aria-hidden={!showFloatingActions}
         >
           <SelectedMediaChip
+            className='border-border bg-background pointer-events-auto border shadow-lg'
             onClear={handleClearSelection}
             onClick={handleScrollToSelected}
-            className='border-border bg-background pointer-events-auto border shadow-lg'
           />
           {isVideoSelection ? (
             <DropdownMenu>
@@ -477,8 +478,8 @@ export default function MediaPage() {
                   <DropdownMenuItem
                     key={variant.key}
                     disabled={!variant.canDownload}
-                    onClick={() => handleVideoVariantDownload(variant)}
                     className='flex cursor-pointer items-center justify-between gap-4'
+                    onClick={() => handleVideoVariantDownload(variant)}
                   >
                     <span>{variant.label}</span>
                     <span className='text-muted-foreground text-xs'>
@@ -511,9 +512,9 @@ export default function MediaPage() {
                 variant='destructive'
                 size='icon'
                 disabled={isDeleting}
-                onClick={() => setConfirmOpen(true)}
                 className='!hover:bg-[#ca2a30] !dark:bg-[#ca2a30] !dark:hover:bg-[#ca2a30] pointer-events-auto h-11 w-11 rounded-full !bg-[#ca2a30] !text-white !opacity-100 shadow-lg'
                 aria-label='Eliminar'
+                onClick={() => setConfirmOpen(true)}
               >
                 <IconTrash className='h-5 w-5' />
               </Button>
@@ -538,8 +539,8 @@ export default function MediaPage() {
             </AlertDialogCancel>
             <AlertDialogAction
               className='bg-red-700 hover:bg-red-800 focus:ring-red-500 disabled:bg-red-600 disabled:hover:bg-red-600'
-              onClick={handleDelete}
               disabled={isDeleting}
+              onClick={handleDelete}
             >
               {isDeleting ? 'Eliminando...' : 'Eliminar'}
             </AlertDialogAction>

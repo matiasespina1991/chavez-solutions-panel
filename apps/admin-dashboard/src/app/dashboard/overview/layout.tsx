@@ -20,10 +20,10 @@ export default function OverViewLayout({
   bar_stats,
   area_stats
 }: {
-  sales: React.ReactNode;
-  pie_stats: React.ReactNode;
-  bar_stats: React.ReactNode;
-  area_stats: React.ReactNode;
+  readonly sales: React.ReactNode;
+  readonly pie_stats: React.ReactNode;
+  readonly bar_stats: React.ReactNode;
+  readonly area_stats: React.ReactNode;
 }) {
   const { user } = useAuthSession();
   const firstName =

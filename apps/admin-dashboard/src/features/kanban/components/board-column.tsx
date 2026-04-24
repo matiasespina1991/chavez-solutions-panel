@@ -1,4 +1,4 @@
-import { Task } from '../utils/store';
+import { type Task } from '../utils/store';
 import { useDndContext, type UniqueIdentifier } from '@dnd-kit/core';
 import { SortableContext, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -24,15 +24,13 @@ export interface ColumnDragData {
 }
 
 interface BoardColumnProps {
-  column: Column;
-  tasks: Task[];
-  isOverlay?: boolean;
+  readonly column: Column;
+  readonly tasks: Task[];
+  readonly isOverlay?: boolean;
 }
 
 export function BoardColumn({ column, tasks, isOverlay }: BoardColumnProps) {
-  const tasksIds = useMemo(() => {
-    return tasks.map((task) => task.id);
-  }, [tasks]);
+  const tasksIds = useMemo(() => tasks.map((task) => task.id), [tasks]);
 
   const {
     setNodeRef,
@@ -80,7 +78,7 @@ export function BoardColumn({ column, tasks, isOverlay }: BoardColumnProps) {
     >
       <CardHeader className='space-between flex flex-row items-center border-b-2 p-4 text-left font-semibold'>
         <Button
-          variant={'ghost'}
+          variant="ghost"
           {...attributes}
           {...listeners}
           className='text-primary/50 relative -ml-2 h-auto cursor-grab p-1'
@@ -108,7 +106,7 @@ export function BoardColumn({ column, tasks, isOverlay }: BoardColumnProps) {
   );
 }
 
-export function BoardContainer({ children }: { children: React.ReactNode }) {
+export function BoardContainer({ children }: { readonly children: React.ReactNode }) {
   const dndContext = useDndContext();
 
   const variations = cva('px-2  pb-4 md:px-0 flex lg:justify-start', {

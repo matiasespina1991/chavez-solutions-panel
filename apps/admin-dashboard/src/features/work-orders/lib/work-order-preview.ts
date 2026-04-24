@@ -3,11 +3,11 @@ import type { WorkOrderListRow as WorkOrderRow } from '@/types/domain';
 
 const escapeHtml = (value: string) =>
   value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('\'', '&#039;');
 
 const buildPrintDocumentHtml = (
   title: string,
@@ -57,9 +57,9 @@ const downloadHtml = (fileName: string, html: string) => {
   const link = document.createElement('a');
   link.href = url;
   link.download = fileName;
-  document.body.appendChild(link);
+  document.body.append(link);
   link.click();
-  document.body.removeChild(link);
+  link.remove();
   URL.revokeObjectURL(url);
 };
 
@@ -84,15 +84,15 @@ const getSummaryBodyHtml = (selectedRow: WorkOrderRow) =>
        <div class="section">
          <h3>Servicios (${selectedRow.serviceItems.length})</h3>
          ${
-           selectedRow.serviceItems.length
-             ? `<ul>${selectedRow.serviceItems
-                 .map(
-                   (service) =>
-                     `<li>${escapeHtml(service.parameterLabel)} (x${service.quantity})</li>`
-                 )
-                 .join('')}</ul>`
-             : '<p class="line">No hay servicios seleccionados.</p>'
-         }
+            selectedRow.serviceItems.length > 0
+              ? `<ul>${selectedRow.serviceItems
+                .map(
+                  (service) =>
+                    `<li>${escapeHtml(service.parameterLabel)} (x${service.quantity})</li>`
+                )
+                .join('')}</ul>`
+              : '<p class="line">No hay servicios seleccionados.</p>'
+          }
        </div>`;
 
 export const downloadWorkOrderSummary = (selectedRow: WorkOrderRow) => {

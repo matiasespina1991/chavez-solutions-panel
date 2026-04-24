@@ -1,27 +1,37 @@
 files=326
-errors=39380
-warnings=115
-fixable_errors=37471
-fixable_warnings=0
+errors=116
+warnings=5
+fixable_errors=2
+fixable_warnings=1
 
 top_rules:
- 28379 @stylistic/indent
-  3366 @stylistic/object-curly-spacing
-  1653 @stylistic/comma-dangle
-   671 import-x/extensions
-   508 @stylistic/operator-linebreak
-   501 @stylistic/arrow-parens
-   455 @typescript-eslint/naming-convention
-   412 @stylistic/function-paren-newline
-   345 @typescript-eslint/no-restricted-types
-   322 curly
-   308 @stylistic/multiline-ternary
-   243 import-x/order
-   233 @typescript-eslint/prefer-nullish-coalescing
-   217 @typescript-eslint/consistent-type-definitions
-   172 @typescript-eslint/no-confusing-void-expression
-   132 @stylistic/indent-binary-ops
-   130 unicorn/prevent-abbreviations
-   115 @typescript-eslint/no-unsafe-type-assertion
-   112 @stylistic/padding-line-between-statements
-    94 @typescript-eslint/consistent-type-imports
+    23 react/no-array-index-key
+    15 @typescript-eslint/no-floating-promises
+    13 react/prop-types
+     6 new-cap
+     5 react/jsx-no-constructed-context-values
+     5 @typescript-eslint/no-base-to-string
+     4 react-hooks/incompatible-library
+     4 @typescript-eslint/no-empty-function
+     4 react/function-component-definition
+     2 react/no-danger
+     2 unknown
+     2 react/no-unknown-property
+     2 unicorn/prefer-logical-operator-over-ternary
+     2 @typescript-eslint/use-unknown-in-catch-callback-variable
+     2 react-hooks/preserve-manual-memoization
+     2 react/button-has-type
+     2 react-hooks/purity
+     2 @typescript-eslint/no-empty-object-type
+     2 react/no-unescaped-entities
+     2 no-unsafe-optional-chaining
+     1 no-alert
+     1 react/no-unused-prop-types
+     1 @typescript-eslint/promise-function-async
+     1 @typescript-eslint/restrict-template-expressions
+     1 react/jsx-no-target-blank
+     1 no-lone-blocks
+     1 no-promise-executor-return
+     1 react/jsx-pascal-case
+     1 radix
+     1 @typescript-eslint/consistent-type-assertions

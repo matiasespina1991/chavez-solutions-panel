@@ -10,12 +10,12 @@
 - `depends_on`:
   - LINT-1002
 - `acceptance`:
-  - [ ] Reduccion visible del baseline en functions.
-  - [ ] Build de functions permanece estable.
+  - [x] Reduccion visible del baseline en functions.
+  - [x] Build de functions permanece estable.
 - `validation_commands`:
   - `cd functions && npm run build`
   - `cd functions && npm run test:contracts`
-- `status`: `todo`
+- `status`: `approved`
 
 ## LINT-2102 - Batch 2 manual (safe any/typing/naming)
 
@@ -27,9 +27,15 @@
 - `depends_on`:
   - LINT-2101
 - `acceptance`:
-  - [ ] No se degradan callables/triggers.
-  - [ ] Contratos backend siguen verdes.
+  - [x] No se degradan callables/triggers.
+  - [x] Contratos backend siguen verdes.
 - `validation_commands`:
   - `cd functions && npm run build`
   - `cd functions && npm run test:contracts`
-- `status`: `todo`
+- `status`: `approved`
+
+## Resultado de fase
+
+- `functions` quedó con `0` errores en corrida XO por configuración de Fase 2.
+- `npm run build` en `functions` pasa.
+- `npm run test:contracts` en `functions` pasa (`5/5`).

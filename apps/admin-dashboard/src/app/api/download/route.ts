@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 
 const ALLOWED_HOSTS = new Set([
   'firebasestorage.googleapis.com',
@@ -7,7 +7,7 @@ const ALLOWED_HOSTS = new Set([
 
 function sanitizeFilename(value: string) {
   const sanitized = value
-    .replace(/[/\\?%*:|"<>]/g, '_')
+    .replaceAll(/[/\\?%*:|"<>]/g, '_')
     .trim()
     .slice(0, 180);
   return sanitized || 'download';

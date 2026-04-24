@@ -9,6 +9,6 @@ export const normalizeMatrixArray = (value: unknown): string[] => {
     unique.add(normalized);
   });
 
-  return Array.from(unique);
+  return [...unique];
 };
 

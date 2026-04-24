@@ -30,16 +30,16 @@ export default function PageContainer({
   className,
   style
 }: {
-  children: React.ReactNode;
-  scrollable?: boolean;
-  isloading?: boolean;
-  access?: boolean;
-  accessFallback?: React.ReactNode;
-  pageTitle?: string;
-  pageDescription?: string;
-  pageHeaderAction?: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
+  readonly children: React.ReactNode;
+  readonly scrollable?: boolean;
+  readonly isloading?: boolean;
+  readonly access?: boolean;
+  readonly accessFallback?: React.ReactNode;
+  readonly pageTitle?: string;
+  readonly pageDescription?: string;
+  readonly pageHeaderAction?: React.ReactNode;
+  readonly className?: string;
+  readonly style?: React.CSSProperties;
 }) {
   if (!access) {
     return (

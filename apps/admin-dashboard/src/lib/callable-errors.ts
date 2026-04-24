@@ -41,6 +41,7 @@ export const getGenericCallableErrorMessage = (error: unknown): string | null =>
   if (code === 'permission-denied') {
     return PERMISSION_DENIED_TOAST_MESSAGE;
   }
+
   if (code === 'unauthenticated') {
     return 'Debes iniciar sesión para realizar esta acción.';
   }

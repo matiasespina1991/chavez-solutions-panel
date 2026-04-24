@@ -50,7 +50,7 @@ const demoFormSchema = z.object({
   birthDate: z.date().optional(),
 
   // Single checkbox
-  terms: z.boolean().refine((val) => val === true, 'You must accept the terms'),
+  terms: z.boolean().refine((val) => val, 'You must accept the terms'),
 
   // File upload
   avatar: z.array(z.any()).optional()
@@ -85,7 +85,7 @@ const genderOptions: RadioGroupOption[] = [
 ];
 
 const fileUploadConfig: FileUploadConfig = {
-  maxSize: 5000000, // 5MB
+  maxSize: 5_000_000, // 5MB
   acceptedTypes: ['image/jpeg', 'image/png', 'image/webp'],
   multiple: false,
   maxFiles: 1
@@ -129,48 +129,49 @@ export default function DemoForm() {
           </p>
         </CardHeader>
         <CardContent>
-          <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-6'>
+          <form className='space-y-6' onSubmit={form.handleSubmit(onSubmit)}>
             {/* Basic Inputs */}
             <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
               <FormInput
+                required
                 control={form.control}
                 name='name'
                 label='Full Name'
                 placeholder='Enter your full name'
-                required
               />
 
               <FormInput
+                required
                 control={form.control}
                 name='email'
                 type='email'
                 label='Email Address'
                 placeholder='Enter your email'
-                required
               />
 
               <FormInput
+                required
                 control={form.control}
                 name='age'
                 type='number'
                 label='Age'
                 min={18}
                 max={100}
-                required
               />
 
               <FormInput
+                required
                 control={form.control}
                 name='password'
                 type='password'
                 label='Password'
                 placeholder='Enter your password'
-                required
               />
             </div>
 
             {/* Textarea */}
             <FormTextarea
+              required
               control={form.control}
               name='bio'
               label='Bio'
@@ -181,39 +182,38 @@ export default function DemoForm() {
                 showCharCount: true,
                 rows: 4
               }}
-              required
             />
 
             {/* Select */}
             <FormSelect
+              required
               control={form.control}
               name='country'
               label='Country'
               placeholder='Select your country'
               options={countryOptions}
-              required
             />
 
             {/* Checkbox Group */}
             <FormCheckboxGroup
+              required
+              showBadges
               control={form.control}
               name='interests'
               label='Interests'
               description='Select all that apply'
               options={interestOptions}
               columns={3}
-              showBadges={true}
-              required
             />
 
             {/* Radio Group */}
             <FormRadioGroup
+              required
               control={form.control}
               name='gender'
               label='Gender'
               options={genderOptions}
               orientation='horizontal'
-              required
             />
 
             {/* Switch */}
@@ -226,6 +226,7 @@ export default function DemoForm() {
 
             {/* Slider */}
             <FormSlider
+              showValue
               control={form.control}
               name='rating'
               label='Overall Rating'
@@ -236,7 +237,6 @@ export default function DemoForm() {
                 step: 0.5,
                 formatValue: (value) => `${value}/10`
               }}
-              showValue={true}
             />
 
             {/* Date Picker */}
@@ -253,11 +253,11 @@ export default function DemoForm() {
 
             {/* Single Checkbox */}
             <FormCheckbox
+              required
               control={form.control}
               name='terms'
               checkboxLabel='I agree to the Terms and Conditions'
               description='Please read and accept our terms'
-              required
             />
 
             {/* File Upload */}
@@ -277,8 +277,8 @@ export default function DemoForm() {
               <Button
                 type='button'
                 variant='outline'
-                onClick={() => form.reset()}
                 className='flex-1'
+                onClick={() => form.reset()}
               >
                 Reset
               </Button>

@@ -1,7 +1,7 @@
 'use client';
 
-import { ReactNode } from 'react';
-import { UseFormReturn } from 'react-hook-form';
+import { type ReactNode } from 'react';
+import { type UseFormReturn } from 'react-hook-form';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -21,11 +21,11 @@ import {
 } from '@/components/ui/select';
 import { TabsContent } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { FormValues } from '@/features/configurator/lib/configurator-form-model';
+import { type FormValues } from '@/features/configurator/lib/configurator-form-model';
 
 interface ConfiguratorTypeTabProps {
-  form: UseFormReturn<FormValues>;
-  renderTabActions: () => ReactNode;
+  readonly form: UseFormReturn<FormValues>;
+  readonly renderTabActions: () => ReactNode;
 }
 
 export function ConfiguratorTypeTab({
@@ -61,8 +61,8 @@ export function ConfiguratorTypeTab({
                 <FormItem>
                   <FormLabel>Validez de oferta (días)</FormLabel>
                   <Select
-                    onValueChange={(val) => field.onChange(parseInt(val))}
                     defaultValue={field.value?.toString()}
+                    onValueChange={(val) => field.onChange(Number.parseInt(val))}
                   >
                     <FormControl>
                       <SelectTrigger>

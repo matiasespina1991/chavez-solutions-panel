@@ -17,7 +17,7 @@ import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { IconMovie, IconPhoto } from '@tabler/icons-react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { MediaDoc } from '@/lib/media-upload';
+import { type MediaDoc } from '@/lib/media-upload';
 import { toast } from 'sonner';
 
 export type { MediaDoc } from '@/lib/media-upload';
@@ -25,17 +25,17 @@ export type { MediaDoc } from '@/lib/media-upload';
 export type MediaPickerSelectionMode = 'single' | 'multiple';
 
 export type MediaPickerDialogProps = {
-  open: boolean;
-  title: string;
-  description?: string;
-  confirmLabel?: string;
-  selectionMode?: MediaPickerSelectionMode;
-  selectedIds?: string[];
-  allowedTypes?: Array<MediaDoc['type']>;
-  filterPredicate?: (media: MediaDoc) => boolean;
-  maxSelection?: number;
-  onConfirm: (items: MediaDoc[]) => void | boolean | Promise<void | boolean>;
-  onOpenChange: (open: boolean) => void;
+  readonly open: boolean;
+  readonly title: string;
+  readonly description?: string;
+  readonly confirmLabel?: string;
+  readonly selectionMode?: MediaPickerSelectionMode;
+  readonly selectedIds?: string[];
+  readonly allowedTypes?: Array<MediaDoc['type']>;
+  readonly filterPredicate?: (media: MediaDoc) => boolean;
+  readonly maxSelection?: number;
+  readonly onConfirm: (items: MediaDoc[]) => void | boolean | Promise<void | boolean>;
+  readonly onOpenChange: (open: boolean) => void;
 };
 
 function getGalleryPreviewPath(media: MediaDoc) {
@@ -58,11 +58,11 @@ function MediaPickerCard({
   showSelectionOrder,
   onSelect
 }: {
-  media: MediaDoc;
-  selected: boolean;
-  selectionOrder: number | null;
-  showSelectionOrder: boolean;
-  onSelect: () => void;
+  readonly media: MediaDoc;
+  readonly selected: boolean;
+  readonly selectionOrder: number | null;
+  readonly showSelectionOrder: boolean;
+  readonly onSelect: () => void;
 }) {
   const previewPath = getGalleryPreviewPath(media);
   const { src, hasSource, handleError } = useStorageAssetSrc(
@@ -71,13 +71,13 @@ function MediaPickerCard({
   );
   const [isPreviewLoaded, setIsPreviewLoaded] = useState(false);
   const loadStartRef = useRef(0);
-  const loadTimeoutRef = useRef<number | null>(null);
+  const loadTimeoutRef = useRef<ReturnType<typeof globalThis.setTimeout> | null>(null);
 
   useEffect(() => {
     setIsPreviewLoaded(false);
     loadStartRef.current = Date.now();
     if (loadTimeoutRef.current !== null) {
-      window.clearTimeout(loadTimeoutRef.current);
+      globalThis.clearTimeout(loadTimeoutRef.current);
       loadTimeoutRef.current = null;
     }
   }, [src]);
@@ -85,13 +85,13 @@ function MediaPickerCard({
   return (
     <button
       type='button'
-      onClick={onSelect}
       aria-pressed={selected}
       className={cn(
         'border-border/60 bg-card group relative flex h-full cursor-pointer flex-col overflow-hidden rounded-lg border text-left shadow-xs transition',
         selected &&
-          'ring-offset-background ring-2 ring-[#006cd1]/40 ring-offset-2'
+        'ring-offset-background ring-2 ring-[#006cd1]/40 ring-offset-2'
       )}
+      onClick={onSelect}
     >
       <span className='pointer-events-none absolute inset-0 z-0 bg-black/3 opacity-0 transition group-hover:opacity-100' />
       <div className='bg-muted relative z-10 aspect-[4/3] w-full overflow-hidden'>
@@ -111,7 +111,8 @@ function MediaPickerCard({
                 setIsPreviewLoaded(true);
                 return;
               }
-              loadTimeoutRef.current = window.setTimeout(() => {
+
+              loadTimeoutRef.current = globalThis.setTimeout(() => {
                 setIsPreviewLoaded(true);
                 loadTimeoutRef.current = null;
               }, remaining);
@@ -119,9 +120,10 @@ function MediaPickerCard({
             onError={() => {
               setIsPreviewLoaded(false);
               if (loadTimeoutRef.current !== null) {
-                window.clearTimeout(loadTimeoutRef.current);
+                globalThis.clearTimeout(loadTimeoutRef.current);
                 loadTimeoutRef.current = null;
               }
+
               handleError();
             }}
           />
@@ -150,12 +152,12 @@ function MediaPickerCard({
                   r='10'
                   stroke='currentColor'
                   strokeWidth='4'
-                ></circle>
+                />
                 <path
                   className='opacity-75'
                   fill='currentColor'
                   d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
-                ></path>
+                />
               </svg>
             )}
             {media.processed ? 'Sin vista previa' : <p>Procesando…</p>}
@@ -225,6 +227,7 @@ export default function MediaPickerDialog({
       setSelection(selectedIds);
       setPage(1);
     }
+
     wasOpenRef.current = open;
   }, [open, selectedIds]);
 
@@ -300,10 +303,12 @@ export default function MediaPickerDialog({
       if (selectionMode === 'single') {
         return prev[0] === id ? [] : [id];
       }
+
       // If deselecting, allow it
       if (prev.includes(id)) {
         return prev.filter((item) => item !== id);
       }
+
       // If selecting and there's a maxSelection limit
       if (maxSelection !== undefined && prev.length >= maxSelection) {
         toast.error(
@@ -311,6 +316,7 @@ export default function MediaPickerDialog({
         );
         return prev;
       }
+
       // Add to selection
       return [...prev, id];
     });
@@ -330,7 +336,7 @@ export default function MediaPickerDialog({
     () =>
       selection
         .map((id) => filteredItemsById.get(id))
-        .filter((item): item is MediaDoc => Boolean(item)),
+        .filter((item): item is MediaDoc => item !== undefined),
     [selection, filteredItemsById]
   );
 
@@ -353,8 +359,8 @@ export default function MediaPickerDialog({
                 variant='outline'
                 size='icon'
                 className='h-7 w-7'
-                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
                 disabled={currentPage <= 1}
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
               >
                 <ChevronLeft className='h-4 w-4' />
               </Button>
@@ -366,10 +372,10 @@ export default function MediaPickerDialog({
                 variant='outline'
                 size='icon'
                 className='h-7 w-7'
+                disabled={currentPage >= totalPages}
                 onClick={() =>
                   setPage((prev) => Math.min(totalPages, prev + 1))
                 }
-                disabled={currentPage >= totalPages}
               >
                 <ChevronRight className='h-4 w-4' />
               </Button>
@@ -442,13 +448,13 @@ export default function MediaPickerDialog({
             </Button>
             <Button
               type='button'
+              disabled={selection.length === 0}
               onClick={async () => {
                 const shouldClose = await onConfirm(selectedItems);
                 if (shouldClose !== false) {
                   onOpenChange(false);
                 }
               }}
-              disabled={selection.length === 0}
             >
               {confirmLabel}
             </Button>

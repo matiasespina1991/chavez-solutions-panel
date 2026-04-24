@@ -2,7 +2,7 @@
 
 import Quill from 'quill';
 import 'quill/dist/quill.snow.css';
-import { FieldPath, FieldValues } from 'react-hook-form';
+import { type FieldPath, type FieldValues } from 'react-hook-form';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   FormControl,
@@ -12,7 +12,7 @@ import {
   FormLabel,
   FormMessage
 } from '@/components/ui/form';
-import { BaseFormFieldProps } from '@/types/base-form';
+import { type BaseFormFieldProps } from '@/types/base-form';
 import { toast } from 'sonner';
 
 type SelectionRange = { index: number; length: number } | null;
@@ -23,9 +23,9 @@ interface FormQuillProps<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
 > extends BaseFormFieldProps<TFieldValues, TName> {
-  placeholder?: string;
-  height?: number;
-  onRequestImage?: (insertImage: (url: string) => void) => void;
+  readonly placeholder?: string;
+  readonly height?: number;
+  readonly onRequestImage?: (insertImage: (url: string) => void) => void;
 }
 
 function FormQuill<
@@ -46,8 +46,10 @@ function FormQuill<
   const editorRef = useRef<HTMLDivElement | null>(null);
   const quillRef = useRef<Quill | null>(null);
   const lastHtmlRef = useRef<string>('');
-  const onChangeRef = useRef<(value: string) => void>(() => {});
-  const onBlurRef = useRef<() => void>(() => {});
+  const onChangeRef = useRef<(value: string) => void>(() => {
+  });
+  const onBlurRef = useRef<() => void>(() => {
+  });
   const disabledRef = useRef<boolean>(false);
   const placeholderRef = useRef<string | undefined>(undefined);
 
@@ -66,6 +68,7 @@ function FormQuill<
       toast.error('No hay galería configurada.');
       return;
     }
+
     onRequestImage(insertImage);
   }, [onRequestImage, insertImage]);
 
@@ -112,18 +115,16 @@ function FormQuill<
 
         return (
           <FormItem className={className}>
-            {label && (
-              <FormLabel>
-                {label}
-                {required && <span className='text-red-500'>*</span>}
-              </FormLabel>
-            )}
+            {label ? <FormLabel>
+              {label}
+              {required ? <span className='text-red-500'>*</span> : null}
+            </FormLabel> : null}
             <FormControl>
               <div className='quill-editor sm:pb-0' style={{ height }}>
                 <div ref={editorRef} />
               </div>
             </FormControl>
-            {description && <FormDescription>{description}</FormDescription>}
+            {description ? <FormDescription>{description}</FormDescription> : null}
             <FormMessage />
             <style jsx global>{`
               .quill-editor {
@@ -173,13 +174,13 @@ function FormQuill<
               quillRef={quillRef}
               lastHtmlRef={lastHtmlRef}
               value={field.value ?? ''}
-              onChangeRef={onChangeRef}
-              onBlurRef={onBlurRef}
               disabledRef={disabledRef}
               disabled={Boolean(disabled)}
               placeholderRef={placeholderRef}
               modulesRef={modulesRef}
               formatsRef={formatsRef}
+              onChangeRef={onChangeRef}
+              onBlurRef={onBlurRef}
             />
           </FormItem>
         );
@@ -203,17 +204,17 @@ function QuillController({
   modulesRef,
   formatsRef
 }: {
-  editorRef: RefValue<HTMLDivElement | null>;
-  quillRef: RefValue<Quill | null>;
-  lastHtmlRef: RefValue<string>;
-  value: string;
-  onChangeRef: RefValue<(value: string) => void>;
-  onBlurRef: RefValue<() => void>;
-  disabledRef: RefValue<boolean>;
-  disabled: boolean;
-  placeholderRef: RefValue<string | undefined>;
-  modulesRef: RefValue<QuillModules>;
-  formatsRef: RefValue<string[]>;
+  readonly editorRef: RefValue<HTMLDivElement | null>;
+  readonly quillRef: RefValue<Quill | null>;
+  readonly lastHtmlRef: RefValue<string>;
+  readonly value: string;
+  readonly onChangeRef: RefValue<(value: string) => void>;
+  readonly onBlurRef: RefValue<() => void>;
+  readonly disabledRef: RefValue<boolean>;
+  readonly disabled: boolean;
+  readonly placeholderRef: RefValue<string | undefined>;
+  readonly modulesRef: RefValue<QuillModules>;
+  readonly formatsRef: RefValue<string[]>;
 }) {
   useEffect(() => {
     if (!editorRef.current || quillRef.current) return;
@@ -221,10 +222,10 @@ function QuillController({
     const host = editorRef.current;
     const hostParent = host.parentElement;
     if (hostParent) {
-      hostParent
-        .querySelectorAll('.ql-toolbar')
+      Array.from(hostParent.querySelectorAll('.ql-toolbar'))
         .forEach((toolbar) => toolbar.remove());
     }
+
     host.innerHTML = '';
 
     const quill = new Quill(host, {
@@ -266,10 +267,10 @@ function QuillController({
       quill.off('selection-change', handleSelectionChange);
       quillRef.current = null;
       if (hostParent) {
-        hostParent
-          .querySelectorAll('.ql-toolbar')
+        Array.from(hostParent.querySelectorAll('.ql-toolbar'))
           .forEach((toolbar) => toolbar.remove());
       }
+
       host.innerHTML = '';
     };
   }, [

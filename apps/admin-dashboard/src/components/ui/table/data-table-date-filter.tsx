@@ -39,6 +39,7 @@ function parseColumnFilterValue(value: unknown) {
       if (typeof item === 'number' || typeof item === 'string') {
         return item;
       }
+
       return undefined;
     });
   }
@@ -51,9 +52,9 @@ function parseColumnFilterValue(value: unknown) {
 }
 
 interface DataTableDateFilterProps<TData> {
-  column: Column<TData, unknown>;
-  title?: string;
-  multiple?: boolean;
+  readonly column: Column<TData>;
+  readonly title?: string;
+  readonly multiple?: boolean;
 }
 
 export function DataTableDateFilter<TData>({
@@ -112,6 +113,7 @@ export function DataTableDateFilter<TData>({
       if (!getIsDateRange(selectedDates)) return false;
       return selectedDates.from || selectedDates.to;
     }
+
     if (!Array.isArray(selectedDates)) return false;
     return selectedDates.length > 0;
   }, [multiple, selectedDates]);
@@ -121,6 +123,7 @@ export function DataTableDateFilter<TData>({
     if (range.from && range.to) {
       return `${formatDate(range.from)} - ${formatDate(range.to)}`;
     }
+
     return formatDate(range.from ?? range.to);
   }, []);
 
@@ -136,15 +139,13 @@ export function DataTableDateFilter<TData>({
       return (
         <span className='flex items-center gap-2'>
           <span>{title}</span>
-          {hasSelectedDates && (
-            <>
-              <Separator
-                orientation='vertical'
-                className='mx-0.5 data-[orientation=vertical]:h-4'
-              />
-              <span>{dateText}</span>
-            </>
-          )}
+          {hasSelectedDates ? <>
+            <Separator
+              orientation='vertical'
+              className='mx-0.5 data-[orientation=vertical]:h-4'
+            />
+            <span>{dateText}</span>
+          </> : null}
         </span>
       );
     }
@@ -159,15 +160,13 @@ export function DataTableDateFilter<TData>({
     return (
       <span className='flex items-center gap-2'>
         <span>{title}</span>
-        {hasSelectedDate && (
-          <>
-            <Separator
-              orientation='vertical'
-              className='mx-0.5 data-[orientation=vertical]:h-4'
-            />
-            <span>{dateText}</span>
-          </>
-        )}
+        {hasSelectedDate ? <>
+          <Separator
+            orientation='vertical'
+            className='mx-0.5 data-[orientation=vertical]:h-4'
+          />
+          <span>{dateText}</span>
+        </> : null}
       </span>
     );
   }, [selectedDates, multiple, formatDateRange, title]);
@@ -181,8 +180,8 @@ export function DataTableDateFilter<TData>({
               role='button'
               aria-label={`Clear ${title} filter`}
               tabIndex={0}
-              onClick={onReset}
               className='focus-visible:ring-ring rounded-sm opacity-70 transition-opacity hover:opacity-100 focus-visible:ring-1 focus-visible:outline-none'
+              onClick={onReset}
             >
               <XCircle />
             </div>

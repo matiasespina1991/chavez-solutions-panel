@@ -22,20 +22,20 @@ import {
 import { Loader2, Pencil, Plus } from 'lucide-react';
 
 interface ServicesCatalogCreateDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  editingRowId: string | null;
-  isCreatingService: boolean;
-  createServiceDraft: CreateServiceDraft;
-  activeAutocompleteField: keyof CreateServiceDraft | null;
-  onFieldChange: (key: keyof CreateServiceDraft, value: string) => void;
-  onFieldFocus: (key: keyof CreateServiceDraft) => void;
-  onFieldBlur: (key: keyof CreateServiceDraft) => void;
-  onSelectAutocomplete: (key: keyof CreateServiceDraft, value: string) => void;
-  getAutocompleteMatches: (key: keyof CreateServiceDraft) => string[];
-  isFieldInvalid: (key: keyof CreateServiceDraft) => boolean;
-  onRequestClose: () => void;
-  onSave: () => void;
+  readonly open: boolean;
+  readonly onOpenChange: (open: boolean) => void;
+  readonly editingRowId: string | null;
+  readonly isCreatingService: boolean;
+  readonly createServiceDraft: CreateServiceDraft;
+  readonly activeAutocompleteField: keyof CreateServiceDraft | null;
+  readonly onFieldChange: (key: keyof CreateServiceDraft, value: string) => void;
+  readonly onFieldFocus: (key: keyof CreateServiceDraft) => void;
+  readonly onFieldBlur: (key: keyof CreateServiceDraft) => void;
+  readonly onSelectAutocomplete: (key: keyof CreateServiceDraft, value: string) => void;
+  readonly getAutocompleteMatches: (key: keyof CreateServiceDraft) => string[];
+  readonly isFieldInvalid: (key: keyof CreateServiceDraft) => boolean;
+  readonly onRequestClose: () => void;
+  readonly onSave: () => void;
 }
 
 export function ServicesCatalogCreateDialog({
@@ -62,6 +62,7 @@ export function ServicesCatalogCreateDialog({
           onOpenChange(true);
           return;
         }
+
         onRequestClose();
       }}
     >
@@ -142,6 +143,12 @@ export function ServicesCatalogCreateDialog({
                                 editingRowId !== null &&
                                 field.key === 'ID_CONFIG_PARAMETRO'
                               }
+                              placeholder={field.placeholder}
+                              className={`bg-background/90 h-9 ${
+                                isFieldInvalid(field.key)
+                                  ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20'
+                                  : ''
+                              }`}
                               onChange={(event) =>
                                 onFieldChange(field.key, event.target.value)
                               }
@@ -151,32 +158,26 @@ export function ServicesCatalogCreateDialog({
                                 }
                               }}
                               onBlur={() => onFieldBlur(field.key)}
-                              placeholder={field.placeholder}
-                              className={`bg-background/90 h-9 ${
-                                isFieldInvalid(field.key)
-                                  ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/20'
-                                  : ''
-                              }`}
                             />
                             {AUTOCOMPLETE_FIELD_KEYS.includes(field.key) &&
                               activeAutocompleteField === field.key &&
                               getAutocompleteMatches(field.key).length > 0 && (
-                                <div className='bg-popover text-popover-foreground absolute z-50 mt-1 flex max-h-64 w-full flex-col overflow-x-hidden overflow-y-auto rounded-md border shadow-lg'>
-                                  {getAutocompleteMatches(field.key).map((option) => (
-                                    <button
-                                      key={option}
-                                      type='button'
-                                      className='hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground block w-full cursor-pointer px-3 py-2 text-left text-sm break-words whitespace-normal'
-                                      onMouseDown={(event) => {
-                                        event.preventDefault();
-                                        onSelectAutocomplete(field.key, option);
-                                      }}
-                                    >
-                                      {option}
-                                    </button>
-                                  ))}
-                                </div>
-                              )}
+                              <div className='bg-popover text-popover-foreground absolute z-50 mt-1 flex max-h-64 w-full flex-col overflow-x-hidden overflow-y-auto rounded-md border shadow-lg'>
+                                {getAutocompleteMatches(field.key).map((option) => (
+                                  <button
+                                    key={option}
+                                    type='button'
+                                    className='hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground block w-full cursor-pointer px-3 py-2 text-left text-sm break-words whitespace-normal'
+                                    onMouseDown={(event) => {
+                                      event.preventDefault();
+                                      onSelectAutocomplete(field.key, option);
+                                    }}
+                                  >
+                                    {option}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -193,16 +194,16 @@ export function ServicesCatalogCreateDialog({
                 type='button'
                 variant='outline'
                 className='cursor-pointer'
-                onClick={onRequestClose}
                 disabled={isCreatingService}
+                onClick={onRequestClose}
               >
                 Cancelar
               </Button>
               <Button
                 type='button'
                 className='cursor-pointer'
-                onClick={onSave}
                 disabled={isCreatingService}
+                onClick={onSave}
               >
                 {isCreatingService ? (
                   <Loader2 className='h-4 w-4 animate-spin' />

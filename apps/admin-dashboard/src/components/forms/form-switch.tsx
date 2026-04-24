@@ -1,6 +1,6 @@
 'use client';
 
-import { FieldPath, FieldValues } from 'react-hook-form';
+import { type FieldPath, type FieldValues } from 'react-hook-form';
 import {
   FormControl,
   FormDescription,
@@ -10,13 +10,13 @@ import {
   FormMessage
 } from '@/components/ui/form';
 import { Switch } from '@/components/ui/switch';
-import { BaseFormFieldProps } from '@/types/base-form';
+import { type BaseFormFieldProps } from '@/types/base-form';
 
 interface FormSwitchProps<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
 > extends BaseFormFieldProps<TFieldValues, TName> {
-  showDescription?: boolean;
+  readonly showDescription?: boolean;
 }
 
 function FormSwitch<
@@ -43,17 +43,15 @@ function FormSwitch<
           <div className='space-y-0.5'>
             <FormLabel className='text-base'>
               {label}
-              {required && <span className='ml-1 text-red-500'>*</span>}
+              {required ? <span className='ml-1 text-red-500'>*</span> : null}
             </FormLabel>
-            {showDescription && description && (
-              <FormDescription>{description}</FormDescription>
-            )}
+            {showDescription && description ? <FormDescription>{description}</FormDescription> : null}
           </div>
           <FormControl>
             <Switch
               checked={field.value}
-              onCheckedChange={field.onChange}
               disabled={disabled}
+              onCheckedChange={field.onChange}
             />
           </FormControl>
         </FormItem>

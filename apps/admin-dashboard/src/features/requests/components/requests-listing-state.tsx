@@ -1,8 +1,8 @@
 import { DataTableSkeleton } from '@/components/ui/table/data-table-skeleton';
 
 interface RequestsListingStateProps {
-  loading: boolean;
-  hasRows: boolean;
+  readonly loading: boolean;
+  readonly hasRows: boolean;
 }
 
 export function RequestsListingState({

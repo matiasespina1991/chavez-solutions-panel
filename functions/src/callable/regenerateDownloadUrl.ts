@@ -2,6 +2,7 @@
 import { onCall } from 'firebase-functions/v2/https';
 import admin from 'firebase-admin';
 import { v4 as uuidv4 } from 'uuid';
+
 const db = admin.firestore();
 const bucket = admin.storage().bucket();
 
@@ -20,9 +21,9 @@ export const regenerateDownloadUrl = onCall(async (req) => {
 
   const preferredPath =
     media.type === 'image'
-      ? (media.paths.derivatives['webp_medium'] ??
+      ? (media.paths.derivatives.webp_medium ??
         Object.values(media.paths.derivatives)[0])
-      : (media.paths.derivatives['webm_720'] ??
+      : (media.paths.derivatives.webm_720 ??
         Object.values(media.paths.derivatives)[0]);
 
   // Create new token and set metadata

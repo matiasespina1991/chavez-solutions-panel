@@ -93,7 +93,7 @@ export default function RequestsListing() {
   } = useRequestSummaryViewModel({
     selectedRow,
     onCloseSummaryDialog: closeSummaryDialog,
-    onNavigateToConfigurator: (requestId) => {
+    onNavigateToConfigurator(requestId) {
       router.push(
         `/dashboard/configurator?requestId=${encodeURIComponent(requestId)}&tab=services`
       );
@@ -107,11 +107,11 @@ export default function RequestsListing() {
     handleToggleWorkOrder,
     handleOpenDelete
   } = useRequestListTableActions({
-    onOpenSummaryDialog: (row) => {
+    onOpenSummaryDialog(row) {
       setSelectedRow(row);
       setIsViewDialogOpen(true);
     },
-    onNavigateToConfigurator: (requestId) => {
+    onNavigateToConfigurator(requestId) {
       router.push(
         `/dashboard/configurator?requestId=${encodeURIComponent(requestId)}&tab=services`
       );
@@ -119,7 +119,7 @@ export default function RequestsListing() {
     onOpenExecuteWorkOrderDialog: openExecuteWorkOrderDialog,
     onOpenRejectDialog: openRejectDialog,
     onToggleWorkOrder: handleWorkOrderAction,
-    onOpenDeleteDialog: (row) => {
+    onOpenDeleteDialog(row) {
       setRowToDelete(row);
       setIsDeleteDialogOpen(true);
     }
@@ -141,8 +141,8 @@ export default function RequestsListing() {
         hasVisibleRows={hasVisibleRows}
         pendingActionId={pendingActionId}
         isDeleting={isDeleting}
-        onSort={handleSort}
         getSortIndicator={getSortIndicator}
+        onSort={handleSort}
         onOpenSummary={handleOpenSummary}
         onEdit={handleEdit}
         onExecuteWorkOrder={handleExecuteWorkOrder}
@@ -159,6 +159,19 @@ export default function RequestsListing() {
         canEditSelectedRow={canEditSelectedRow}
         pendingActionId={pendingActionId}
         isDialogDownloading={isDialogDownloading}
+        isExecuteWorkOrderDialogOpen={isExecuteWorkOrderDialogOpen}
+        rowToExecuteWorkOrder={rowToExecuteWorkOrder}
+        approverLabel={approverLabel}
+        nowLabel={nowLabel}
+        isWorkOrderToggleDialogOpen={isWorkOrderToggleDialogOpen}
+        isTogglingWorkOrder={isTogglingWorkOrder}
+        workOrderToggleAction={workOrderToggleAction}
+        workOrderToggleNotes={workOrderToggleNotes}
+        isDeleteDialogOpen={isDeleteDialogOpen}
+        isDeleting={isDeleting}
+        isRejectDialogOpen={isRejectDialogOpen}
+        isRejecting={isRejecting}
+        rejectFeedback={rejectFeedback}
         onSetViewDialogOpen={setIsViewDialogOpen}
         onOpenExecuteWorkOrderDialog={openExecuteWorkOrderDialog}
         onWorkOrderAction={handleWorkOrderAction}
@@ -168,30 +181,17 @@ export default function RequestsListing() {
         }}
         onDialogDelete={handleDialogDelete}
         onDialogResume={handleDialogResumeWorkOrder}
-        isExecuteWorkOrderDialogOpen={isExecuteWorkOrderDialogOpen}
-        rowToExecuteWorkOrder={rowToExecuteWorkOrder}
-        approverLabel={approverLabel}
-        nowLabel={nowLabel}
         onSetExecuteWorkOrderDialogOpen={setIsExecuteWorkOrderDialogOpen}
         onSetRowToExecuteWorkOrder={setRowToExecuteWorkOrder}
         onConfirmExecuteWorkOrder={handleConfirmExecuteWorkOrder}
-        isWorkOrderToggleDialogOpen={isWorkOrderToggleDialogOpen}
-        isTogglingWorkOrder={isTogglingWorkOrder}
-        workOrderToggleAction={workOrderToggleAction}
-        workOrderToggleNotes={workOrderToggleNotes}
         onSetWorkOrderToggleDialogOpen={setIsWorkOrderToggleDialogOpen}
         onSetRowToToggleWorkOrder={setRowToToggleWorkOrder}
         onSetWorkOrderToggleAction={setWorkOrderToggleAction}
         onSetWorkOrderToggleNotes={setWorkOrderToggleNotes}
         onConfirmWorkOrderToggle={handleConfirmWorkOrderToggle}
-        isDeleteDialogOpen={isDeleteDialogOpen}
-        isDeleting={isDeleting}
         onSetDeleteDialogOpen={setIsDeleteDialogOpen}
         onSetRowToDelete={setRowToDelete}
         onConfirmDelete={handleDeleteRequest}
-        isRejectDialogOpen={isRejectDialogOpen}
-        isRejecting={isRejecting}
-        rejectFeedback={rejectFeedback}
         onSetRejectDialogOpen={setIsRejectDialogOpen}
         onSetRowToReject={setRowToReject}
         onSetRejectFeedback={setRejectFeedback}

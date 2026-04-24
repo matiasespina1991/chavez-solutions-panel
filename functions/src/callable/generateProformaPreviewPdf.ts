@@ -15,28 +15,28 @@ export const generateProformaPreviewPdf = onCall(
     cpu: 2
   },
   async (req) => {
-  if (!req.auth?.uid) {
-    throw new HttpsError('unauthenticated', 'Authentication is required.');
-  }
+    if (!req.auth?.uid) {
+      throw new HttpsError('unauthenticated', 'Authentication is required.');
+    }
 
-  const data = (req.data || {}) as GenerateProformaPreviewPdfRequest;
-  const payload = data.payload;
+    const data = (req.data || {}) as GenerateProformaPreviewPdfRequest;
+    const payload = data.payload;
 
-  if (!payload) {
-    throw new HttpsError('invalid-argument', 'payload is required.');
-  }
+    if (!payload) {
+      throw new HttpsError('invalid-argument', 'payload is required.');
+    }
 
-  const sanitizedPayload = sanitizeProformaPreviewPayload(payload);
+    const sanitizedPayload = sanitizeProformaPreviewPayload(payload);
 
-  const pdf = await generateAndStoreProformaPreviewPdf({
-    uid: req.auth.uid,
-    payload: sanitizedPayload
-  });
+    const pdf = await generateAndStoreProformaPreviewPdf({
+      uid: req.auth.uid,
+      payload: sanitizedPayload
+    });
 
-  return {
-    storagePath: pdf.storagePath,
-    downloadURL: pdf.downloadURL,
-    fileName: pdf.fileName
-  };
+    return {
+      storagePath: pdf.storagePath,
+      downloadURL: pdf.downloadURL,
+      fileName: pdf.fileName
+    };
   }
 );

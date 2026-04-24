@@ -31,7 +31,7 @@ import { useRouter } from 'next/navigation';
 export function NavUser({
   user
 }: {
-  user: {
+  readonly user: {
     name: string;
     email: string;
     avatar: string;

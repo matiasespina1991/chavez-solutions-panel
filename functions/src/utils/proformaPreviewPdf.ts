@@ -59,8 +59,8 @@ export const sanitizeProformaPreviewPayload = (
     reference: String(next.reference || '').trim(),
     matrixLabels: Array.isArray(next.matrixLabels)
       ? next.matrixLabels
-          .map((entry) => String(entry || '').trim())
-          .filter((entry) => entry.length > 0)
+        .map((entry) => String(entry || '').trim())
+        .filter((entry) => entry.length > 0)
       : [],
     validDays:
       typeof next.validDays === 'number' && Number.isFinite(next.validDays)
@@ -80,61 +80,61 @@ export const sanitizeProformaPreviewPayload = (
     },
     services: Array.isArray(next.services)
       ? next.services.slice(0, 30).map((service) => ({
-          table: String(service.table || '').trim(),
-          label: String(service.label || '').trim(),
-          unit: String(service.unit || '').trim(),
-          method: String(service.method || '').trim(),
-          rangeOffered: String(service.rangeOffered || '').trim(),
-          quantity: Math.max(0, Math.floor(sanitizeNumber(service.quantity))),
-          unitPrice:
+        table: String(service.table || '').trim(),
+        label: String(service.label || '').trim(),
+        unit: String(service.unit || '').trim(),
+        method: String(service.method || '').trim(),
+        rangeOffered: String(service.rangeOffered || '').trim(),
+        quantity: Math.max(0, Math.floor(sanitizeNumber(service.quantity))),
+        unitPrice:
             typeof service.unitPrice === 'number' &&
             Number.isFinite(service.unitPrice)
               ? service.unitPrice
               : null,
-          discountAmount:
+        discountAmount:
             typeof service.discountAmount === 'number' &&
             Number.isFinite(service.discountAmount)
               ? service.discountAmount
               : null,
-          subtotal:
+        subtotal:
             typeof service.subtotal === 'number' &&
             Number.isFinite(service.subtotal)
               ? service.subtotal
               : null,
-        }))
+      }))
       : [],
     serviceGroups: Array.isArray(next.serviceGroups)
       ? next.serviceGroups.slice(0, 20).map((group) => ({
-          name: String(group?.name || '').trim(),
-          items: Array.isArray(group?.items)
-            ? group.items.slice(0, 30).map((service) => ({
-                table: String(service.table || '').trim(),
-                label: String(service.label || '').trim(),
-                unit: String(service.unit || '').trim(),
-                method: String(service.method || '').trim(),
-                rangeOffered: String(service.rangeOffered || '').trim(),
-                quantity: Math.max(
-                  0,
-                  Math.floor(sanitizeNumber(service.quantity))
-                ),
-                unitPrice:
+        name: String(group?.name || '').trim(),
+        items: Array.isArray(group?.items)
+          ? group.items.slice(0, 30).map((service) => ({
+            table: String(service.table || '').trim(),
+            label: String(service.label || '').trim(),
+            unit: String(service.unit || '').trim(),
+            method: String(service.method || '').trim(),
+            rangeOffered: String(service.rangeOffered || '').trim(),
+            quantity: Math.max(
+              0,
+              Math.floor(sanitizeNumber(service.quantity))
+            ),
+            unitPrice:
                   typeof service.unitPrice === 'number' &&
                   Number.isFinite(service.unitPrice)
                     ? service.unitPrice
                     : null,
-                discountAmount:
+            discountAmount:
                   typeof service.discountAmount === 'number' &&
                   Number.isFinite(service.discountAmount)
                     ? service.discountAmount
                     : null,
-                subtotal:
+            subtotal:
                   typeof service.subtotal === 'number' &&
                   Number.isFinite(service.subtotal)
                     ? service.subtotal
                     : null,
-              }))
-            : [],
-        }))
+          }))
+          : [],
+      }))
       : [],
     pricing: {
       subtotal: sanitizeNumber(next.pricing?.subtotal),
@@ -181,8 +181,8 @@ const buildProformaPreviewHtml = (payload: ProformaPreviewPayload): string => {
 
   const normalizedGroups = hasGroups
     ? (payload.serviceGroups ?? []).filter(
-        (group) => Array.isArray(group.items) && group.items.length > 0
-      )
+      (group) => Array.isArray(group.items) && group.items.length > 0
+    )
     : payload.services.length > 0
       ? [{ name: 'Servicios', items: payload.services }]
       : [];
@@ -212,6 +212,7 @@ const buildProformaPreviewHtml = (payload: ProformaPreviewPayload): string => {
         ) {
           return acc + service.subtotal;
         }
+
         if (
           typeof service.unitPrice === 'number' &&
           Number.isFinite(service.unitPrice)
@@ -221,10 +222,11 @@ const buildProformaPreviewHtml = (payload: ProformaPreviewPayload): string => {
             Math.max(
               0,
               service.unitPrice * (service.quantity || 0) -
-                (service.discountAmount ?? 0)
+              (service.discountAmount ?? 0)
             )
           );
         }
+
         return acc;
       }, 0);
 
@@ -440,7 +442,7 @@ export const generateAndStoreProformaPreviewPdf = async (params: {
   payload: ProformaPreviewPayload;
 }): Promise<{ storagePath: string; downloadURL: string; fileName: string }> => {
   const safeReference = (params.payload.reference || 'sin-referencia')
-    .replace(/[^a-zA-Z0-9-_]/g, '-')
+    .replace(/[^\w-]/g, '-')
     .slice(0, 60);
   const fileName = `proforma-preview-${safeReference}.pdf`;
   const storagePath = `generated/proforma-previews/${params.uid}/${Date.now()}-${fileName}`;

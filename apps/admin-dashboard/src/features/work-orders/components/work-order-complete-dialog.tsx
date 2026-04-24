@@ -10,10 +10,10 @@ import {
 } from '@/components/ui/alert-dialog';
 
 interface WorkOrderCompleteDialogProps {
-  open: boolean;
-  isCompleting: boolean;
-  onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
+  readonly open: boolean;
+  readonly isCompleting: boolean;
+  readonly onOpenChange: (open: boolean) => void;
+  readonly onConfirm: () => void;
 }
 
 export function WorkOrderCompleteDialog({
@@ -40,8 +40,8 @@ export function WorkOrderCompleteDialog({
           </AlertDialogCancel>
           <AlertDialogAction
             className='cursor-pointer'
-            onClick={onConfirm}
             disabled={isCompleting}
+            onClick={onConfirm}
           >
             {isCompleting ? 'Finalizando…' : 'Finalizar orden de trabajo'}
           </AlertDialogAction>

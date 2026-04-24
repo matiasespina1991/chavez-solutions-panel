@@ -7,16 +7,22 @@ export function useDebouncedCallback<T extends (...args: never[]) => unknown>(
   delay: number
 ) {
   const handleCallback = useCallbackRef(callback);
-  const debounceTimerRef = React.useRef(0);
+  const debounceTimerRef = React.useRef<ReturnType<typeof globalThis.setTimeout> | null>(null);
   React.useEffect(
-    () => () => window.clearTimeout(debounceTimerRef.current),
+    () => () => {
+      if (debounceTimerRef.current !== null) {
+        globalThis.clearTimeout(debounceTimerRef.current);
+      }
+    },
     []
   );
 
   const setValue = React.useCallback(
     (...args: Parameters<T>) => {
-      window.clearTimeout(debounceTimerRef.current);
-      debounceTimerRef.current = window.setTimeout(
+      if (debounceTimerRef.current !== null) {
+        globalThis.clearTimeout(debounceTimerRef.current);
+      }
+      debounceTimerRef.current = globalThis.setTimeout(
         () => handleCallback(...args),
         delay
       );

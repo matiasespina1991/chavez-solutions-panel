@@ -20,7 +20,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { useTaskStore } from '../utils/store';
-import { UniqueIdentifier } from '@dnd-kit/core';
+import { type UniqueIdentifier } from '@dnd-kit/core';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 
@@ -28,8 +28,8 @@ export function ColumnActions({
   title,
   id
 }: {
-  title: string;
-  id: UniqueIdentifier;
+  readonly title: string;
+  readonly id: UniqueIdentifier;
 }) {
   const [name, setName] = React.useState(title);
   const updateCol = useTaskStore((state) => state.updateCol);
@@ -49,11 +49,11 @@ export function ColumnActions({
         }}
       >
         <Input
+          ref={inputRef}
           value={name}
-          onChange={(e) => setName(e.target.value)}
           className='mt-0! mr-auto text-base disabled:cursor-pointer disabled:border-none disabled:opacity-100'
           disabled={editDisable}
-          ref={inputRef}
+          onChange={(e) => setName(e.target.value)}
         />
       </form>
       <DropdownMenu modal={false}>
@@ -77,8 +77,8 @@ export function ColumnActions({
           <DropdownMenuSeparator />
 
           <DropdownMenuItem
-            onSelect={() => setShowDeleteDialog(true)}
             className='text-red-600'
+            onSelect={() => setShowDeleteDialog(true)}
           >
             Delete Section
           </DropdownMenuItem>

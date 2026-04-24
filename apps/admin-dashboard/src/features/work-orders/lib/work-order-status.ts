@@ -17,6 +17,4 @@ export const getWorkOrderStatusSearchHint = (status: WorkOrderStatus) => {
   return 'rojo';
 };
 
-export const getWorkOrderStatusSearchTokens = (row: WorkOrderRow) => {
-  return [row.status, WORK_ORDER_STATUS_LABEL_MAP[row.status], getWorkOrderStatusSearchHint(row.status)];
-};
+export const getWorkOrderStatusSearchTokens = (row: WorkOrderRow) => [row.status, WORK_ORDER_STATUS_LABEL_MAP[row.status], getWorkOrderStatusSearchHint(row.status)];

@@ -5,12 +5,13 @@ import { DataTableToolbar } from '@/components/ui/table/data-table-toolbar';
 
 import { useDataTable } from '@/hooks/use-data-table';
 
-import { ColumnDef } from '@tanstack/react-table';
+import { type ColumnDef } from '@tanstack/react-table';
 import { parseAsInteger, useQueryState } from 'nuqs';
+
 interface ProductTableParams<TData, TValue> {
-  data: TData[];
-  totalItems: number;
-  columns: ColumnDef<TData, TValue>[];
+  readonly data: TData[];
+  readonly totalItems: number;
+  readonly columns: Array<ColumnDef<TData, TValue>>;
 }
 export function ProductTable<TData, TValue>({
   data,
@@ -24,8 +25,8 @@ export function ProductTable<TData, TValue>({
   const { table } = useDataTable({
     data, // product data
     columns, // product columns
-    pageCount: pageCount,
-    shallow: false, //Setting to false triggers a network request with the updated querystring.
+    pageCount,
+    shallow: false, // Setting to false triggers a network request with the updated querystring.
     debounceMs: 500
   });
 

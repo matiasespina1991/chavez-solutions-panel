@@ -59,5 +59,6 @@ export async function ensureTokenDownloadURL(
 export async function safeUnlink(localPath: string) {
   try {
     await fs.unlink(localPath);
-  } catch {}
+  } catch {
+  }
 }
