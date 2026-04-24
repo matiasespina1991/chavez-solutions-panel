@@ -46,6 +46,8 @@ function PaginationLink({
   className,
   isActive,
   size = 'icon',
+  rel,
+  target,
   ...props
 }: PaginationLinkProps) {
   return (
@@ -53,6 +55,8 @@ function PaginationLink({
       aria-current={isActive ? 'page' : undefined}
       data-slot='pagination-link'
       data-active={isActive}
+      target={target}
+      rel={target === '_blank' ? (rel ?? 'noreferrer noopener') : rel}
       className={cn(
         buttonVariants({
           variant: isActive ? 'outline' : 'ghost',

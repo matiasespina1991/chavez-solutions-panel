@@ -74,7 +74,7 @@ export const importServicesFromCsv = async (
 export const listServiceHistory =
   async (): Promise<ListServiceHistoryResponse> => {
     const functions = getFunctions();
-    const callable = httpsCallable<{}, ListServiceHistoryResponse>(
+    const callable = httpsCallable<Record<string, never>, ListServiceHistoryResponse>(
       functions,
       'listServiceHistory'
     );

@@ -9,8 +9,6 @@ import {
 
 import { cn } from '@/lib/utils';
 
-/* eslint-disable new-cap */
-
 const fontSans = Geist({
   subsets: ['latin'],
   variable: '--font-sans'

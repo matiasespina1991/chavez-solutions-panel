@@ -237,7 +237,7 @@ export function useDataTable<TData>(props: UseDataTableProps<TData>) {
         const filterUpdates = next.reduce<
           Record<string, string | string[] | null>
         >((acc, filter) => {
-          if (filterableColumns.find((column) => column.id === filter.id)) {
+          if (filterableColumns.some((column) => column.id === filter.id)) {
             acc[filter.id] = filter.value as string | string[];
           }
 

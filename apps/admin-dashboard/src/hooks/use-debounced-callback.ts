@@ -22,6 +22,7 @@ export function useDebouncedCallback<T extends (...args: never[]) => unknown>(
       if (debounceTimerRef.current !== null) {
         globalThis.clearTimeout(debounceTimerRef.current);
       }
+
       debounceTimerRef.current = globalThis.setTimeout(
         () => handleCallback(...args),
         delay

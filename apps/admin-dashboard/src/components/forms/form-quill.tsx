@@ -126,7 +126,7 @@ function FormQuill<
             </FormControl>
             {description ? <FormDescription>{description}</FormDescription> : null}
             <FormMessage />
-            <style jsx global>{`
+            <style>{`
               .quill-editor {
                 display: flex;
                 flex-direction: column;

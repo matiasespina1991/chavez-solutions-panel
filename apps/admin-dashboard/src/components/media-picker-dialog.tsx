@@ -249,7 +249,7 @@ export default function MediaPickerDialog({
         console.log('[MediaPickerDialog] Sample media:', rows[0]);
         setItems(rows);
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         console.error('[MediaPickerDialog] load media error', error);
         if (isMounted) setItems([]);
       })

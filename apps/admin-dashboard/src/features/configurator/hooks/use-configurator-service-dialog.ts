@@ -218,7 +218,12 @@ export function useConfiguratorServiceDialog({
         tecnica: getTecnicaLabel
       };
 
-      const next = {} as Record<DialogFilterKey, ServiceFilterOption[]>;
+      const next: Record<DialogFilterKey, ServiceFilterOption[]> = {
+        matEnsayo: [],
+        norma: [],
+        tabla: [],
+        tecnica: []
+      };
 
       for (const key of (Object.keys(DIALOG_FILTER_LABELS) as DialogFilterKey[])) {
         const labelReader = readLabelByKey[key];
