@@ -735,7 +735,7 @@ export default function ConfiguratorForm() {
       }
     };
 
-    loadRequest();
+    void loadRequest();
   }, [cacheKey, editRequestId, form, router]);
 
   const isDraftEditMode = isEditMode && loadedRequestStatus === 'draft';
@@ -950,7 +950,7 @@ export default function ConfiguratorForm() {
   };
 
   const handleExecuteClick = () => {
-    form.handleSubmit(async (data) => onSubmit(data, 'final'))();
+    void form.handleSubmit(async (data) => onSubmit(data, 'final'))();
   };
 
   const summaryNotes = (form.getValues('notes') || '').trim();

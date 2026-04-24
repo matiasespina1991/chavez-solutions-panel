@@ -156,9 +156,9 @@ export function useDataTable<TData>(props: UseDataTableProps<TData>) {
     (updaterOrValue: Updater<SortingState>) => {
       if (typeof updaterOrValue === 'function') {
         const newSorting = updaterOrValue(sorting);
-        setSorting(newSorting as Array<ExtendedColumnSort<TData>>);
+        void setSorting(newSorting as Array<ExtendedColumnSort<TData>>);
       } else {
-        setSorting(updaterOrValue as Array<ExtendedColumnSort<TData>>);
+        void setSorting(updaterOrValue as Array<ExtendedColumnSort<TData>>);
       }
     },
     [sorting, setSorting]

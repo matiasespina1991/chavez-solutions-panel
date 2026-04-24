@@ -2,6 +2,14 @@ import { firestoreTimestampToMs, formatFirestoreTimestamp } from '@/lib/firestor
 import { normalizeMatrixArray } from '@/lib/request-normalizers';
 import type { RequestServiceItem, WorkOrderListRow as WorkOrderRow, WorkOrderStatus } from '@/types/domain';
 
+const toSafeString = (value: unknown, fallback = ''): string => {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  return fallback;
+};
+
 const normalizeRequestServiceItems = (raw: unknown[]): RequestServiceItem[] => raw.map((item, index) => {
   const rowItem = item as {
     serviceId?: string;
@@ -18,9 +26,9 @@ const normalizeRequestServiceItems = (raw: unknown[]): RequestServiceItem[] => r
   };
 
   return {
-    serviceId: String(rowItem.serviceId ?? rowItem.parameterId ?? `service-${index}`),
-    parameterId: String(rowItem.parameterId ?? rowItem.serviceId ?? `p-${index}`),
-    parameterLabel: String(rowItem.parameterLabel ?? rowItem.parameterId ?? 'Servicio'),
+    serviceId: toSafeString(rowItem.serviceId ?? rowItem.parameterId, `service-${index}`),
+    parameterId: toSafeString(rowItem.parameterId ?? rowItem.serviceId, `p-${index}`),
+    parameterLabel: toSafeString(rowItem.parameterLabel ?? rowItem.parameterId, 'Servicio'),
     tableLabel: typeof rowItem.tableLabel === 'string' ? rowItem.tableLabel : null,
     unit: typeof rowItem.unit === 'string' ? rowItem.unit : null,
     method: typeof rowItem.method === 'string' ? rowItem.method : null,
@@ -33,7 +41,7 @@ const normalizeRequestServiceItems = (raw: unknown[]): RequestServiceItem[] => r
 });
 
 const normalizeWorkOrderStatus = (value: unknown): WorkOrderStatus => {
-  const rawStatus = String(value ?? '').toLowerCase();
+  const rawStatus = toSafeString(value, '').toLowerCase();
   if (
     rawStatus === 'issued' ||
     rawStatus === 'paused' ||
@@ -107,8 +115,8 @@ export const buildWorkOrderRowFromDoc = (
       ? toArray((data.samples as { items?: unknown[] }).items).map((item) => {
         const rowItem = item as { sampleCode?: string; sampleType?: string };
         return {
-          sampleCode: String(rowItem.sampleCode ?? '—'),
-          sampleType: String(rowItem.sampleType ?? 'Sin tipo')
+          sampleCode: toSafeString(rowItem.sampleCode, '—'),
+          sampleType: toSafeString(rowItem.sampleType, 'Sin tipo')
         };
       })
       : [];
@@ -116,7 +124,7 @@ export const buildWorkOrderRowFromDoc = (
   const analysisItems = analysesItemsRaw.map((item) => {
     const rowItem = item as { parameterLabelEs?: string; unitPrice?: number | null };
     return {
-      parameterLabelEs: String(rowItem.parameterLabelEs ?? 'Parámetro'),
+      parameterLabelEs: toSafeString(rowItem.parameterLabelEs, 'Parámetro'),
       unitPrice: Number(rowItem.unitPrice ?? 0)
     };
   });
@@ -131,7 +139,7 @@ export const buildWorkOrderRowFromDoc = (
         : [];
   const directServiceItems = normalizeRequestServiceItems(toArray(rawDirectServices));
 
-  const sourceRequestId = String(data.sourceRequestId ?? '');
+  const sourceRequestId = toSafeString(data.sourceRequestId, '');
   const fallbackServiceItems = sourceRequestId
     ? sourceRequestServicesById[sourceRequestId] || []
     : [];
@@ -157,10 +165,10 @@ export const buildWorkOrderRowFromDoc = (
 
   return {
     id,
-    workOrderNumber: String(data.workOrderNumber ?? id),
-    sourceReference: String(data.sourceReference ?? '—'),
+    workOrderNumber: toSafeString(data.workOrderNumber, id),
+    sourceReference: toSafeString(data.sourceReference, '—'),
     sourceRequestId,
-    notes: String(data.notes ?? ''),
+    notes: toSafeString(data.notes, ''),
     matrix,
     status,
     client,

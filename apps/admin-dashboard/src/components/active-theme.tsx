@@ -5,6 +5,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useMemo,
   useState
 } from 'react';
 
@@ -81,8 +82,13 @@ export function ActiveThemeProvider({
     }
   }, [resolvedTheme]);
 
+  const themeContextValue = useMemo(
+    () => ({ activeTheme, setActiveTheme }),
+    [activeTheme]
+  );
+
   return (
-    <ThemeContext.Provider value={{ activeTheme, setActiveTheme }}>
+    <ThemeContext.Provider value={themeContextValue}>
       {children}
     </ThemeContext.Provider>
   );
