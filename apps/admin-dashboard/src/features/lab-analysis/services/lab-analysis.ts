@@ -1,11 +1,5 @@
 import { getFunctions, httpsCallable } from 'firebase/functions';
-
-export interface SaveLabAnalysisRowInput {
-  parameterLabelEs: string;
-  resultValue: string;
-  unit: string;
-  method: string;
-}
+import { SaveLabAnalysisRowInput } from '@/features/lab-analysis/lib/lab-analysis-model';
 
 interface SaveWorkOrderLabAnalysisResponse {
   workOrderId: string;
