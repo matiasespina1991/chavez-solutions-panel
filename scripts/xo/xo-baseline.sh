@@ -7,9 +7,9 @@ REPORTS_DIR="${ROOT_DIR}/lint-fix/reports"
 mkdir -p "${REPORTS_DIR}"
 
 set +e
-"${ROOT_DIR}/lint-fix/scripts/xo-admin.sh" > "${REPORTS_DIR}/xo-admin-baseline.txt" 2>&1
+"${ROOT_DIR}/scripts/xo/xo-admin.sh" > "${REPORTS_DIR}/xo-admin-baseline.txt" 2>&1
 ADMIN_EXIT=$?
-"${ROOT_DIR}/lint-fix/scripts/xo-functions.sh" > "${REPORTS_DIR}/xo-functions-baseline.txt" 2>&1
+"${ROOT_DIR}/scripts/xo/xo-functions.sh" > "${REPORTS_DIR}/xo-functions-baseline.txt" 2>&1
 FUNCTIONS_EXIT=$?
 set -e
 
@@ -29,7 +29,7 @@ npx --yes xo \
   --reporter=json \
   "src/**/*.{js,ts}" > "${REPORTS_DIR}/xo-functions-baseline.json" 2>&1 || true
 
-node "${ROOT_DIR}/lint-fix/scripts/xo-summarize.mjs"
+node "${ROOT_DIR}/scripts/xo/xo-summarize.mjs"
 
 if [[ ${ADMIN_EXIT} -ne 0 || ${FUNCTIONS_EXIT} -ne 0 ]]; then
   exit 1
