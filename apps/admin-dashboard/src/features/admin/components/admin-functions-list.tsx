@@ -12,6 +12,18 @@ import Link from 'next/link';
 export function AdminFunctionsList() {
   return (
     <div className='grid gap-4'>
+      <Link href='/dashboard/admin/clients'>
+        <Card className='hover:bg-muted/30 cursor-pointer transition-colors duration-200'>
+          <CardHeader className='space-y-1'>
+            <CardTitle className='text-base'>Admin. Clientes</CardTitle>
+            <CardDescription>
+              Crea, edita, busca e importa clientes maestros para nuevas
+              proformas.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </Link>
+
       <Link href='/dashboard/admin/import-services'>
         <Card className='hover:bg-muted/30 cursor-pointer transition-colors duration-200'>
           <CardHeader className='space-y-1'>

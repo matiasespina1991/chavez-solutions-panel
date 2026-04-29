@@ -25,6 +25,7 @@ export function useFilteredNavItems(items: NavItem[]) {
       '/dashboard/settings',
       '/dashboard/configurator',
       '/dashboard/admin',
+      '/dashboard/admin/clients',
       '/dashboard/admin/import-services'
     ]);
 

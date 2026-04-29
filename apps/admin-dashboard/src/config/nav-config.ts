@@ -34,6 +34,14 @@ export const navItems: NavItem[] = [
     items: []
   },
   {
+    title: 'Admin. Clientes',
+    url: '/dashboard/admin/clients',
+    icon: 'teams',
+    shortcut: ['c', 'c'],
+    isActive: false,
+    items: []
+  },
+  {
     title: 'Admin',
     url: '/dashboard/admin',
     icon: 'admin',

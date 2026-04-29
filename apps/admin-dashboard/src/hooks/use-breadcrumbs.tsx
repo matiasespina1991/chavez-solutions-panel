@@ -23,6 +23,14 @@ const routeMapping: Record<string, BreadcrumbItem[]> = {
       link: '/dashboard/admin/import-services'
     }
   ],
+  '/dashboard/admin/clients': [
+    { title: 'Panel', link: '/dashboard' },
+    { title: 'Admin', link: '/dashboard/admin' },
+    {
+      title: 'Admin. Clientes',
+      link: '/dashboard/admin/clients'
+    }
+  ],
   '/dashboard/lab-analysis': [
     { title: 'Panel', link: '/dashboard' },
     {

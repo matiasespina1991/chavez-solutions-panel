@@ -3,6 +3,7 @@ export const FIRESTORE_COLLECTIONS = {
   REQUESTS: 'requests',
   WORK_ORDERS: 'work_orders',
   SERVICES: 'services',
+  CLIENTS: 'clients',
   MAIL_OUTBOX: 'mail_outbox',
   DELETED_REQUESTS: 'deleted_requests',
   SERVICES_AUDIT: 'services_audit',
