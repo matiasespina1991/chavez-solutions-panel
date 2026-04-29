@@ -197,8 +197,8 @@ export default function ConfiguratorForm() {
         requestedTab === 'type'
           ? 'details'
           : requestedTab === 'services'
-          ? 'samples'
-          : (requestedTab as ConfiguratorTab);
+            ? 'samples'
+            : (requestedTab as ConfiguratorTab);
       setActiveTab(normalizedTab);
     }
   }, [requestedTab]);
@@ -606,7 +606,7 @@ export default function ConfiguratorForm() {
           existing.requestStatus === 'converted_to_work_order' ||
           existing.requestStatus === 'work_order_paused' ||
           existing.requestStatus === 'work_order_completed' ||
-          existing.isWorkOrder === true;
+          existing.isWorkOrder;
         setIsWorkOrderContext(resolvedIsWorkOrder);
         setLoadedRequestStatus(
           existing.requestStatus === 'work_order_paused'

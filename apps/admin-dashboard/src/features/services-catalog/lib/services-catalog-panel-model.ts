@@ -235,9 +235,7 @@ export const EDITABLE_COLUMNS: Array<{
   { key: 'LIM_SUP_INTERNO', label: 'Límite sup.', minWidth: 'min-w-[6.5rem]' }
 ];
 
-const toStringValue = (value: unknown): string => {
-  return toSafeString(value);
-};
+const toStringValue = (value: unknown): string => toSafeString(value);
 
 const toTimestampIso = (value: unknown): string | null => {
   if (value instanceof Timestamp) return value.toDate().toISOString();

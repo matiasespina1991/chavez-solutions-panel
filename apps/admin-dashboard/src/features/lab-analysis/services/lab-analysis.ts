@@ -1,4 +1,4 @@
-import { SaveLabAnalysisRowInput } from '@/features/lab-analysis/lib/lab-analysis-model';
+import { type SaveLabAnalysisRowInput } from '@/features/lab-analysis/lib/lab-analysis-model';
 import { getCallableErrorMeta } from '@/lib/callable-errors';
 import { callFirebaseCallable } from '@/lib/firebase-callable';
 

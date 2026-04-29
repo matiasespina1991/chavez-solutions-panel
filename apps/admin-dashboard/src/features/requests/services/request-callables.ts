@@ -7,12 +7,10 @@ interface CreateWorkOrderResponse {
 
 export const createWorkOrderFromRequest = async (
   sourceRequestId: string
-): Promise<CreateWorkOrderResponse> => {
-  return callFirebaseCallable<
-    { sourceRequestId: string },
-    CreateWorkOrderResponse
-  >('createWorkOrder', { sourceRequestId });
-};
+): Promise<CreateWorkOrderResponse> => callFirebaseCallable<
+  { sourceRequestId: string },
+  CreateWorkOrderResponse
+>('createWorkOrder', { sourceRequestId });
 
 interface ApproveProformaResponse {
   requestId: string;
@@ -23,12 +21,10 @@ interface ApproveProformaResponse {
 export const approveProforma = async (
   requestId: string,
   feedback?: string
-): Promise<ApproveProformaResponse> => {
-  return callFirebaseCallable<
-    { requestId: string; feedback?: string },
-    ApproveProformaResponse
-  >('approveProforma', { requestId, feedback });
-};
+): Promise<ApproveProformaResponse> => callFirebaseCallable<
+  { requestId: string; feedback?: string },
+  ApproveProformaResponse
+>('approveProforma', { requestId, feedback });
 
 interface RejectProformaResponse {
   requestId: string;
@@ -38,12 +34,10 @@ interface RejectProformaResponse {
 export const rejectProforma = async (
   requestId: string,
   feedback: string
-): Promise<RejectProformaResponse> => {
-  return callFirebaseCallable<
-    { requestId: string; feedback: string },
-    RejectProformaResponse
-  >('rejectProforma', { requestId, feedback });
-};
+): Promise<RejectProformaResponse> => callFirebaseCallable<
+  { requestId: string; feedback: string },
+  RejectProformaResponse
+>('rejectProforma', { requestId, feedback });
 
 interface PauseWorkOrderResponse {
   workOrderId: string;
@@ -54,12 +48,10 @@ interface PauseWorkOrderResponse {
 export const pauseWorkOrderFromRequest = async (
   sourceRequestId: string,
   notes?: string
-): Promise<PauseWorkOrderResponse> => {
-  return callFirebaseCallable<
-    { sourceRequestId: string; notes?: string },
-    PauseWorkOrderResponse
-  >('pauseWorkOrder', { sourceRequestId, notes });
-};
+): Promise<PauseWorkOrderResponse> => callFirebaseCallable<
+  { sourceRequestId: string; notes?: string },
+  PauseWorkOrderResponse
+>('pauseWorkOrder', { sourceRequestId, notes });
 
 interface ResumeWorkOrderResponse {
   workOrderId: string;
@@ -70,12 +62,10 @@ interface ResumeWorkOrderResponse {
 export const resumeWorkOrderFromRequest = async (
   sourceRequestId: string,
   notes?: string
-): Promise<ResumeWorkOrderResponse> => {
-  return callFirebaseCallable<
-    { sourceRequestId: string; notes?: string },
-    ResumeWorkOrderResponse
-  >('resumeWorkOrder', { sourceRequestId, notes });
-};
+): Promise<ResumeWorkOrderResponse> => callFirebaseCallable<
+  { sourceRequestId: string; notes?: string },
+  ResumeWorkOrderResponse
+>('resumeWorkOrder', { sourceRequestId, notes });
 
 interface DeleteProformaResponse {
   deletedRequestId: string;
@@ -83,9 +73,7 @@ interface DeleteProformaResponse {
 
 export const deleteProforma = async (
   requestId: string
-): Promise<DeleteProformaResponse> => {
-  return callFirebaseCallable<
-    { requestId: string },
-    DeleteProformaResponse
-  >('deleteProforma', { requestId });
-};
+): Promise<DeleteProformaResponse> => callFirebaseCallable<
+  { requestId: string },
+  DeleteProformaResponse
+>('deleteProforma', { requestId });

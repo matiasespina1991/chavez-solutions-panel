@@ -27,7 +27,7 @@ export const mapRequestSnapshotDocToRow = (
   const status = (value.status as RequestStatus) ?? ('draft');
 
   const approval = isRecord(value.approval)
-    ? (value.approval as Record<string, unknown>)
+    ? (value.approval)
     : null;
   const rawApprovalStatus = approval ? approval.status : null;
 
@@ -40,13 +40,13 @@ export const mapRequestSnapshotDocToRow = (
 
   const approvalFeedback = approval ? toSafeString(approval.feedback) : '';
   const approvedBy = approval && isRecord(approval.approvedBy)
-    ? (approval.approvedBy as Record<string, unknown>)
+    ? (approval.approvedBy)
     : null;
   const approvalActorEmail = approvedBy
     ? toSafeString(approvedBy.email).trim() || null
     : null;
   const pricing = isRecord(value.pricing)
-    ? (value.pricing as Record<string, unknown>)
+    ? (value.pricing)
     : null;
   const total = toFiniteNumber(pricing?.total, 0);
   const subtotal = toFiniteNumber(pricing?.subtotal, 0);
@@ -58,16 +58,16 @@ export const mapRequestSnapshotDocToRow = (
     firestoreTimestampToMs(value.updatedAt);
 
   const samples = isRecord(value.samples)
-    ? (value.samples as Record<string, unknown>)
+    ? (value.samples)
     : null;
   const analyses = isRecord(value.analyses)
-    ? (value.analyses as Record<string, unknown>)
+    ? (value.analyses)
     : null;
   const clientValue = isRecord(value.client)
-    ? (value.client as Record<string, unknown>)
+    ? (value.client)
     : null;
   const servicesValue = isRecord(value.services)
-    ? (value.services as Record<string, unknown>)
+    ? (value.services)
     : null;
   const agreedCount = toFiniteNumber(samples?.agreedCount, 0);
 
@@ -108,33 +108,33 @@ export const mapRequestSnapshotDocToRow = (
       : [];
 
   const serviceItems = toArray(rawServiceItems).map((item, index) => {
-      const rowItem = (isRecord(item) ? item : {}) as Record<string, unknown>;
-      const unitPrice = toFiniteNumber(rowItem.unitPrice, 0);
-      const discountAmount = toFiniteNumber(rowItem.discountAmount, 0);
-      return {
-        serviceId: toSafeString(
-          rowItem.serviceId ?? rowItem.parameterId,
-          `service-${index}`
-        ),
-        parameterId: toSafeString(
-          rowItem.parameterId ?? rowItem.serviceId,
-          `p-${index}`
-        ),
-        parameterLabel: toSafeString(
-          rowItem.parameterLabel ?? rowItem.parameterId,
-          'Servicio'
-        ),
-        tableLabel: toNullableString(rowItem.tableLabel),
-        unit: toNullableString(rowItem.unit),
-        method: toNullableString(rowItem.method),
-        rangeMin: toSafeString(rowItem.rangeMin),
-        rangeMax: toSafeString(rowItem.rangeMax),
-        quantity: Math.max(1, toFiniteNumber(rowItem.quantity, 1)),
-        unitPrice,
-        discountAmount:
-            discountAmount >= 0 ? discountAmount : 0
-      };
-    });
+    const rowItem = (isRecord(item) ? item : {});
+    const unitPrice = toFiniteNumber(rowItem.unitPrice, 0);
+    const discountAmount = toFiniteNumber(rowItem.discountAmount, 0);
+    return {
+      serviceId: toSafeString(
+        rowItem.serviceId ?? rowItem.parameterId,
+        `service-${index}`
+      ),
+      parameterId: toSafeString(
+        rowItem.parameterId ?? rowItem.serviceId,
+        `p-${index}`
+      ),
+      parameterLabel: toSafeString(
+        rowItem.parameterLabel ?? rowItem.parameterId,
+        'Servicio'
+      ),
+      tableLabel: toNullableString(rowItem.tableLabel),
+      unit: toNullableString(rowItem.unit),
+      method: toNullableString(rowItem.method),
+      rangeMin: toSafeString(rowItem.rangeMin),
+      rangeMax: toSafeString(rowItem.rangeMax),
+      quantity: Math.max(1, toFiniteNumber(rowItem.quantity, 1)),
+      unitPrice,
+      discountAmount:
+            Math.max(discountAmount, 0)
+    };
+  });
 
   const normalizedServiceItems =
     serviceItems.length > 0
@@ -156,46 +156,46 @@ export const mapRequestSnapshotDocToRow = (
   const rawGroupedServiceItems = servicesValue?.grouped;
 
   const serviceGroups = toArray(rawGroupedServiceItems)
-      .map((group, groupIndex) => {
-        const groupValue = isRecord(group) ? group : {};
-        const mappedItems = toArray(groupValue.items).map((item, itemIndex) => {
-            const rowItem = (isRecord(item) ? item : {}) as Record<string, unknown>;
-            const unitPrice = toFiniteNumber(rowItem.unitPrice, 0);
-            const discountAmount = toFiniteNumber(rowItem.discountAmount, 0);
-            return {
-              serviceId: toSafeString(
-                rowItem.serviceId ??
-                rowItem.parameterId ??
-                `grouped-service-${groupIndex}-${itemIndex}`
-              ),
-              parameterId: toSafeString(
-                rowItem.parameterId ??
-                rowItem.serviceId ??
-                `grouped-parameter-${groupIndex}-${itemIndex}`
-              ),
-              parameterLabel: toSafeString(
-                rowItem.parameterLabel ?? rowItem.parameterId,
-                'Servicio'
-              ),
-              tableLabel: toNullableString(rowItem.tableLabel),
-              unit: toNullableString(rowItem.unit),
-              method: toNullableString(rowItem.method),
-              rangeMin: toSafeString(rowItem.rangeMin),
-              rangeMax: toSafeString(rowItem.rangeMax),
-              quantity: Math.max(1, toFiniteNumber(rowItem.quantity, 1)),
-              unitPrice,
-              discountAmount:
-                    discountAmount >= 0 ? discountAmount : 0
-            };
-          });
-
+    .map((group, groupIndex) => {
+      const groupValue = isRecord(group) ? group : {};
+      const mappedItems = toArray(groupValue.items).map((item, itemIndex) => {
+        const rowItem = (isRecord(item) ? item : {});
+        const unitPrice = toFiniteNumber(rowItem.unitPrice, 0);
+        const discountAmount = toFiniteNumber(rowItem.discountAmount, 0);
         return {
-          id: `group-${groupIndex}`,
-          name: toSafeString(groupValue.name).trim() || `Combo ${groupIndex + 1}`,
-          items: mappedItems
+          serviceId: toSafeString(
+            rowItem.serviceId ??
+            rowItem.parameterId ??
+            `grouped-service-${groupIndex}-${itemIndex}`
+          ),
+          parameterId: toSafeString(
+            rowItem.parameterId ??
+            rowItem.serviceId ??
+            `grouped-parameter-${groupIndex}-${itemIndex}`
+          ),
+          parameterLabel: toSafeString(
+            rowItem.parameterLabel ?? rowItem.parameterId,
+            'Servicio'
+          ),
+          tableLabel: toNullableString(rowItem.tableLabel),
+          unit: toNullableString(rowItem.unit),
+          method: toNullableString(rowItem.method),
+          rangeMin: toSafeString(rowItem.rangeMin),
+          rangeMax: toSafeString(rowItem.rangeMax),
+          quantity: Math.max(1, toFiniteNumber(rowItem.quantity, 1)),
+          unitPrice,
+          discountAmount:
+                    Math.max(discountAmount, 0)
         };
-      })
-      .filter((group) => group.items.length > 0);
+      });
+
+      return {
+        id: `group-${groupIndex}`,
+        name: toSafeString(groupValue.name).trim() || `Combo ${groupIndex + 1}`,
+        items: mappedItems
+      };
+    })
+    .filter((group) => group.items.length > 0);
 
   const normalizedServiceGroups =
     serviceGroups.length > 0

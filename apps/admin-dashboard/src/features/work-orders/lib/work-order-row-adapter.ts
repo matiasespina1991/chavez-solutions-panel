@@ -55,10 +55,10 @@ const normalizeWorkOrderStatus = (value: unknown): WorkOrderStatus => {
 
 export const getRequestServiceItemsFromDoc = (data: Record<string, unknown>): RequestServiceItem[] => {
   const rawServiceItems = isRecord(data.services)
-      ? (data.services as { items?: unknown[] }).items
-      : Array.isArray(data.services)
-        ? (data.services as unknown[])
-        : [];
+    ? (data.services as { items?: unknown[] }).items
+    : Array.isArray(data.services)
+      ? (data.services as unknown[])
+      : [];
 
   return normalizeRequestServiceItems(toArray(rawServiceItems));
 };
@@ -72,19 +72,19 @@ export const buildWorkOrderRowFromDoc = (
   const status = normalizeWorkOrderStatus(data.status);
 
   const pricing = isRecord(data.pricing)
-      ? (data.pricing as { total?: number | null; subtotal?: number | null; taxPercent?: number | null })
-      : {};
+    ? (data.pricing as { total?: number | null; subtotal?: number | null; taxPercent?: number | null })
+    : {};
   const total = toFiniteNumber(pricing.total, 0);
   const subtotal = toFiniteNumber(pricing.subtotal, 0);
   const taxPercent = toFiniteNumber(pricing.taxPercent, 15);
 
   const agreedCount = isRecord(data.samples)
-      ? toFiniteNumber((data.samples as { agreedCount?: number }).agreedCount, 0)
-      : 0;
+    ? toFiniteNumber((data.samples as { agreedCount?: number }).agreedCount, 0)
+    : 0;
 
   const analysesItemsRaw = isRecord(data.analyses)
-      ? toArray((data.analyses as { items?: unknown[] }).items)
-      : [];
+    ? toArray((data.analyses as { items?: unknown[] }).items)
+    : [];
 
   const analysesCount = analysesItemsRaw.length;
 
@@ -121,10 +121,10 @@ export const buildWorkOrderRowFromDoc = (
   });
 
   const rawDirectServices = isRecord(data.services)
-      ? (data.services as { items?: unknown[] }).items
-      : Array.isArray(data.services)
-        ? (data.services as unknown[])
-        : [];
+    ? (data.services as { items?: unknown[] }).items
+    : Array.isArray(data.services)
+      ? (data.services as unknown[])
+      : [];
   const directServiceItems = normalizeRequestServiceItems(toArray(rawDirectServices));
 
   const sourceRequestId = toSafeString(data.sourceRequestId, '');

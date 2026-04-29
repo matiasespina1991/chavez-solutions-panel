@@ -49,7 +49,7 @@ export const WORK_ORDER_STATUS_LABELS: Record<WorkOrderStatus, string> = {
 };
 
 export const parseWorkOrderStatus = (value: unknown): WorkOrderStatus => {
-  const normalized = String(value ?? '').toLowerCase();
+  const normalized = typeof value === 'string' ? value.toLowerCase() : '';
   if (
     normalized === 'issued' ||
     normalized === 'paused' ||

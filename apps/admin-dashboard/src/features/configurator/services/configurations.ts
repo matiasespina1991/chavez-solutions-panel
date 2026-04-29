@@ -20,8 +20,8 @@ import {
 } from '@/lib/runtime-guards';
 import type {
   ConfigurationDocument,
-  ConfigurationServiceGroup,
-  ConfigurationServiceItem,
+  
+  
   ConfigurationStatus,
   ImportedServiceDocument,
   RequestDocument,
@@ -29,15 +29,7 @@ import type {
 } from '@/features/configurator/lib/configuration-contracts';
 import { mapRequestDocumentToConfiguration } from '@/features/configurator/lib/configuration-document-mappers';
 
-export type {
-  ConfigurationDocument,
-  ConfigurationServiceGroup,
-  ConfigurationServiceItem,
-  ConfigurationStatus,
-  ImportedServiceDocument,
-  RequestDocument,
-  RequestStatus
-};
+
 
 const REQUESTS_COLLECTION = FIRESTORE_COLLECTIONS.REQUESTS;
 const WORK_ORDER_COLLECTION = FIRESTORE_COLLECTIONS.WORK_ORDERS;
@@ -180,3 +172,5 @@ export const listImportedServices = async (): Promise<
     };
   });
 };
+
+export {type ConfigurationServiceGroup, type ConfigurationServiceItem, type ConfigurationDocument, type ConfigurationStatus, type ImportedServiceDocument, type RequestDocument, type RequestStatus} from '@/features/configurator/lib/configuration-contracts';

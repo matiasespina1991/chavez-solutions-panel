@@ -14,9 +14,9 @@ import { isRecord, toArray, toSafeString } from '@/lib/runtime-guards';
 import {
   createEmptyLabAnalysisRow,
   createLocalId,
-  LabAnalysisRow,
+  type LabAnalysisRow,
   parseWorkOrderStatus,
-  WorkOrderMeta,
+  type WorkOrderMeta,
   WORK_ORDER_STATUS_LABELS
 } from '@/features/lab-analysis/lib/lab-analysis-model';
 import { IconPlus, IconTrash } from '@tabler/icons-react';
@@ -68,24 +68,24 @@ export default function LabAnalysisForm() {
 
         const existingRows = isRecord(value.analyses)
           ? toArray((value.analyses as { items?: unknown[] }).items)
-              .map((item) => {
-                const rowItem = isRecord(item) ? item : {};
+            .map((item) => {
+              const rowItem = isRecord(item) ? item : {};
 
-                return {
-                  id: createLocalId(),
-                  parameterLabelEs: toSafeString(rowItem.parameterLabelEs),
-                  resultValue: toSafeString(rowItem.resultValue),
-                  unit: toSafeString(rowItem.unit),
-                  method: toSafeString(rowItem.method)
-                };
-              })
-              .filter(
-                (item) =>
-                  item.parameterLabelEs ||
-                  item.resultValue ||
-                  item.unit ||
-                  item.method
-              )
+              return {
+                id: createLocalId(),
+                parameterLabelEs: toSafeString(rowItem.parameterLabelEs),
+                resultValue: toSafeString(rowItem.resultValue),
+                unit: toSafeString(rowItem.unit),
+                method: toSafeString(rowItem.method)
+              };
+            })
+            .filter(
+              (item) =>
+                item.parameterLabelEs ||
+                item.resultValue ||
+                item.unit ||
+                item.method
+            )
           : [];
 
         setAnalysisRows(

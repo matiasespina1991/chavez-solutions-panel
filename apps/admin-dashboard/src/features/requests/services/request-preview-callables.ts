@@ -88,12 +88,10 @@ interface GenerateProformaPreviewPdfResponse {
 
 export const generateProformaPreviewPdf = async (
   payload: ProformaPreviewPdfPayload
-): Promise<GenerateProformaPreviewPdfResponse> => {
-  return callFirebaseCallable<
-    { payload: ProformaPreviewPdfPayload },
-    GenerateProformaPreviewPdfResponse
-  >('generateProformaPreviewPdf', { payload });
-};
+): Promise<GenerateProformaPreviewPdfResponse> => callFirebaseCallable<
+  { payload: ProformaPreviewPdfPayload },
+  GenerateProformaPreviewPdfResponse
+>('generateProformaPreviewPdf', { payload });
 
 interface SendProformaPreviewEmailResponse {
   sent: boolean;
@@ -108,14 +106,12 @@ export const sendProformaPreviewEmail = async (params: {
   payload: ProformaPreviewPdfPayload;
   subject?: string;
   text?: string;
-}): Promise<SendProformaPreviewEmailResponse> => {
-  return callFirebaseCallable<
-    {
-      to: string;
-      payload: ProformaPreviewPdfPayload;
-      subject?: string;
-      text?: string;
-    },
-    SendProformaPreviewEmailResponse
-  >('sendProformaPreviewEmail', params);
-};
+}): Promise<SendProformaPreviewEmailResponse> => callFirebaseCallable<
+  {
+    to: string;
+    payload: ProformaPreviewPdfPayload;
+    subject?: string;
+    text?: string;
+  },
+  SendProformaPreviewEmailResponse
+>('sendProformaPreviewEmail', params);

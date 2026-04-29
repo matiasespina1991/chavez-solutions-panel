@@ -79,7 +79,7 @@ describe('configurator-service-mappers', () => {
           name: 'Combo 2',
           items: [{ id: 'svc-1', ID_CONFIG_PARAMETRO: 'cfg-1', ID_PARAMETRO: 'pH', quantity: 1, rangeMin: '', rangeMax: '', unitPrice: 1, discountAmount: 0 }]
         }
-      ] as any,
+      ],
       getServiceId
     );
     expect(groups).toHaveLength(1);
