@@ -15,7 +15,9 @@ export function AdminFunctionsList() {
       <Link href='/dashboard/admin/clients'>
         <Card className='hover:bg-muted/30 cursor-pointer transition-colors duration-200'>
           <CardHeader className='space-y-1'>
-            <CardTitle className='text-base'>Admin. Clientes</CardTitle>
+            <CardTitle className='text-base'>
+              Base de datos de clientes
+            </CardTitle>
             <CardDescription>
               Crea, edita, busca e importa clientes maestros para nuevas
               proformas.

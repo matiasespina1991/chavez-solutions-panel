@@ -33,6 +33,7 @@ const PERMISSION_ROLE_MAP = {
   'services_catalog.write': ['admin', 'editor'],
   'services_catalog.delete': ['admin', 'editor'],
   'services_catalog.import': ['admin', 'editor'],
+  'clients.write': ['admin', 'order-supervisor'],
 } as const satisfies Record<string, AppUserRole[]>;
 
 export type AppPermission = keyof typeof PERMISSION_ROLE_MAP;

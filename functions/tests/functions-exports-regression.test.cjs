@@ -11,6 +11,10 @@ test('exports contain current proforma/request API and no legacy serviceRequest 
   assert.match(compiledIndex, /"rejectProforma"/);
   assert.match(compiledIndex, /"createWorkOrder"/);
   assert.match(compiledIndex, /"deleteProforma"/);
+  assert.match(compiledIndex, /"createClient"/);
+  assert.match(compiledIndex, /"saveClientChanges"/);
+  assert.match(compiledIndex, /"deleteClient"/);
+  assert.match(compiledIndex, /"backfillClientsFromRequests"/);
 
   assert.doesNotMatch(compiledIndex, /approveServiceRequest/);
   assert.doesNotMatch(compiledIndex, /rejectServiceRequest/);

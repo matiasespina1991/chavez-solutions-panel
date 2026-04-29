@@ -7,9 +7,10 @@ Esta politica aplica a:
 - `requests`
 - `work_orders`
 - `services`
+- `clients`
 - `mail_outbox`
 - callables operativos en `functions/src/callable/**`
-- navegacion operativa del dashboard (`requests-list`, `work-orders`, `lab-analysis`, `services-catalog`, `configurator`)
+- navegacion operativa del dashboard (`requests-list`, `work-orders`, `lab-analysis`, `services-catalog`, `admin/clients`, `configurator`)
 
 No aplica a modulos legacy/starter fuera de alcance de esta migracion.
 
@@ -53,6 +54,12 @@ Las acciones criticas en backend se controlan via `requirePermission`:
 - Importar CSV: `services_catalog.import`
 - Ver historial: `services_catalog.read_history`
 
+### Clientes
+
+- Crear/editar/eliminar cliente: `clients.write`
+- Backfill desde solicitudes: `clients.write`
+- Lectura frontend autenticada; escritura directa bloqueada por rules.
+
 ## Firestore Rules (lineamientos)
 
 1. Sin wildcards publicos para colecciones operativas.
@@ -79,7 +86,11 @@ Ejecutar en cada cambio de seguridad/acceso:
 4. Services Catalog
 - Crear/editar/eliminar/importar/historial respeta permisos por accion.
 
-5. Rules
+5. Clientes
+- Crear/editar/eliminar/backfill respeta permisos por accion.
+- Seleccionar cliente en configurador copia datos al formulario sin mutar el maestro.
+
+6. Rules
 - `firebase deploy --only firestore:rules` sin errores.
 - Lecturas/escrituras fuera de policy quedan bloqueadas.
 

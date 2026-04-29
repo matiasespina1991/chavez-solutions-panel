@@ -32,6 +32,12 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // Clients master data (frontend read-only, writes via callable)
+    match /clients/{clientId} {
+      allow read: if isAuthorized();
+      allow create, update, delete: if false;
+    }
+
     // Auth bootstrap config (authorized users list)
     match /config/{configId} {
       allow read: if isAuthorized();

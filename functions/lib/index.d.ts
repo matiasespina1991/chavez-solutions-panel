@@ -17,5 +17,6 @@ export { deleteTechnicalService } from './callable/deleteTechnicalService.js';
 export { listServiceHistory } from './callable/listServiceHistory.js';
 export { restoreServiceHistory } from './callable/restoreServiceHistory.js';
 export { deleteServiceHistory } from './callable/deleteServiceHistory.js';
+export { backfillClientsFromRequests, createClient, deleteClient, saveClientChanges, } from './callable/clientManagement.js';
 export { generateProformaPreviewPdf } from './callable/generateProformaPreviewPdf.js';
 export { sendProformaPreviewEmail } from './callable/sendProformaPreviewEmail.js';

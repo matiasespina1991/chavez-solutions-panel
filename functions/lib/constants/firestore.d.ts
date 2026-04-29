@@ -3,6 +3,7 @@ export declare const FIRESTORE_COLLECTIONS: {
     readonly REQUESTS: "requests";
     readonly WORK_ORDERS: "work_orders";
     readonly SERVICES: "services";
+    readonly CLIENTS: "clients";
     readonly MAIL_OUTBOX: "mail_outbox";
     readonly DELETED_REQUESTS: "deleted_requests";
     readonly SERVICES_AUDIT: "services_audit";

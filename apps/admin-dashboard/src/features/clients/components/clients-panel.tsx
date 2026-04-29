@@ -594,10 +594,9 @@ export function ClientsPanel() {
         <CardHeader className='pb-3'>
           <div className='flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between'>
             <div>
-              <CardTitle>Maestro comercial de clientes</CardTitle>
+              <CardTitle>Lista de Clientes</CardTitle>
               <p className='text-muted-foreground mt-1 text-sm'>
-                Administra clientes reutilizables para nuevas proformas sin
-                modificar solicitudes u OT históricas.
+                Consulta y edita la información de los clientes.
               </p>
             </div>
 
@@ -681,7 +680,7 @@ export function ClientsPanel() {
               <Search className='text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2' />
               <Input
                 value={query}
-                placeholder='Buscar por razón social, RUC, contacto, email o ciudad...'
+                placeholder='Buscar por razón social, contacto o email...'
                 className='pr-9 pl-9'
                 onChange={(event) => {
                   setQuery(event.target.value);

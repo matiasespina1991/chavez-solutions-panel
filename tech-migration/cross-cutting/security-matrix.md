@@ -1,7 +1,7 @@
 # Matriz de permisos - Core operativo
 
 Fecha: 2026-04-29
-Alcance: `configurator`, `requests-list`, `work-orders`, `services-catalog`, `lab-analysis`, `functions`.
+Alcance: `configurator`, `requests-list`, `work-orders`, `services-catalog`, `admin/clients`, `lab-analysis`, `functions`.
 
 ## Estado
 
@@ -37,6 +37,7 @@ La validacion por permiso esta implementada en backend mediante `functions/src/g
 | `services_catalog.write` | si | no | no | no | no | si | no |
 | `services_catalog.delete` | si | no | no | no | no | si | no |
 | `services_catalog.import` | si | no | no | no | no | si | no |
+| `clients.write` | si | si | no | no | no | no | no |
 
 ## Acciones criticas y callables
 
@@ -52,6 +53,8 @@ La validacion por permiso esta implementada en backend mediante `functions/src/g
 | Crear/editar/importar servicios | `services_catalog.write`, `services_catalog.import` | `createTechnicalService`, `saveServicesTechnicalChanges`, `importServicesFromCsv` |
 | Eliminar servicios | `services_catalog.delete` | `deleteTechnicalService` |
 | Ver/restaurar/eliminar historial tecnico | `services_catalog.read_history`, `services_catalog.delete` | `listServiceHistory`, `restoreServiceHistory`, `deleteServiceHistory` |
+| Crear/editar/eliminar clientes | `clients.write` | `createClient`, `saveClientChanges`, `deleteClient` |
+| Backfill de clientes desde solicitudes | `clients.write` | `backfillClientsFromRequests` |
 
 ## Claims esperados
 

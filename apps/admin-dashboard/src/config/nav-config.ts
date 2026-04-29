@@ -34,7 +34,7 @@ export const navItems: NavItem[] = [
     items: []
   },
   {
-    title: 'Admin. Clientes',
+    title: 'Base de datos de clientes',
     url: '/dashboard/admin/clients',
     icon: 'teams',
     shortcut: ['c', 'c'],

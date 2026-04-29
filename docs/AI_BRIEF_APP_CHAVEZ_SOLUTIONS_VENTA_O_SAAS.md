@@ -47,6 +47,7 @@ Resultado: menos fricción operativa, trazabilidad de estado y una base para est
 3. Lista de órdenes de trabajo (`/dashboard/work-orders`)
 4. Registro de análisis de laboratorio (`/dashboard/lab-analysis`)
 5. Admin importación de servicios por CSV (`/dashboard/admin/import-services`)
+6. Admin de clientes (`/dashboard/admin/clients`)
 
 ### 4.2 Funcionalidad por módulo
 
@@ -61,6 +62,7 @@ Resultado: menos fricción operativa, trazabilidad de estado y una base para est
   - Matriz/matrices (`ID_MATRIZ`) desde catálogo técnico
   - Referencia y validez
   - Datos de cliente
+  - Selector de cliente maestro desde colección `clients`; al seleccionar copia datos al formulario y conserva snapshot en la proforma
   - Servicios seleccionados desde colección `services`
   - Para cada servicio: cantidad, rango mínimo, rango máximo, precio y descuento opcional
   - Notas

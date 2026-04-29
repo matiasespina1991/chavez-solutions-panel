@@ -15,6 +15,7 @@ test('backend Firestore collections contract is stable and unique', () => {
   assert.equal(FIRESTORE_COLLECTIONS.REQUESTS, 'requests');
   assert.equal(FIRESTORE_COLLECTIONS.WORK_ORDERS, 'work_orders');
   assert.equal(FIRESTORE_COLLECTIONS.SERVICES, 'services');
+  assert.equal(FIRESTORE_COLLECTIONS.CLIENTS, 'clients');
   assert.equal(FIRESTORE_COLLECTIONS.MAIL_OUTBOX, 'mail_outbox');
 
   const values = Object.values(FIRESTORE_COLLECTIONS);
@@ -46,4 +47,3 @@ test('frontend and backend collection constants stay synchronized', () => {
     'Frontend and backend Firestore collection maps must match exactly'
   );
 });
-

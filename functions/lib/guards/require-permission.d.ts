@@ -12,6 +12,7 @@ declare const PERMISSION_ROLE_MAP: {
     readonly 'services_catalog.write': ["admin", "editor"];
     readonly 'services_catalog.delete': ["admin", "editor"];
     readonly 'services_catalog.import': ["admin", "editor"];
+    readonly 'clients.write': ["admin", "order-supervisor"];
 };
 export type AppPermission = keyof typeof PERMISSION_ROLE_MAP;
 export declare const requirePermission: (req: CallableRequest<unknown>, permission: AppPermission) => Promise<AppUserRole>;
