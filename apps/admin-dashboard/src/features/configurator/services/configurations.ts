@@ -1,10 +1,12 @@
 import {
   collection,
+  type DocumentData,
   doc,
   getDoc,
   getDocs,
   setDoc,
   serverTimestamp,
+  type UpdateData,
   updateDoc,
   writeBatch
 } from 'firebase/firestore';
@@ -12,134 +14,27 @@ import { db } from '@/lib/firebase';
 import { FIRESTORE_COLLECTIONS } from '@/constants/firestore';
 import { normalizeMatrixArray } from '@/lib/request-normalizers';
 import type {
-  RequestApprovalStatus as DomainRequestApprovalStatus,
-  RequestStatus as DomainRequestStatus,
-  TechnicalServiceDocument
-} from '@/types/domain';
+  ConfigurationDocument,
+  ConfigurationServiceGroup,
+  ConfigurationServiceItem,
+  ConfigurationStatus,
+  ConfigurationType,
+  ImportedServiceDocument,
+  RequestDocument,
+  RequestStatus
+} from '@/features/configurator/lib/configuration-contracts';
+import { mapRequestDocumentToConfiguration } from '@/features/configurator/lib/configuration-document-mappers';
 
-export type ConfigurationStatus = 'draft' | 'final';
-export type ConfigurationType = 'proforma' | 'work_order' | 'both';
-export type RequestStatus = DomainRequestStatus;
-export type RequestApprovalStatus = DomainRequestApprovalStatus;
-
-export interface RequestApproval {
-  status: RequestApprovalStatus;
-  feedback?: string;
-  approvedAt?: any;
-  approvedBy?: {
-    uid: string | null;
-    email: string | null;
-  };
-  rejectedAt?: any;
-  rejectedBy?: {
-    uid: string | null;
-    email: string | null;
-  };
-  updatedAt?: any;
-}
-
-export interface ConfigurationClient {
-  businessName: string;
-  taxId: string;
-  contactName: string;
-  contactRole: string | null;
-  email: string;
-  phone: string;
-  address: string;
-  city: string;
-}
-
-export interface ConfigurationSampleItem {
-  sampleCode: string;
-  sampleType: string;
-  takenAt: Date | null;
-  notes: string;
-}
-
-export interface ConfigurationSamples {
-  agreedCount: number;
-  additionalCount: number;
-  executedCount: number;
-  items: ConfigurationSampleItem[];
-}
-
-export interface ConfigurationAnalysisItem {
-  parameterId: string;
-  parameterLabelEs: string;
-  unit: string;
-  method: string;
-  rangeOffered: string;
-  isAccredited: boolean;
-  turnaround: 'standard' | 'urgent';
-  unitPrice: number | null;
-  discountAmount?: number | null;
-  appliesToSampleCodes: string[] | null;
-}
-
-export interface ConfigurationAnalyses {
-  applyMode: 'all_samples' | 'by_sample';
-  items: ConfigurationAnalysisItem[];
-}
-
-export interface ConfigurationPricing {
-  currency: 'USD';
-  subtotal: number | null;
-  taxPercent: number | null;
-  total: number | null;
-  validDays: number | null;
-}
-
-export interface ConfigurationServiceItem {
-  serviceId: string;
-  parameterId: string;
-  parameterLabel: string;
-  tableLabel: string | null;
-  unit: string | null;
-  method: string | null;
-  rangeMin: string;
-  rangeMax: string;
-  quantity: number;
-  unitPrice: number | null;
-  discountAmount: number | null;
-}
-
-export interface ConfigurationServiceGroup {
-  name: string;
-  items: ConfigurationServiceItem[];
-}
-
-export interface ConfigurationServices {
-  items: ConfigurationServiceItem[];
-  grouped: ConfigurationServiceGroup[];
-}
-
-export type ImportedServiceDocument = TechnicalServiceDocument;
-
-export interface ConfigurationDocument {
-  id?: string;
-  type: ConfigurationType;
-  matrix: string[];
-  reference: string;
-  createdAt?: any;
-  updatedAt?: any;
-  status: ConfigurationStatus;
-  requestStatus?: RequestStatus;
-  approvalStatus?: RequestApprovalStatus;
-  notes: string;
-  client: ConfigurationClient;
-  samples: ConfigurationSamples;
-  services: ConfigurationServices;
-  analyses?: ConfigurationAnalyses;
-  pricing: ConfigurationPricing;
-}
-
-export interface RequestDocument
-  extends Omit<ConfigurationDocument, 'status'> {
-  isWorkOrder: boolean;
-  status: RequestStatus;
-  approval?: RequestApproval | null;
-  linkedWorkOrderId?: string | null;
-}
+export type {
+  ConfigurationDocument,
+  ConfigurationServiceGroup,
+  ConfigurationServiceItem,
+  ConfigurationStatus,
+  ConfigurationType,
+  ImportedServiceDocument,
+  RequestDocument,
+  RequestStatus
+};
 
 const REQUESTS_COLLECTION = FIRESTORE_COLLECTIONS.REQUESTS;
 const WORK_ORDER_COLLECTION = FIRESTORE_COLLECTIONS.WORK_ORDERS;
@@ -207,7 +102,7 @@ export const updateConfiguration = async (
   const linkedWorkOrderId = currentData?.linkedWorkOrderId;
   const { type, ...restData } = data;
   const normalizedMatrix = normalizeMatrixArray(restData.matrix);
-  const docData = {
+  const docData: UpdateData<DocumentData> = {
     ...restData,
     ...(restData.matrix !== undefined ? { matrix: normalizedMatrix } : {}),
     ...(type ? { isWorkOrder: toIsWorkOrder(type) } : {}),
@@ -221,7 +116,7 @@ export const updateConfiguration = async (
       }
       : {}),
     updatedAt: serverTimestamp()
-  } as any;
+  };
 
   const shouldSyncNotesToWorkOrder =
     typeof data.notes === 'string' && Boolean(linkedWorkOrderId);
@@ -247,40 +142,14 @@ export const getConfigurationById = async (
   const snapshot = await getDoc(docRef);
   if (!snapshot.exists()) return null;
   const data = snapshot.data() as RequestDocument;
-  return {
-    ...data,
-    matrix: normalizeMatrixArray(data.matrix),
-    id: snapshot.id,
-    type: data.isWorkOrder ? 'both' : 'proforma',
-    status: toConfigurationStatus(data.status),
-    requestStatus: data.status,
-    approvalStatus: data.approval?.status,
-    services:
-      typeof data.services === 'object' &&
-      data.services !== null &&
-      !Array.isArray(data.services)
-        ? {
-          items: Array.isArray(
-            (data.services as { items?: ConfigurationServiceItem[] }).items
-          )
-            ? ((data.services as { items?: ConfigurationServiceItem[] })
-              .items ?? [])
-            : [],
-          grouped: Array.isArray(
-            (data.services as { grouped?: ConfigurationServiceGroup[] })
-              .grouped
-          )
-            ? ((data.services as { grouped?: ConfigurationServiceGroup[] })
-              .grouped ?? [])
-            : []
-        }
-        : {
-          items: Array.isArray(data.services)
-            ? (data.services)
-            : [],
-          grouped: []
-        }
-  };
+  return mapRequestDocumentToConfiguration(
+    snapshot.id,
+    {
+      ...data,
+      matrix: normalizeMatrixArray(data.matrix)
+    },
+    toConfigurationStatus(data.status)
+  );
 };
 
 export const listImportedServices = async (): Promise<
