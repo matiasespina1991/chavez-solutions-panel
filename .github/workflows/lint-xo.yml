@@ -32,4 +32,4 @@ jobs:
         run: npm install
 
       - name: Run XO lint gate
-        run: ./lint-fix/scripts/xo-ci.sh
+        run: ./scripts/xo/xo-ci.sh
