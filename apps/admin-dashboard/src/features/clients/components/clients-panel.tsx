@@ -705,7 +705,7 @@ export function ClientsPanel() {
         </CardHeader>
 
         <CardContent className='min-w-0 space-y-3 overflow-x-hidden'>
-          <div className='w-full max-w-full min-w-0 overflow-visible rounded-md border'>
+          <div className='w-full max-w-full min-w-0 overflow-visible rounded-md border [&>[data-slot=table-container]]:min-h-[20rem]'>
             <Table className='min-w-[118rem]'>
               <TableHeader>
                 <TableRow>

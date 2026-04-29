@@ -48,6 +48,9 @@ import { db } from '@/lib/firebase';
 interface ConfiguratorClientTabProps {
   readonly form: UseFormReturn<FormValues>;
   readonly renderTabActions: () => ReactNode;
+  readonly registerBeforeFinalSubmitGuard: (
+    guard: () => Promise<boolean>
+  ) => void;
 }
 
 type ClientFormSnapshot = FormValues['client'];
@@ -70,9 +73,21 @@ const normalizeSnapshot = (snapshot: ClientFormSnapshot) => ({
   city: normalizeString(snapshot.city)
 });
 
+const CLIENT_FIELD_LABELS: Record<ClientFormFieldKey, string> = {
+  businessName: 'Razón social',
+  taxId: 'RUC',
+  contactName: 'Persona de contacto',
+  contactRole: 'Cargo',
+  email: 'Email',
+  phone: 'Teléfono',
+  address: 'Dirección',
+  city: 'Ciudad'
+};
+
 export function ConfiguratorClientTab({
   form,
-  renderTabActions
+  renderTabActions,
+  registerBeforeFinalSubmitGuard
 }: ConfiguratorClientTabProps) {
   const [clients, setClients] = useState<ClientRow[]>([]);
   const [isLoadingClients, setIsLoadingClients] = useState(false);
@@ -90,10 +105,15 @@ export function ConfiguratorClientTab({
   const [matchedClientForUpdate, setMatchedClientForUpdate] =
     useState<ClientRow | null>(null);
   const [isSavingClientBase, setIsSavingClientBase] = useState(false);
+  const [isBusinessNameInputReadOnly, setIsBusinessNameInputReadOnly] =
+    useState(true);
   const [autofilledFields, setAutofilledFields] = useState<
     Partial<Record<ClientFormFieldKey, boolean>>
   >({});
   const ignoreNextBusinessBlurRef = useRef(false);
+  const finalSubmitGuardResolverRef = useRef<((result: boolean) => void) | null>(
+    null
+  );
 
   const getAutofillInputClass = (key: ClientFormFieldKey) =>
     autofilledFields[key]
@@ -217,14 +237,17 @@ export function ConfiguratorClientTab({
     setActiveBusinessSuggestionIndex(-1);
   };
 
-  const checkClientBaseSuggestion = () => {
-    if (ignoreNextBusinessBlurRef.current) {
-      ignoreNextBusinessBlurRef.current = false;
-      return;
+  const resolveFinalSubmitGuard = (result: boolean) => {
+    const resolver = finalSubmitGuardResolverRef.current;
+    finalSubmitGuardResolverRef.current = null;
+    if (resolver) {
+      resolver(result);
     }
+  };
 
+  const evaluateClientBaseSuggestion = () => {
     const snapshot = normalizeSnapshot(form.getValues('client'));
-    if (!snapshot.businessName) return;
+    if (!snapshot.businessName) return { type: 'none' as const };
 
     const exactMatch = clients.find(
       (client) =>
@@ -233,8 +256,7 @@ export function ConfiguratorClientTab({
     );
 
     if (!exactMatch) {
-      setIsAddClientPromptOpen(true);
-      return;
+      return { type: 'add' as const };
     }
 
     const baseSnapshot = normalizeSnapshot({
@@ -258,9 +280,32 @@ export function ConfiguratorClientTab({
       snapshot.city !== baseSnapshot.city;
 
     if (hasChanges) {
-      setMatchedClientForUpdate(exactMatch);
+      return { type: 'update' as const, client: exactMatch };
+    }
+
+    return { type: 'none' as const };
+  };
+
+  const runBeforeFinalSubmitGuard = async (): Promise<boolean> => {
+    if (ignoreNextBusinessBlurRef.current) {
+      ignoreNextBusinessBlurRef.current = false;
+    }
+
+    const suggestion = evaluateClientBaseSuggestion();
+    if (suggestion.type === 'none') {
+      return true;
+    }
+
+    if (suggestion.type === 'add') {
+      setIsAddClientPromptOpen(true);
+    } else {
+      setMatchedClientForUpdate(suggestion.client);
       setIsUpdateClientPromptOpen(true);
     }
+
+    return new Promise((resolve) => {
+      finalSubmitGuardResolverRef.current = resolve;
+    });
   };
 
   const handleSaveNewClientToBase = async () => {
@@ -270,7 +315,6 @@ export function ConfiguratorClientTab({
     try {
       await createClient(payload);
       toast.success('Cliente agregado a la base.');
-      setIsAddClientPromptOpen(false);
       await loadClients();
     } catch (error) {
       console.error('[ConfiguratorClientTab] create client from form error', error);
@@ -301,8 +345,6 @@ export function ConfiguratorClientTab({
         'Actualización desde configurador de proformas'
       );
       toast.success('Cliente base actualizado.');
-      setIsUpdateClientPromptOpen(false);
-      setMatchedClientForUpdate(null);
       await loadClients();
     } catch (error) {
       console.error('[ConfiguratorClientTab] update client from form error', error);
@@ -322,9 +364,42 @@ export function ConfiguratorClientTab({
     isBusinessAutocompleteOpen && businessSuggestions.length > 0;
   const shouldShowDialogResultsContainer =
     isLoadingClients || normalizeForSearch(clientDialogQuery).length > 0;
+  const clientUpdateDiffRows = useMemo(() => {
+    if (!matchedClientForUpdate) return [];
+
+    const baseSnapshot = normalizeSnapshot({
+      businessName: matchedClientForUpdate.businessName,
+      taxId: matchedClientForUpdate.taxId,
+      contactName: matchedClientForUpdate.contactName,
+      contactRole: matchedClientForUpdate.contactRole,
+      email: matchedClientForUpdate.email,
+      phone: matchedClientForUpdate.phone,
+      address: matchedClientForUpdate.address,
+      city: matchedClientForUpdate.city
+    });
+    const currentSnapshot = normalizeSnapshot(form.getValues('client'));
+
+    const keys = Object.keys(CLIENT_FIELD_LABELS) as ClientFormFieldKey[];
+    return keys
+      .filter((key) => currentSnapshot[key] !== baseSnapshot[key])
+      .map((key) => ({
+        key,
+        label: CLIENT_FIELD_LABELS[key],
+        previous: baseSnapshot[key],
+        next: currentSnapshot[key]
+      }));
+  }, [form, matchedClientForUpdate]);
+
+  useEffect(() => {
+    registerBeforeFinalSubmitGuard(runBeforeFinalSubmitGuard);
+  }, [registerBeforeFinalSubmitGuard, runBeforeFinalSubmitGuard]);
 
   return (
-    <TabsContent value='client' className='mt-4 space-y-4'>
+    <TabsContent
+      forceMount
+      value='client'
+      className='mt-4 space-y-4 data-[state=inactive]:hidden'
+    >
       <Card className='border-0 shadow-none'>
         <CardHeader>
           <div className='flex items-center gap-1.5'>
@@ -356,9 +431,19 @@ export function ConfiguratorClientTab({
                     <div className='relative'>
                       <Input
                         {...field}
+                        name='cs_client_rsocial_manual'
                         value={field.value ?? ''}
                         className={getAutofillInputClass('businessName')}
+                        readOnly={isBusinessNameInputReadOnly}
+                        autoComplete='new-password'
+                        autoCorrect='off'
+                        autoCapitalize='off'
+                        spellCheck={false}
+                        data-form-type='other'
+                        data-lpignore='true'
+                        data-1p-ignore='true'
                         onFocus={() => {
+                          setIsBusinessNameInputReadOnly(false);
                           setIsBusinessAutocompleteOpen(true);
                           setActiveBusinessSuggestionIndex(-1);
                         }}
@@ -369,9 +454,9 @@ export function ConfiguratorClientTab({
                           setActiveBusinessSuggestionIndex(-1);
                         }}
                         onBlur={() => {
+                          setIsBusinessNameInputReadOnly(true);
                           globalThis.setTimeout(() => {
                             setIsBusinessAutocompleteOpen(false);
-                            checkClientBaseSuggestion();
                           }, 120);
                         }}
                         onKeyDown={(event) => {
@@ -463,7 +548,15 @@ export function ConfiguratorClientTab({
                   <FormControl>
                     <Input
                       {...field}
+                      name='cs_client_taxid_manual'
                       className={getAutofillInputClass('taxId')}
+                      autoComplete='new-password'
+                      autoCorrect='off'
+                      autoCapitalize='off'
+                      spellCheck={false}
+                      data-form-type='other'
+                      data-lpignore='true'
+                      data-1p-ignore='true'
                       onChange={(event) => {
                         clearAutofilledField('taxId');
                         field.onChange(event.target.value);
@@ -483,7 +576,15 @@ export function ConfiguratorClientTab({
                   <FormControl>
                     <Input
                       {...field}
+                      name='cs_client_contact_manual'
                       className={getAutofillInputClass('contactName')}
+                      autoComplete='new-password'
+                      autoCorrect='off'
+                      autoCapitalize='off'
+                      spellCheck={false}
+                      data-form-type='other'
+                      data-lpignore='true'
+                      data-1p-ignore='true'
                       onChange={(event) => {
                         clearAutofilledField('contactName');
                         field.onChange(event.target.value);
@@ -503,8 +604,16 @@ export function ConfiguratorClientTab({
                   <FormControl>
                     <Input
                       {...field}
+                      name='cs_client_role_manual'
                       value={field.value ?? ''}
                       className={getAutofillInputClass('contactRole')}
+                      autoComplete='new-password'
+                      autoCorrect='off'
+                      autoCapitalize='off'
+                      spellCheck={false}
+                      data-form-type='other'
+                      data-lpignore='true'
+                      data-1p-ignore='true'
                       onChange={(event) => {
                         clearAutofilledField('contactRole');
                         field.onChange(event.target.value);
@@ -525,7 +634,15 @@ export function ConfiguratorClientTab({
                     <Input
                       type='email'
                       {...field}
+                      name='cs_client_email_manual'
                       className={getAutofillInputClass('email')}
+                      autoComplete='new-password'
+                      autoCorrect='off'
+                      autoCapitalize='off'
+                      spellCheck={false}
+                      data-form-type='other'
+                      data-lpignore='true'
+                      data-1p-ignore='true'
                       onChange={(event) => {
                         clearAutofilledField('email');
                         field.onChange(event.target.value);
@@ -545,7 +662,15 @@ export function ConfiguratorClientTab({
                   <FormControl>
                     <Input
                       {...field}
+                      name='cs_client_phone_manual'
                       className={getAutofillInputClass('phone')}
+                      autoComplete='new-password'
+                      autoCorrect='off'
+                      autoCapitalize='off'
+                      spellCheck={false}
+                      data-form-type='other'
+                      data-lpignore='true'
+                      data-1p-ignore='true'
                       onChange={(event) => {
                         clearAutofilledField('phone');
                         field.onChange(event.target.value);
@@ -565,7 +690,15 @@ export function ConfiguratorClientTab({
                   <FormControl>
                     <Input
                       {...field}
+                      name='cs_client_address_manual'
                       className={getAutofillInputClass('address')}
+                      autoComplete='new-password'
+                      autoCorrect='off'
+                      autoCapitalize='off'
+                      spellCheck={false}
+                      data-form-type='other'
+                      data-lpignore='true'
+                      data-1p-ignore='true'
                       onChange={(event) => {
                         clearAutofilledField('address');
                         field.onChange(event.target.value);
@@ -585,7 +718,15 @@ export function ConfiguratorClientTab({
                   <FormControl>
                     <Input
                       {...field}
+                      name='cs_client_city_manual'
                       className={getAutofillInputClass('city')}
+                      autoComplete='new-password'
+                      autoCorrect='off'
+                      autoCapitalize='off'
+                      spellCheck={false}
+                      data-form-type='other'
+                      data-lpignore='true'
+                      data-1p-ignore='true'
                       onChange={(event) => {
                         clearAutofilledField('city');
                         field.onChange(event.target.value);
@@ -602,7 +743,7 @@ export function ConfiguratorClientTab({
       </Card>
 
       <Dialog open={isClientDialogOpen} onOpenChange={setIsClientDialogOpen}>
-        <DialogContent className='w-[min(96vw,50rem)] !max-w-[50rem]'>
+        <DialogContent className='w-[min(96vw,35rem)] !max-w-[35rem]'>
           <DialogHeader>
             <DialogTitle>Buscar cliente</DialogTitle>
             <DialogDescription>
@@ -614,8 +755,16 @@ export function ConfiguratorClientTab({
               <Search className='text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2' />
               <Input
                 value={clientDialogQuery}
+                name='cs_client_dialog_search'
                 placeholder='Buscar por razón social, RUC, contacto o email...'
                 className='pl-9'
+                autoComplete='new-password'
+                autoCorrect='off'
+                autoCapitalize='off'
+                spellCheck={false}
+                data-form-type='other'
+                data-lpignore='true'
+                data-1p-ignore='true'
                 onChange={(event) => setClientDialogQuery(event.target.value)}
               />
             </div>
@@ -689,7 +838,15 @@ export function ConfiguratorClientTab({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isAddClientPromptOpen} onOpenChange={setIsAddClientPromptOpen}>
+      <Dialog
+        open={isAddClientPromptOpen}
+        onOpenChange={(open) => {
+          setIsAddClientPromptOpen(open);
+          if (!open) {
+            resolveFinalSubmitGuard(false);
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Agregar cliente a la base</DialogTitle>
@@ -704,7 +861,10 @@ export function ConfiguratorClientTab({
               variant='outline'
               className='cursor-pointer'
               disabled={isSavingClientBase}
-              onClick={() => setIsAddClientPromptOpen(false)}
+              onClick={() => {
+                resolveFinalSubmitGuard(true);
+                setIsAddClientPromptOpen(false);
+              }}
             >
               Omitir
             </Button>
@@ -712,7 +872,11 @@ export function ConfiguratorClientTab({
               type='button'
               className='cursor-pointer'
               disabled={isSavingClientBase}
-              onClick={handleSaveNewClientToBase}
+              onClick={async () => {
+                await handleSaveNewClientToBase();
+                resolveFinalSubmitGuard(true);
+                setIsAddClientPromptOpen(false);
+              }}
             >
               {isSavingClientBase ? (
                 <Loader2 className='h-4 w-4 animate-spin' />
@@ -725,16 +889,65 @@ export function ConfiguratorClientTab({
 
       <Dialog
         open={isUpdateClientPromptOpen}
-        onOpenChange={setIsUpdateClientPromptOpen}
+        onOpenChange={(open) => {
+          setIsUpdateClientPromptOpen(open);
+          if (!open) {
+            setMatchedClientForUpdate(null);
+            resolveFinalSubmitGuard(false);
+          }
+        }}
       >
-        <DialogContent>
+        <DialogContent className='w-[min(96vw,40rem)] !max-w-[40rem]'>
           <DialogHeader>
-            <DialogTitle>Actualizar cliente en la base</DialogTitle>
+            <DialogTitle>Actualizar datos de cliente</DialogTitle>
             <DialogDescription>
-              Esta razón social ya existe en `clients`, pero detectamos cambios
-              en otros campos. ¿Deseas actualizar el registro maestro?
+              &apos;{matchedClientForUpdate?.businessName || 'Cliente'}&apos; ya
+              existe en la base de datos de clientes, pero detectamos cambios
+              en algunos campos. ¿Desea actualizar los datos del cliente en la
+              base datos?
             </DialogDescription>
           </DialogHeader>
+
+          {clientUpdateDiffRows.length > 0 ? (
+            <div className='max-h-64 overflow-y-auto rounded-md border'>
+              <div className='sticky top-0 z-10 grid grid-cols-[10rem_minmax(0,1fr)_minmax(0,1fr)] items-center border-b bg-background px-3 py-2 text-xs'>
+                <span className='text-muted-foreground border-r pr-3 font-semibold tracking-[0.02em] uppercase'>
+                  Campo modificado
+                </span>
+                <span className='text-muted-foreground border-r px-3 font-semibold tracking-[0.02em] uppercase'>
+                  Valor anterior
+                </span>
+                <span className='text-muted-foreground px-3 font-semibold tracking-[0.02em] uppercase'>
+                  Nuevo valor
+                </span>
+              </div>
+              <div className='divide-y'>
+                {clientUpdateDiffRows.map((row) => (
+                  <div
+                    key={row.key}
+                    className='grid grid-cols-[10rem_minmax(0,1fr)_minmax(0,1fr)] items-center px-3 py-2 text-sm'
+                  >
+                    <span className='text-muted-foreground truncate border-r pr-3 font-medium'>
+                      {row.label}
+                    </span>
+                    <span
+                      className='border-r px-3 break-words whitespace-normal'
+                      title={row.previous || '—'}
+                    >
+                      {row.previous || '—'}
+                    </span>
+                    <span
+                      className='px-3 font-medium break-words whitespace-normal'
+                      title={row.next || '—'}
+                    >
+                      {row.next || '—'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           <DialogFooter>
             <Button
               type='button'
@@ -742,17 +955,23 @@ export function ConfiguratorClientTab({
               className='cursor-pointer'
               disabled={isSavingClientBase}
               onClick={() => {
+                resolveFinalSubmitGuard(true);
                 setIsUpdateClientPromptOpen(false);
                 setMatchedClientForUpdate(null);
               }}
             >
-              Mantener base actual
+              Omitir
             </Button>
             <Button
               type='button'
               className='cursor-pointer'
               disabled={isSavingClientBase}
-              onClick={handleUpdateClientInBase}
+              onClick={async () => {
+                await handleUpdateClientInBase();
+                resolveFinalSubmitGuard(true);
+                setIsUpdateClientPromptOpen(false);
+                setMatchedClientForUpdate(null);
+              }}
             >
               {isSavingClientBase ? (
                 <Loader2 className='h-4 w-4 animate-spin' />

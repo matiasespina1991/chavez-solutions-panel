@@ -86,6 +86,9 @@ export default function ConfiguratorForm() {
   >([]);
   const [isLoadingAvailableServices, setIsLoadingAvailableServices] =
     useState(false);
+  const beforeFinalSubmitGuardRef = useRef<(() => Promise<boolean>) | null>(
+    null
+  );
 
   const getServiceId = (service: ImportedServiceDocument) =>
     service.ID_CONFIG_PARAMETRO || service.id;
@@ -959,7 +962,14 @@ export default function ConfiguratorForm() {
   };
 
   const handleExecuteClick = () => {
-    void form.handleSubmit(async (data) => onSubmit(data, 'final'))();
+    void (async () => {
+      if (beforeFinalSubmitGuardRef.current) {
+        const canContinue = await beforeFinalSubmitGuardRef.current();
+        if (!canContinue) return;
+      }
+
+      await form.handleSubmit(async (data) => onSubmit(data, 'final'))();
+    })();
   };
 
   const summaryNotes = (form.getValues('notes') || '').trim();
@@ -1448,6 +1458,9 @@ export default function ConfiguratorForm() {
           <ConfiguratorClientTab
             form={form}
             renderTabActions={() => renderTabActions()}
+            registerBeforeFinalSubmitGuard={(guard) => {
+              beforeFinalSubmitGuardRef.current = guard;
+            }}
           />
 
           {/* PASO C: SERVICIOS */}
