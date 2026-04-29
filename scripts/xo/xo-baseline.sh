@@ -14,7 +14,7 @@ FUNCTIONS_EXIT=$?
 set -e
 
 npx --yes xo \
-  --cwd "${ROOT_DIR}/apps/admin-dashboard" \
+  --cwd "${ROOT_DIR}/apps/panel" \
   --config "${ROOT_DIR}/scripts/xo/config/xo-admin.cjs" \
   --space \
   --prettier=compat \

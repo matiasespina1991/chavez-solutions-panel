@@ -4,7 +4,7 @@ Repositorio del panel operativo de laboratorio y backend serverless.
 
 ## Estructura
 
-- `apps/admin-dashboard`: aplicación web (Next.js) del panel.
+- `apps/panel`: aplicación web (Next.js) del panel.
 - `functions`: Cloud Functions (Firebase) con lógica de negocio, PDF y correo.
 - `docs`: documentación funcional/comercial del proyecto.
 
@@ -13,7 +13,7 @@ Repositorio del panel operativo de laboratorio y backend serverless.
 ### 1) Dashboard
 
 ```bash
-cd apps/admin-dashboard
+cd apps/panel
 npm install
 npm run dev
 ```

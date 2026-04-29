@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
-echo "==> XO lint: admin-dashboard"
+echo "==> XO lint: panel"
 "${ROOT_DIR}/scripts/xo/xo-admin.sh"
 
 echo "==> XO lint: functions"

@@ -6,8 +6,8 @@ La vista `/dashboard/work-orders` opera sobre `work_orders` y centraliza seguimi
 
 ## Archivos principales
 
-- Página: `apps/admin-dashboard/src/app/dashboard/work-orders/page.tsx`
-- Componente: `apps/admin-dashboard/src/features/work-orders/components/work-orders-listing.tsx`
+- Página: `apps/panel/src/app/dashboard/work-orders/page.tsx`
+- Componente: `apps/panel/src/features/work-orders/components/work-orders-listing.tsx`
 
 ## Fuente de datos
 

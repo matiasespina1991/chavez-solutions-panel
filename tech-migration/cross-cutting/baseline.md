@@ -7,12 +7,12 @@
 
 Comandos ejecutados:
 
-- `cd apps/admin-dashboard && npx tsc --noEmit`
+- `cd apps/panel && npx tsc --noEmit`
 - `cd functions && npx tsc --noEmit`
 
 Resultado:
 
-- `apps/admin-dashboard`: **OK** (sin errores de tipos).
+- `apps/panel`: **OK** (sin errores de tipos).
 - `functions`: **OK** (sin errores de tipos).
 
 ## Hallazgos estructurales principales
@@ -30,7 +30,7 @@ Resultado:
 ## Evidencia de cierre Fase 0
 
 1. Se corrigio glob invalido en `.gitignore` de admin (`*.pem\` -> `*.pem`).
-2. `firebase.json` y `apphosting*.yaml*` quedaron alineados a `apps/admin-dashboard`.
+2. `firebase.json` y `apphosting*.yaml*` quedaron alineados a `apps/panel`.
 3. Se eliminaron `.d.ts` legacy en `functions/lib` asociados a nombres `ServiceRequest*` y triggers alias obsoletos.
 
 ## Avance inicial fases siguientes

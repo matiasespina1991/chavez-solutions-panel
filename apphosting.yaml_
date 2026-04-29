@@ -1,6 +1,6 @@
 # Settings for Backend (on Cloud Run).
 # Canonical target for this repository: admin dashboard app.
-sourceDir: apps/admin-dashboard
+sourceDir: apps/panel
 # See https://firebase.google.com/docs/app-hosting/configure#cloud-run
 runConfig:
   minInstances: 0

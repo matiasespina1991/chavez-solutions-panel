@@ -13,9 +13,9 @@ El dominio operativo actual está centrado en **servicios** (no en muestras como
 
 ## Archivos principales
 
-- Página: `apps/admin-dashboard/src/app/dashboard/configurator/page.tsx`
-- Componente: `apps/admin-dashboard/src/features/configurator/components/configurator-form.tsx`
-- Servicio de datos: `apps/admin-dashboard/src/features/configurator/services/configurations.ts`
+- Página: `apps/panel/src/app/dashboard/configurator/page.tsx`
+- Componente: `apps/panel/src/features/configurator/components/configurator-form.tsx`
+- Servicio de datos: `apps/panel/src/features/configurator/services/configurations.ts`
 
 ## Datos que captura
 

@@ -9,7 +9,7 @@
     "indexes": "firestore.indexes.json"
   },
   "hosting": {
-    "source": "apps/admin-dashboard",
+    "source": "apps/panel",
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -23,7 +23,7 @@
   "apphosting": [
     {
       "backendId": "dashboard",
-      "rootDir": "apps/admin-dashboard",
+      "rootDir": "apps/panel",
       "ignore": [
         "node_modules",
         ".git",

@@ -1,0 +1,205 @@
+'use client';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger
+} from '@/components/ui/collapsible';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  SidebarRail,
+  useSidebar
+} from '@/components/ui/sidebar';
+import { UserAvatarProfile } from '@/components/user-avatar-profile';
+import { navItems } from '@/config/nav-config';
+import { useFilteredNavItems } from '@/hooks/use-nav';
+import {
+  IconChevronRight,
+  IconLogout,
+  IconSettings
+} from '@tabler/icons-react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
+import * as React from 'react';
+import { Icons } from '../icons';
+import { useAuthSession } from '@/contexts/auth-session';
+
+export default function AppSidebar() {
+  const pathname = usePathname();
+  const { isMobile, setOpenMobile, state } = useSidebar();
+  const { user, activeOrganization, signOut } = useAuthSession();
+  const router = useRouter();
+  const filteredItems = useFilteredNavItems(navItems);
+
+  const handleNavClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+
+  return (
+    <Sidebar collapsible='icon'>
+      <SidebarHeader>
+        {state === 'collapsed' && !isMobile ? (
+          <div className='w-full px-2 py-3'>
+            <img
+              src='/assets/branding/logos/chavez_solutions/world-logo.png'
+              alt='Chavez Solutions'
+              className='h-auto w-full max-w-8 object-contain'
+            />
+          </div>
+        ) : (
+          <div className='flex items-center justify-start px-4 py-3'>
+            <img
+              src='/assets/branding/logos/chavez_solutions/chavez%20logo.png'
+              alt='Chavez Solutions'
+              className='h-auto w-auto max-h-14 object-contain'
+            />
+          </div>
+        )}
+      </SidebarHeader>
+      <SidebarContent className='overflow-x-hidden'>
+        <SidebarGroup>
+          <SidebarGroupLabel>Menu</SidebarGroupLabel>
+          <SidebarMenu>
+            {filteredItems.map((item) => {
+              const Icon = item.icon ? Icons[item.icon] : Icons.logo;
+              return item?.items && item?.items?.length > 0 ? (
+                <Collapsible
+                  key={item.title}
+                  asChild
+                  defaultOpen={item.isActive}
+                  className='group/collapsible'
+                >
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton
+                        tooltip={item.title}
+                        isActive={pathname === item.url}
+                      >
+                        {item.icon ? <Icon /> : null}
+                        <span>{item.title}</span>
+                        <IconChevronRight className='ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90' />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {item.items?.map((subItem) => (
+                          <SidebarMenuSubItem key={subItem.title}>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={pathname === subItem.url}
+                            >
+                              <Link href={subItem.url} onClick={handleNavClick}>
+                                <span>{subItem.title}</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              ) : (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip={item.title}
+                    isActive={pathname === item.url}
+                  >
+                    <Link href={item.url} onClick={handleNavClick}>
+                      <Icon />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              );
+            })}
+          </SidebarMenu>
+        </SidebarGroup>
+      </SidebarContent>
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  size='lg'
+                  className='data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground cursor-pointer'
+                >
+                  {user ? <UserAvatarProfile
+                    showInfo
+                    className='h-8 w-8 rounded-lg'
+                    user={user}
+                  /> : null}
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className='w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg'
+                side='bottom'
+                align='end'
+                sideOffset={4}
+              >
+                <DropdownMenuLabel className='p-0 font-normal'>
+                  <div className='px-1 py-1.5'>
+                    {user ? <UserAvatarProfile
+                      showInfo
+                      className='h-8 w-8 rounded-lg'
+                      user={user}
+                    /> : null}
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+
+                <DropdownMenuGroup>
+                  <DropdownMenuItem
+                    style={{
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => router.push('/panel/settings')}
+                  >
+                    <IconSettings className='mr-2 h-4 w-4' />
+                    Configuración
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  style={{
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => {
+                    void signOut();
+                    router.push('/auth/sign-in');
+                  }}
+                >
+                  <IconLogout className='mr-2 h-4 w-4' />
+                  Cerrar sesión
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+      <SidebarRail />
+    </Sidebar>
+  );
+}

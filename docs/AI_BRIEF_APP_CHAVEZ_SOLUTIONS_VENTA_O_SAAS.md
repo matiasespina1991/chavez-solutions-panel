@@ -54,10 +54,12 @@ Resultado: menos fricción operativa, trazabilidad de estado y una base para est
 #### Configurador
 
 - Wizard de 4 pasos visuales:
+
 1. Cliente
 2. Servicios
 3. Datos
 4. Resumen
+
 - Captura:
   - Matriz/matrices (`ID_MATRIZ`) desde catálogo técnico
   - Referencia y validez
@@ -265,7 +267,7 @@ Con esto se calcula subtotal/iva/total de la proforma.
 - Proyecto Firebase activo en repo: `escriba-app-302f5`.
 - Región Firestore: `eur3`.
 - Functions con regiones europeas (`europe-west3` en triggers clave).
-- Frontend local con Next.js (`npm run dev` en `apps/admin-dashboard`).
+- Frontend local con Next.js (`npm run dev` en `apps/panel`).
 
 ### 9.2 Variables de entorno críticas
 
@@ -386,6 +388,6 @@ Fase 3 (escala):
 ## 15) Resumen final para decisión
 
 El sistema ya tiene una base sólida de flujo operativo real y backend transaccional para venderse en modo implementación administrada.  
-Para SaaS puro y escalable, necesita una etapa de productización adicional (seguridad, multi-tenant, gobernanza de roles, PDF definitivo, observabilidad).  
+Para SaaS puro y escalable, necesita una etapa de productización adicional (seguridad, multi-tenant, gobernanza de roles, PDF definitivo, observabilidad).
 
 Conclusión práctica: hoy está en muy buen punto para venderse, pero el formato de venta recomendado inicialmente es “producto + servicio gestionado”, con transición planificada a SaaS completo.

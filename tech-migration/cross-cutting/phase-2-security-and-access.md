@@ -19,7 +19,7 @@
 
 - `id`: SEC-2002
 - `scope`: matriz de permisos por rol para acciones criticas.
-- `files`: `tech-migration/cross-cutting/security-matrix.md`, `functions/src/**`, `apps/admin-dashboard/src/**`
+- `files`: `tech-migration/cross-cutting/security-matrix.md`, `functions/src/**`, `apps/panel/src/**`
 - `risk`: high
 - `depends_on`: [SEC-2001]
 - `acceptance`:
@@ -27,7 +27,7 @@
   - [x] Casos borde identificados.
 - `validation_commands`:
   - `cd functions && npx tsc --noEmit`
-  - `cd apps/admin-dashboard && npx tsc --noEmit`
+  - `cd apps/panel && npx tsc --noEmit`
 - `status`: `approved`
 
 ## SEC-2003
@@ -48,13 +48,13 @@
 
 - `id`: SEC-2004
 - `scope`: alinear `use-nav`/allowlist con rutas productivas reales.
-- `files`: `apps/admin-dashboard/src/hooks/use-nav.ts`, `apps/admin-dashboard/src/config/nav-config.ts`
+- `files`: `apps/panel/src/hooks/use-nav.ts`, `apps/panel/src/config/nav-config.ts`
 - `risk`: medium
 - `depends_on`: [SEC-2002]
 - `acceptance`:
   - [x] Rutas operativas permitidas en prod sin drift (`requests-list`, `work-orders`, `lab-analysis`, `services-catalog`, `configurator`).
 - `validation_commands`:
-  - `cd apps/admin-dashboard && npx tsc --noEmit`
+  - `cd apps/panel && npx tsc --noEmit`
 - `status`: `approved`
 
 ## SEC-2005

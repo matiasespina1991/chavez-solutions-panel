@@ -72,25 +72,31 @@ Las acciones criticas en backend se controlan via `requirePermission`:
 Ejecutar en cada cambio de seguridad/acceso:
 
 1. Auth/Navegacion
+
 - Login valido permite entrar a rutas operativas.
 - Usuario sin permisos no ve/usa rutas restringidas.
 
 2. Requests / OT
+
 - Aprobar proforma con rol autorizado funciona.
 - Aprobar/rechazar con rol no autorizado devuelve `permission-denied`.
 - Emitir/pausar/reanudar/completar OT valida permisos correctamente.
 
 3. Lab
+
 - Guardado de analisis acepta rol habilitado y rechaza rol no habilitado.
 
 4. Services Catalog
+
 - Crear/editar/eliminar/importar/historial respeta permisos por accion.
 
 5. Clientes
+
 - Crear/editar/eliminar/backfill respeta permisos por accion.
 - Seleccionar cliente en configurador copia datos al formulario sin mutar el maestro.
 
 6. Rules
+
 - `firebase deploy --only firestore:rules` sin errores.
 - Lecturas/escrituras fuera de policy quedan bloqueadas.
 
@@ -98,6 +104,6 @@ Ejecutar en cada cambio de seguridad/acceso:
 
 ```bash
 cd functions && npx tsc --noEmit
-cd apps/admin-dashboard && npx tsc --noEmit
+cd apps/panel && npx tsc --noEmit
 firebase deploy --only firestore:rules
 ```

@@ -4,7 +4,7 @@ set -euo pipefail
 PROJECT_ID="${PROJECT_ID:-escriba-app-302f5}"
 BACKEND="${APPHOSTING_BACKEND:-dashboard}"
 LOCATION="${APPHOSTING_LOCATION:-us-central1}"
-ENV_FILE="${1:-apps/admin-dashboard/.env.local}"
+ENV_FILE="${1:-apps/panel/.env.local}"
 
 if ! command -v firebase >/dev/null 2>&1; then
   echo "❌ firebase CLI no está instalado o no está en PATH"

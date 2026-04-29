@@ -4,7 +4,7 @@
 
 - `id`: APP-3001
 - `scope`: particionar `configurator-form.tsx` (estado/orquestacion, dialogos, cards, barra acciones, costos flotantes).
-- `files`: `apps/admin-dashboard/src/features/configurator/components/**`
+- `files`: `apps/panel/src/features/configurator/components/**`
 - `risk`: high (archivo muy grande y flujo critico).
 - `depends_on`: [CT-1003, CT-1006]
 - `acceptance`:
@@ -16,15 +16,15 @@
   - Micro-slice 3: dialogo principal de seleccion de servicios (`Combo de servicios`) desacoplado de `configurator-form.tsx` en `features/configurator/components/configurator-services-dialog.tsx`.
   - Micro-slice 4: tabs del configurador desacoplados por responsabilidad en `features/configurator/components/configurator-type-tab.tsx`, `configurator-client-tab.tsx`, `configurator-services-tab.tsx` y `configurator-summary-tab.tsx`.
 - `validation_commands`:
-  - `cd apps/admin-dashboard && npx tsc --noEmit`
-  - `cd apps/admin-dashboard && npm run build`
+  - `cd apps/panel && npx tsc --noEmit`
+  - `cd apps/panel && npm run build`
 - `status`: `approved`
 
 ## APP-3002
 
 - `id`: APP-3002
 - `scope`: extraer filtro/autocomplete/seleccion de servicios a hooks reutilizables.
-- `files`: `apps/admin-dashboard/src/features/configurator/hooks/**`
+- `files`: `apps/panel/src/features/configurator/hooks/**`
 - `risk`: medium
 - `depends_on`: [APP-3001]
 - `acceptance`:
@@ -34,14 +34,14 @@
   - Micro-slice 1: filtro/busqueda/opciones y contadores del dialogo de servicios extraidos a `features/configurator/hooks/use-configurator-service-dialog.ts` (reduce logica UI embebida en `configurator-form.tsx`).
   - Micro-slice 2: estado + handlers de seleccion de servicios (combos, filtros activos, seleccion masiva, edicion, eliminacion y actualizacion de items) extraidos a `features/configurator/hooks/use-configurator-service-selection-state.ts`.
 - `validation_commands`:
-  - `cd apps/admin-dashboard && npx tsc --noEmit`
+  - `cd apps/panel && npx tsc --noEmit`
 - `status`: `approved`
 
 ## APP-3003
 
 - `id`: APP-3003
 - `scope`: particionar `requests-listing.tsx` (tabla, resumen modal, acciones estado, adapters).
-- `files`: `apps/admin-dashboard/src/features/requests/components/**`, `apps/admin-dashboard/src/features/requests/lib/**`
+- `files`: `apps/panel/src/features/requests/components/**`, `apps/panel/src/features/requests/lib/**`
 - `risk`: high
 - `depends_on`: [CT-1003]
 - `acceptance`:
@@ -70,15 +70,15 @@
   - Micro-slice 21: composicion de dialogs de solicitudes (resumen, ejecutar OT, pausar/reanudar, rechazar, eliminar) desacoplada de `requests-listing.tsx` en `features/requests/components/requests-listing-dialogs.tsx`.
   - Micro-slice 22: action-bar de header de dialogos universalizada en `components/ui/dialog-header-actions.tsx` y reutilizada en resumen de solicitudes + resumen de ordenes de trabajo.
 - `validation_commands`:
-  - `cd apps/admin-dashboard && npx tsc --noEmit`
-  - `cd apps/admin-dashboard && npm run build`
+  - `cd apps/panel && npx tsc --noEmit`
+  - `cd apps/panel && npm run build`
 - `status`: `approved`
 
 ## APP-3004
 
 - `id`: APP-3004
 - `scope`: particionar `work-orders-listing.tsx` (tabla, acciones OT, impresion/descarga, adapters).
-- `files`: `apps/admin-dashboard/src/features/work-orders/components/**`
+- `files`: `apps/panel/src/features/work-orders/components/**`
 - `risk`: high
 - `depends_on`: [CT-1003]
 - `acceptance`:
@@ -98,14 +98,14 @@
   - Micro-slice 12: utilidades de preview/impresion/descarga OT extraidas a `features/work-orders/lib/work-order-preview.ts`.
   - Micro-slice 13: `work-orders-listing.tsx` reducido a composicion/orquestacion de hooks + componentes.
 - `validation_commands`:
-  - `cd apps/admin-dashboard && npx tsc --noEmit`
+  - `cd apps/panel && npx tsc --noEmit`
 - `status`: `approved`
 
 ## APP-3005
 
 - `id`: APP-3005
 - `scope`: particionar `services-catalog-panel.tsx` (tabla editable, dialogos create/edit, autocomplete engine, acciones fila).
-- `files`: `apps/admin-dashboard/src/features/services-catalog/components/**`
+- `files`: `apps/panel/src/features/services-catalog/components/**`
 - `risk`: high
 - `depends_on`: [CT-1003, CT-1006]
 - `acceptance`:
@@ -118,14 +118,14 @@
   - Micro-slice 5: dialogo create/edit de servicio (secciones, campos, validaciones, autocomplete y CTA de guardado) desacoplado de `services-catalog-panel.tsx` en `features/services-catalog/components/services-catalog-create-dialog.tsx`.
   - Micro-slice 6: barra de acciones superior (agregar/editar/deseleccionar, eliminar masivo, guardar cambios) desacoplada de `services-catalog-panel.tsx` en `features/services-catalog/components/services-catalog-toolbar-actions.tsx`.
 - `validation_commands`:
-  - `cd apps/admin-dashboard && npx tsc --noEmit`
+  - `cd apps/panel && npx tsc --noEmit`
 - `status`: `approved`
 
 ## APP-3006
 
 - `id`: APP-3006
 - `scope`: crear capa `services` por dominio (requests/work-orders/services-catalog/lab-analysis) y mover contratos/modelos de dominio fuera de componentes para desacoplar `configurations.ts`.
-- `files`: `apps/admin-dashboard/src/features/**/services/**`, `apps/admin-dashboard/src/features/**/lib/**`, `apps/admin-dashboard/src/features/**/components/**`
+- `files`: `apps/panel/src/features/**/services/**`, `apps/panel/src/features/**/lib/**`, `apps/panel/src/features/**/components/**`
 - `risk`: medium
 - `depends_on`: [APP-3001, APP-3003, APP-3004, APP-3005]
 - `acceptance`:
@@ -137,5 +137,5 @@
   - Micro-slice 3: implementación de callables y contratos movida a dominio (`features/requests/services/request-callables.ts`, `features/requests/services/request-preview-callables.ts`, `features/work-orders/services/work-order-callables.ts`) para eliminar dependencia indirecta con `configurations.ts`.
   - Micro-slice 4: gap detectado en `lab-analysis` (tipos/helpers de dominio aún incrustados en componente). Se extrae a `features/lab-analysis/lib/lab-analysis-model.ts` y se actualizan imports en `lab-analysis-form.tsx` y `services/lab-analysis.ts`.
 - `validation_commands`:
-  - `cd apps/admin-dashboard && npx tsc --noEmit`
+  - `cd apps/panel && npx tsc --noEmit`
 - `status`: `approved`

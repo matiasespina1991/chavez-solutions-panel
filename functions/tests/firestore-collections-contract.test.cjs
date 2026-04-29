@@ -2,14 +2,10 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
 
-const {
-  parseConstObjectFromTs
-} = require('./_helpers.cjs');
+const { parseConstObjectFromTs } = require('./_helpers.cjs');
 
 test('backend Firestore collections contract is stable and unique', () => {
-  const {
-    FIRESTORE_COLLECTIONS
-  } = require('../lib/constants/firestore.js');
+  const { FIRESTORE_COLLECTIONS } = require('../lib/constants/firestore.js');
 
   assert.ok(FIRESTORE_COLLECTIONS, 'FIRESTORE_COLLECTIONS should exist');
   assert.equal(FIRESTORE_COLLECTIONS.REQUESTS, 'requests');
@@ -29,12 +25,12 @@ test('backend Firestore collections contract is stable and unique', () => {
 
 test('frontend and backend collection constants stay synchronized', () => {
   const {
-    FIRESTORE_COLLECTIONS: backendCollections
+    FIRESTORE_COLLECTIONS: backendCollections,
   } = require('../lib/constants/firestore.js');
 
   const frontendFile = path.resolve(
     __dirname,
-    '../../apps/admin-dashboard/src/constants/firestore.ts'
+    '../../apps/panel/src/constants/firestore.ts'
   );
   const frontendCollections = parseConstObjectFromTs(
     frontendFile,

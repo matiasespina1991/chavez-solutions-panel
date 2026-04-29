@@ -24,37 +24,37 @@ La validacion por permiso esta implementada en backend mediante `functions/src/g
 
 ## Permisos backend
 
-| Permiso | admin | order-supervisor | logistics | technician | analyst | editor | viewer |
-|---|---|---|---|---|---|---|---|
-| `requests.approve` | si | si | no | no | no | no | no |
-| `requests.reject` | si | si | no | no | no | no | no |
-| `requests.delete` | si | si | no | no | no | no | no |
-| `work_orders.execute` | si | si | no | no | no | no | no |
-| `work_orders.pause_resume` | si | si | si | si | no | no | no |
-| `work_orders.complete` | si | si | no | si | si | no | no |
-| `lab.save` | si | si | no | si | si | no | no |
-| `services_catalog.read_history` | si | no | no | no | no | si | no |
-| `services_catalog.write` | si | no | no | no | no | si | no |
-| `services_catalog.delete` | si | no | no | no | no | si | no |
-| `services_catalog.import` | si | no | no | no | no | si | no |
-| `clients.write` | si | si | no | no | no | no | no |
+| Permiso                         | admin | order-supervisor | logistics | technician | analyst | editor | viewer |
+| ------------------------------- | ----- | ---------------- | --------- | ---------- | ------- | ------ | ------ |
+| `requests.approve`              | si    | si               | no        | no         | no      | no     | no     |
+| `requests.reject`               | si    | si               | no        | no         | no      | no     | no     |
+| `requests.delete`               | si    | si               | no        | no         | no      | no     | no     |
+| `work_orders.execute`           | si    | si               | no        | no         | no      | no     | no     |
+| `work_orders.pause_resume`      | si    | si               | si        | si         | no      | no     | no     |
+| `work_orders.complete`          | si    | si               | no        | si         | si      | no     | no     |
+| `lab.save`                      | si    | si               | no        | si         | si      | no     | no     |
+| `services_catalog.read_history` | si    | no               | no        | no         | no      | si     | no     |
+| `services_catalog.write`        | si    | no               | no        | no         | no      | si     | no     |
+| `services_catalog.delete`       | si    | no               | no        | no         | no      | si     | no     |
+| `services_catalog.import`       | si    | no               | no        | no         | no      | si     | no     |
+| `clients.write`                 | si    | si               | no        | no         | no      | no     | no     |
 
 ## Acciones criticas y callables
 
-| Accion | Permiso | Callable(s) |
-|---|---|---|
-| Aprobar proforma | `requests.approve` | `approveProforma` |
-| Rechazar proforma | `requests.reject` | `rejectProforma` |
-| Eliminar proforma/solicitud | `requests.delete` | `deleteProforma` |
-| Emitir OT | `work_orders.execute` | `createWorkOrder` |
-| Pausar/reanudar OT | `work_orders.pause_resume` | `pauseWorkOrder`, `resumeWorkOrder` |
-| Finalizar OT | `work_orders.complete` | `completeWorkOrder` |
-| Guardar analisis de laboratorio | `lab.save` | `saveWorkOrderLabAnalysis` |
-| Crear/editar/importar servicios | `services_catalog.write`, `services_catalog.import` | `createTechnicalService`, `saveServicesTechnicalChanges`, `importServicesFromCsv` |
-| Eliminar servicios | `services_catalog.delete` | `deleteTechnicalService` |
-| Ver/restaurar/eliminar historial tecnico | `services_catalog.read_history`, `services_catalog.delete` | `listServiceHistory`, `restoreServiceHistory`, `deleteServiceHistory` |
-| Crear/editar/eliminar clientes | `clients.write` | `createClient`, `saveClientChanges`, `deleteClient` |
-| Backfill de clientes desde solicitudes | `clients.write` | `backfillClientsFromRequests` |
+| Accion                                   | Permiso                                                    | Callable(s)                                                                       |
+| ---------------------------------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Aprobar proforma                         | `requests.approve`                                         | `approveProforma`                                                                 |
+| Rechazar proforma                        | `requests.reject`                                          | `rejectProforma`                                                                  |
+| Eliminar proforma/solicitud              | `requests.delete`                                          | `deleteProforma`                                                                  |
+| Emitir OT                                | `work_orders.execute`                                      | `createWorkOrder`                                                                 |
+| Pausar/reanudar OT                       | `work_orders.pause_resume`                                 | `pauseWorkOrder`, `resumeWorkOrder`                                               |
+| Finalizar OT                             | `work_orders.complete`                                     | `completeWorkOrder`                                                               |
+| Guardar analisis de laboratorio          | `lab.save`                                                 | `saveWorkOrderLabAnalysis`                                                        |
+| Crear/editar/importar servicios          | `services_catalog.write`, `services_catalog.import`        | `createTechnicalService`, `saveServicesTechnicalChanges`, `importServicesFromCsv` |
+| Eliminar servicios                       | `services_catalog.delete`                                  | `deleteTechnicalService`                                                          |
+| Ver/restaurar/eliminar historial tecnico | `services_catalog.read_history`, `services_catalog.delete` | `listServiceHistory`, `restoreServiceHistory`, `deleteServiceHistory`             |
+| Crear/editar/eliminar clientes           | `clients.write`                                            | `createClient`, `saveClientChanges`, `deleteClient`                               |
+| Backfill de clientes desde solicitudes   | `clients.write`                                            | `backfillClientsFromRequests`                                                     |
 
 ## Claims esperados
 
@@ -84,5 +84,5 @@ El backend no consume un claim granular `permissions` en el estado actual; la au
 
 ```bash
 cd functions && npx tsc --noEmit
-cd apps/admin-dashboard && npx tsc --noEmit
+cd apps/panel && npx tsc --noEmit
 ```

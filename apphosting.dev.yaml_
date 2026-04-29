@@ -1,4 +1,4 @@
-sourceDir: apps/admin-dashboard
+sourceDir: apps/panel
 
 runConfig:
   # overrides for dev environment

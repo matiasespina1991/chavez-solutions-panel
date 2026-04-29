@@ -4,13 +4,13 @@
 
 - `id`: DOC-4001
 - `scope`: actualizar rutas y colecciones legacy en docs (`service-requests` -> `requests-list`, `service_requests` -> `requests`).
-- `files`: `apps/admin-dashboard/docs/**`, `docs/**`, `README.md`
+- `files`: `apps/panel/docs/**`, `docs/**`, `README.md`
 - `risk`: low
 - `depends_on`: [CT-1005]
 - `acceptance`:
   - [x] No quedan referencias legacy en docs activas.
 - `validation_commands`:
-  - `rg -n "service-requests|service_requests" apps/admin-dashboard/docs docs README.md`
+  - `rg -n "service-requests|service_requests" apps/panel/docs docs README.md`
 - `status`: `approved`
 
 ## DOC-4002
@@ -30,7 +30,7 @@
 
 - `id`: DOC-4003
 - `scope`: marcar obsolescencias explicitamente en docs legacy.
-- `files`: `apps/admin-dashboard/docs/**`, `docs/**`
+- `files`: `apps/panel/docs/**`, `docs/**`
 - `risk`: low
 - `depends_on`: [DOC-4001]
 - `acceptance`:

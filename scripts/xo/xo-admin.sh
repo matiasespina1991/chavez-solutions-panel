@@ -8,7 +8,7 @@ ARGS=(
   --yes
   xo
   --cwd
-  "${ROOT_DIR}/apps/admin-dashboard"
+  "${ROOT_DIR}/apps/panel"
   --config
   "${ROOT_DIR}/scripts/xo/config/xo-admin.cjs"
   --space

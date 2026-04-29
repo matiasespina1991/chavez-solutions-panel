@@ -13,9 +13,8 @@
   - [ ] Criterio 2
   - [ ] Criterio 3
 - `validation_commands`:
-  - `cd apps/admin-dashboard && npx tsc --noEmit`
+  - `cd apps/panel && npx tsc --noEmit`
   - `cd functions && npx tsc --noEmit`
 - `status`: `todo`
 - `notes`:
   - Contexto o decisiones relevantes.
-
