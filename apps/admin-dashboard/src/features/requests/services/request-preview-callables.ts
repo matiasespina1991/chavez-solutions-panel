@@ -1,4 +1,5 @@
 import { callFirebaseCallable } from '@/lib/firebase-callable';
+import { toFiniteNumber, toNullableNumber } from '@/lib/runtime-guards';
 
 export interface ProformaPreviewPdfServiceLine {
   table: string;
@@ -58,19 +59,9 @@ export interface ProformaPreviewLineSource {
 export const toProformaPreviewServiceLine = (
   source: ProformaPreviewLineSource
 ): ProformaPreviewPdfServiceLine => {
-  const quantity =
-    typeof source.quantity === 'number' && Number.isFinite(source.quantity)
-      ? Math.max(0, source.quantity)
-      : 0;
-  const unitPrice =
-    typeof source.unitPrice === 'number' && Number.isFinite(source.unitPrice)
-      ? source.unitPrice
-      : null;
-  const discountAmount =
-    typeof source.discountAmount === 'number' &&
-    Number.isFinite(source.discountAmount)
-      ? source.discountAmount
-      : null;
+  const quantity = Math.max(0, toFiniteNumber(source.quantity, 0));
+  const unitPrice = toNullableNumber(source.unitPrice);
+  const discountAmount = toNullableNumber(source.discountAmount);
   const subtotal =
     unitPrice !== null
       ? Math.max(0, quantity * unitPrice - (discountAmount ?? 0))

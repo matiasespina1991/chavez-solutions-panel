@@ -1,4 +1,5 @@
 import { Timestamp } from 'firebase/firestore';
+import { isRecord, toSafeString } from '@/lib/runtime-guards';
 
 export type EditableFieldKey =
   | 'ID_CONDICION_PARAMETRO'
@@ -235,21 +236,15 @@ export const EDITABLE_COLUMNS: Array<{
 ];
 
 const toStringValue = (value: unknown): string => {
-  if (value === null || value === undefined) return '';
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number' && Number.isFinite(value)) return `${value}`;
-  return '';
+  return toSafeString(value);
 };
 
 const toTimestampIso = (value: unknown): string | null => {
   if (value instanceof Timestamp) return value.toDate().toISOString();
 
-  if (
-    typeof value === 'object' &&
-    value !== null &&
-    'toDate' in value &&
-    typeof (value as { toDate?: unknown }).toDate === 'function'
-  ) {
+  if (isRecord(value) && 'toDate' in value) {
+    const maybeToDate = (value as { toDate?: unknown }).toDate;
+    if (typeof maybeToDate !== 'function') return null;
     const date = (value as { toDate: () => Date }).toDate();
     return date.toISOString();
   }

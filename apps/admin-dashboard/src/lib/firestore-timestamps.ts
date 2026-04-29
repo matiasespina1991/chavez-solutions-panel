@@ -1,3 +1,5 @@
+import { isRecord } from '@/lib/runtime-guards';
+
 const formatDateForUi = (date: Date, locale: string) => {
   const dateFormatter = new Intl.DateTimeFormat(locale, {
     weekday: 'long',
@@ -20,7 +22,7 @@ const formatDateForUi = (date: Date, locale: string) => {
 };
 
 const toDate = (value: unknown): Date | null => {
-  if (!value || typeof value !== 'object' || !('toDate' in value)) {
+  if (!isRecord(value) || !('toDate' in value)) {
     return null;
   }
 

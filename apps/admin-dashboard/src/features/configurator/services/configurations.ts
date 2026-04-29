@@ -13,6 +13,11 @@ import {
 import { db } from '@/lib/firebase';
 import { FIRESTORE_COLLECTIONS } from '@/constants/firestore';
 import { normalizeMatrixArray } from '@/lib/request-normalizers';
+import {
+  isRecord,
+  toNullableNumber,
+  toOptionalString
+} from '@/lib/runtime-guards';
 import type {
   ConfigurationDocument,
   ConfigurationServiceGroup,
@@ -152,66 +157,26 @@ export const listImportedServices = async (): Promise<
   const snapshot = await getDocs(collection(db, SERVICES_COLLECTION));
   return snapshot.docs.map((serviceDoc) => {
     const data = serviceDoc.data();
-    const rawPrice =
-      typeof data.PRECIO === 'number'
-        ? data.PRECIO
-        : typeof data.PRECIO === 'string' && data.PRECIO.trim()
-          ? Number(data.PRECIO)
-          : null;
+    const rawPrice = toNullableNumber(data.PRECIO);
+    const source = isRecord(data) ? data : {};
     return {
       id: serviceDoc.id,
-      ID_CONFIG_PARAMETRO:
-        typeof data.ID_CONFIG_PARAMETRO === 'string'
-          ? data.ID_CONFIG_PARAMETRO
-          : undefined,
-      ID_MATRIZ:
-        typeof data.ID_MATRIZ === 'string' ? data.ID_MATRIZ : undefined,
-      ID_MAT_ENSAYO:
-        typeof data.ID_MAT_ENSAYO === 'string' ? data.ID_MAT_ENSAYO : undefined,
-      ID_NORMA:
-        typeof data.ID_NORMA === 'string' ? data.ID_NORMA : undefined,
-      ID_TABLA_NORMA:
-        typeof data.ID_TABLA_NORMA === 'string'
-          ? data.ID_TABLA_NORMA
-          : undefined,
-      ID_PARAMETRO:
-        typeof data.ID_PARAMETRO === 'string' ? data.ID_PARAMETRO : undefined,
-      UNIDAD_NORMA:
-        typeof data.UNIDAD_NORMA === 'string' ? data.UNIDAD_NORMA : undefined,
-      UNIDAD_INTERNO:
-        typeof data.UNIDAD_INTERNO === 'string'
-          ? data.UNIDAD_INTERNO
-          : undefined,
-      LIM_INF_NORMA:
-        typeof data.LIM_INF_NORMA === 'string'
-          ? data.LIM_INF_NORMA
-          : undefined,
-      LIM_SUP_NORMA:
-        typeof data.LIM_SUP_NORMA === 'string'
-          ? data.LIM_SUP_NORMA
-          : undefined,
-      LIM_INF_INTERNO:
-        typeof data.LIM_INF_INTERNO === 'string'
-          ? data.LIM_INF_INTERNO
-          : undefined,
-      LIM_SUP_INTERNO:
-        typeof data.LIM_SUP_INTERNO === 'string'
-          ? data.LIM_SUP_INTERNO
-          : undefined,
-      ID_TECNICA:
-        typeof data.ID_TECNICA === 'string' ? data.ID_TECNICA : undefined,
-      ID_MET_REFERENCIA:
-        typeof data.ID_MET_REFERENCIA === 'string'
-          ? data.ID_MET_REFERENCIA
-          : undefined,
-      ID_MET_INTERNO:
-        typeof data.ID_MET_INTERNO === 'string'
-          ? data.ID_MET_INTERNO
-          : undefined,
-      PRECIO:
-        typeof rawPrice === 'number' && Number.isFinite(rawPrice)
-          ? rawPrice
-          : null
+      ID_CONFIG_PARAMETRO: toOptionalString(source.ID_CONFIG_PARAMETRO),
+      ID_MATRIZ: toOptionalString(source.ID_MATRIZ),
+      ID_MAT_ENSAYO: toOptionalString(source.ID_MAT_ENSAYO),
+      ID_NORMA: toOptionalString(source.ID_NORMA),
+      ID_TABLA_NORMA: toOptionalString(source.ID_TABLA_NORMA),
+      ID_PARAMETRO: toOptionalString(source.ID_PARAMETRO),
+      UNIDAD_NORMA: toOptionalString(source.UNIDAD_NORMA),
+      UNIDAD_INTERNO: toOptionalString(source.UNIDAD_INTERNO),
+      LIM_INF_NORMA: toOptionalString(source.LIM_INF_NORMA),
+      LIM_SUP_NORMA: toOptionalString(source.LIM_SUP_NORMA),
+      LIM_INF_INTERNO: toOptionalString(source.LIM_INF_INTERNO),
+      LIM_SUP_INTERNO: toOptionalString(source.LIM_SUP_INTERNO),
+      ID_TECNICA: toOptionalString(source.ID_TECNICA),
+      ID_MET_REFERENCIA: toOptionalString(source.ID_MET_REFERENCIA),
+      ID_MET_INTERNO: toOptionalString(source.ID_MET_INTERNO),
+      PRECIO: rawPrice
     };
   });
 };

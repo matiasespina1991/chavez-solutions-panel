@@ -1,14 +1,13 @@
 import { firestoreTimestampToMs, formatFirestoreTimestamp } from '@/lib/firestore-timestamps';
 import { normalizeMatrixArray } from '@/lib/request-normalizers';
+import {
+  isRecord,
+  toArray,
+  toFiniteNumber,
+  toNullableString,
+  toSafeString
+} from '@/lib/runtime-guards';
 import type { RequestServiceItem, WorkOrderListRow as WorkOrderRow, WorkOrderStatus } from '@/types/domain';
-
-const toSafeString = (value: unknown, fallback = ''): string => {
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number' || typeof value === 'boolean') {
-    return String(value);
-  }
-  return fallback;
-};
 
 const normalizeRequestServiceItems = (raw: unknown[]): RequestServiceItem[] => raw.map((item, index) => {
   const rowItem = item as {
@@ -29,9 +28,9 @@ const normalizeRequestServiceItems = (raw: unknown[]): RequestServiceItem[] => r
     serviceId: toSafeString(rowItem.serviceId ?? rowItem.parameterId, `service-${index}`),
     parameterId: toSafeString(rowItem.parameterId ?? rowItem.serviceId, `p-${index}`),
     parameterLabel: toSafeString(rowItem.parameterLabel ?? rowItem.parameterId, 'Servicio'),
-    tableLabel: typeof rowItem.tableLabel === 'string' ? rowItem.tableLabel : null,
-    unit: typeof rowItem.unit === 'string' ? rowItem.unit : null,
-    method: typeof rowItem.method === 'string' ? rowItem.method : null,
+    tableLabel: toNullableString(rowItem.tableLabel),
+    unit: toNullableString(rowItem.unit),
+    method: toNullableString(rowItem.method),
     rangeMin: String(rowItem.rangeMin ?? ''),
     rangeMax: String(rowItem.rangeMax ?? ''),
     quantity: Math.max(1, Number(rowItem.quantity ?? 1)),
@@ -54,13 +53,8 @@ const normalizeWorkOrderStatus = (value: unknown): WorkOrderStatus => {
   return 'unknown';
 };
 
-const toArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
-
 export const getRequestServiceItemsFromDoc = (data: Record<string, unknown>): RequestServiceItem[] => {
-  const rawServiceItems =
-    data.services &&
-    typeof data.services === 'object' &&
-    !Array.isArray(data.services)
+  const rawServiceItems = isRecord(data.services)
       ? (data.services as { items?: unknown[] }).items
       : Array.isArray(data.services)
         ? (data.services as unknown[])
@@ -77,28 +71,25 @@ export const buildWorkOrderRowFromDoc = (
   const matrix = normalizeMatrixArray(data.matrix);
   const status = normalizeWorkOrderStatus(data.status);
 
-  const pricing =
-    typeof data.pricing === 'object' && data.pricing !== null
+  const pricing = isRecord(data.pricing)
       ? (data.pricing as { total?: number | null; subtotal?: number | null; taxPercent?: number | null })
       : {};
-  const total = Number(pricing.total ?? 0);
-  const subtotal = Number(pricing.subtotal ?? 0);
-  const taxPercent = Number(pricing.taxPercent ?? 15);
+  const total = toFiniteNumber(pricing.total, 0);
+  const subtotal = toFiniteNumber(pricing.subtotal, 0);
+  const taxPercent = toFiniteNumber(pricing.taxPercent, 15);
 
-  const agreedCount =
-    typeof data.samples === 'object' && data.samples !== null
-      ? Number((data.samples as { agreedCount?: number }).agreedCount ?? 0)
+  const agreedCount = isRecord(data.samples)
+      ? toFiniteNumber((data.samples as { agreedCount?: number }).agreedCount, 0)
       : 0;
 
-  const analysesItemsRaw =
-    typeof data.analyses === 'object' && data.analyses !== null
+  const analysesItemsRaw = isRecord(data.analyses)
       ? toArray((data.analyses as { items?: unknown[] }).items)
       : [];
 
   const analysesCount = analysesItemsRaw.length;
 
   const client =
-    typeof data.client === 'object' && data.client !== null
+    isRecord(data.client)
       ? {
         businessName: String((data.client as { businessName?: string }).businessName ?? ''),
         taxId: String((data.client as { taxId?: string }).taxId ?? ''),
@@ -111,7 +102,7 @@ export const buildWorkOrderRowFromDoc = (
       };
 
   const sampleItems =
-    typeof data.samples === 'object' && data.samples !== null
+    isRecord(data.samples)
       ? toArray((data.samples as { items?: unknown[] }).items).map((item) => {
         const rowItem = item as { sampleCode?: string; sampleType?: string };
         return {
@@ -129,10 +120,7 @@ export const buildWorkOrderRowFromDoc = (
     };
   });
 
-  const rawDirectServices =
-    data.services &&
-    typeof data.services === 'object' &&
-    !Array.isArray(data.services)
+  const rawDirectServices = isRecord(data.services)
       ? (data.services as { items?: unknown[] }).items
       : Array.isArray(data.services)
         ? (data.services as unknown[])

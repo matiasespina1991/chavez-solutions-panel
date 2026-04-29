@@ -10,6 +10,7 @@ import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { FIRESTORE_COLLECTIONS } from '@/constants/firestore';
 import { saveWorkOrderLabAnalysis } from '@/features/lab-analysis/services/lab-analysis';
+import { isRecord, toArray, toSafeString } from '@/lib/runtime-guards';
 import {
   createEmptyLabAnalysisRow,
   createLocalId,
@@ -65,44 +66,35 @@ export default function LabAnalysisForm() {
           status
         });
 
-        const existingRows =
-          typeof value.analyses === 'object' && value.analyses !== null
-            ? Array.isArray((value.analyses as { items?: unknown[] }).items)
-              ? ((value.analyses as { items?: unknown[] }).items ?? [])
-                .map((item) => {
-                  const rowItem = item as {
-                    parameterLabelEs?: string;
-                    resultValue?: string;
-                    unit?: string;
-                    method?: string;
-                  };
+        const existingRows = isRecord(value.analyses)
+          ? toArray((value.analyses as { items?: unknown[] }).items)
+              .map((item) => {
+                const rowItem = isRecord(item) ? item : {};
 
-                  return {
-                    id: createLocalId(),
-                    parameterLabelEs: String(rowItem.parameterLabelEs ?? ''),
-                    resultValue: String(rowItem.resultValue ?? ''),
-                    unit: String(rowItem.unit ?? ''),
-                    method: String(rowItem.method ?? '')
-                  };
-                })
-                .filter(
-                  (item) =>
-                    item.parameterLabelEs ||
-                    item.resultValue ||
-                    item.unit ||
-                    item.method
-                )
-              : []
-            : [];
+                return {
+                  id: createLocalId(),
+                  parameterLabelEs: toSafeString(rowItem.parameterLabelEs),
+                  resultValue: toSafeString(rowItem.resultValue),
+                  unit: toSafeString(rowItem.unit),
+                  method: toSafeString(rowItem.method)
+                };
+              })
+              .filter(
+                (item) =>
+                  item.parameterLabelEs ||
+                  item.resultValue ||
+                  item.unit ||
+                  item.method
+              )
+          : [];
 
         setAnalysisRows(
           existingRows.length > 0 ? existingRows : [createEmptyLabAnalysisRow()]
         );
 
-        const existingNotes =
-          typeof value.labAnalysis === 'object' && value.labAnalysis !== null
-            ? String((value.labAnalysis as { notes?: string }).notes ?? '')
-            : '';
+        const existingNotes = isRecord(value.labAnalysis)
+          ? toSafeString((value.labAnalysis as { notes?: unknown }).notes)
+          : '';
 
         setLabNotes(existingNotes);
       } catch (error) {
