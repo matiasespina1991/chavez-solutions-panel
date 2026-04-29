@@ -849,10 +849,12 @@ export function ConfiguratorClientTab({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Agregar cliente a la base</DialogTitle>
+            <DialogTitle>Agregar cliente a la base de datos</DialogTitle>
             <DialogDescription>
-              La razón social no existe en `clients`. ¿Deseas guardar este
-              cliente para reutilizarlo en futuras proformas?
+              '{normalizeString(form.getValues('client.businessName')) ||
+                'Esta razón social'}' no existe en la base de datos de clientes.
+              ¿Deseas guardar este cliente para reutilizarlo en futuras
+              proformas?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
