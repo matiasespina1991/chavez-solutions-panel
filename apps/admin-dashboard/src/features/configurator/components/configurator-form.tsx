@@ -343,7 +343,6 @@ export default function ConfiguratorForm() {
     return {
       ...baseValues,
       ...cached,
-      type: 'proforma',
       createdAt: toDateOrNull(cached.createdAt) ?? baseValues.createdAt,
       client: {
         ...baseValues.client,
@@ -555,7 +554,6 @@ export default function ConfiguratorForm() {
         }
 
         const loadedValues: FormValues = {
-          type: 'proforma',
           matrix: existing.matrix,
           reference: existing.reference,
           createdAt: toDateOrNull(existing.createdAt) || new Date(),
@@ -848,7 +846,7 @@ export default function ConfiguratorForm() {
         ConfigurationDocument,
         'id' | 'createdAt' | 'updatedAt'
       > = {
-        type: values.type,
+        isWorkOrder: loadedRequestStatus === 'paused',
         matrix: values.matrix,
         reference: status === 'draft' ? '' : values.reference,
         status,
@@ -916,7 +914,7 @@ export default function ConfiguratorForm() {
       setIsSubmitting(true);
 
       const updateData: Partial<ConfigurationDocument> = {
-        type: values.type,
+        isWorkOrder: loadedRequestStatus === 'paused',
         matrix: values.matrix,
         reference: values.reference,
         notes: values.notes || '',

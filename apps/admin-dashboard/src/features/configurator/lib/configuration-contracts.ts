@@ -6,7 +6,6 @@ import type {
 } from '@/types/domain';
 
 export type ConfigurationStatus = 'draft' | 'final';
-export type ConfigurationType = 'proforma' | 'work_order' | 'both';
 export type RequestStatus = DomainRequestStatus;
 export type RequestApprovalStatus = DomainRequestApprovalStatus;
 
@@ -107,7 +106,7 @@ export type ImportedServiceDocument = TechnicalServiceDocument;
 
 export interface ConfigurationDocument {
   id?: string;
-  type: ConfigurationType;
+  isWorkOrder: boolean;
   matrix: string[];
   reference: string;
   createdAt?: FirestoreDateValue;
@@ -125,7 +124,6 @@ export interface ConfigurationDocument {
 
 export interface RequestDocument
   extends Omit<ConfigurationDocument, 'status'> {
-  isWorkOrder: boolean;
   status: RequestStatus;
   approval?: RequestApproval | null;
   linkedWorkOrderId?: string | null;

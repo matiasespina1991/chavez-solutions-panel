@@ -3,7 +3,6 @@ import * as z from 'zod';
 import { type ImportedServiceDocument } from '@/features/configurator/services/configurations';
 
 export const formSchema = z.object({
-  type: z.literal('proforma'),
   matrix: z.array(z.string()),
   reference: z.string().min(1, 'Referencia es requerida'),
   createdAt: z.date().optional(),
@@ -125,7 +124,6 @@ export type SelectedServiceGroup = {
 };
 
 export const createDefaultFormValues = (): FormValues => ({
-  type: 'proforma',
   matrix: [],
   reference: `PR-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000)}`,
   createdAt: new Date(),

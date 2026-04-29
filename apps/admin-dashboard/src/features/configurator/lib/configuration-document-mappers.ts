@@ -40,7 +40,6 @@ export const mapRequestDocumentToConfiguration = (
 ): ConfigurationDocument => ({
   ...request,
   id,
-  type: request.isWorkOrder ? 'both' : 'proforma',
   status,
   requestStatus: request.status,
   approvalStatus: request.approval?.status,

@@ -18,7 +18,6 @@ import type {
   ConfigurationServiceGroup,
   ConfigurationServiceItem,
   ConfigurationStatus,
-  ConfigurationType,
   ImportedServiceDocument,
   RequestDocument,
   RequestStatus
@@ -30,7 +29,6 @@ export type {
   ConfigurationServiceGroup,
   ConfigurationServiceItem,
   ConfigurationStatus,
-  ConfigurationType,
   ImportedServiceDocument,
   RequestDocument,
   RequestStatus
@@ -60,17 +58,14 @@ const toConfigurationStatus = (
   return 'draft';
 };
 
-const toIsWorkOrder = (type: ConfigurationType): boolean => type === 'work_order' || type === 'both';
-
 export const createConfiguration = async (
   data: Omit<ConfigurationDocument, 'id' | 'createdAt' | 'updatedAt'>
 ) => {
   const newDocRef = doc(collection(db, REQUESTS_COLLECTION));
-  const { type, ...restData } = data;
+  const restData = data;
   const docData = {
     ...restData,
     matrix: normalizeMatrixArray(restData.matrix),
-    isWorkOrder: toIsWorkOrder(type),
     status: toRequestStatus(data.status),
     ...(data.status === 'final'
       ? {
@@ -100,12 +95,11 @@ export const updateConfiguration = async (
     })
     : null;
   const linkedWorkOrderId = currentData?.linkedWorkOrderId;
-  const { type, ...restData } = data;
+  const restData = data;
   const normalizedMatrix = normalizeMatrixArray(restData.matrix);
   const docData: UpdateData<DocumentData> = {
     ...restData,
     ...(restData.matrix !== undefined ? { matrix: normalizedMatrix } : {}),
-    ...(type ? { isWorkOrder: toIsWorkOrder(type) } : {}),
     ...(data.status ? { status: toRequestStatus(data.status) } : {}),
     ...(data.status === 'final'
       ? {
