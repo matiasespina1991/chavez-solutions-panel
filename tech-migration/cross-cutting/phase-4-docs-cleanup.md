@@ -8,10 +8,10 @@
 - `risk`: low
 - `depends_on`: [CT-1005]
 - `acceptance`:
-  - [ ] No quedan referencias legacy en docs activas.
+  - [x] No quedan referencias legacy en docs activas.
 - `validation_commands`:
   - `rg -n "service-requests|service_requests" apps/admin-dashboard/docs docs README.md`
-- `status`: `todo`
+- `status`: `approved`
 
 ## DOC-4002
 
@@ -51,4 +51,3 @@
 - `validation_commands`:
   - `n/a (documental)`
 - `status`: `todo`
-

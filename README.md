@@ -40,11 +40,4 @@ firebase deploy --only functions
 2. Gestión de solicitudes en `/dashboard/service-requests`.
 3. Gestión de órdenes de trabajo en `/dashboard/work-orders`.
 4. Registro de análisis en `/dashboard/lab-analysis`.
-5. Administración de catálogo de servicios en `/dashboard/admin/import-services`.
-
-## Estado actual (resumen)
-
-- Dominio principal unificado en **Servicios** (en lugar de Muestras/Análisis como origen de pricing).
-- Solicitudes y OT trabajan sobre `services[]` con cantidad, rangos, precio y descuento opcional.
-- Envío automático de mail al enviar proforma mediante outbox + trigger.
-- PDF de proforma backend actualmente en versión placeholder (base para template final).
+5. Administración de catálogo de servicios en `/dashboard/services-catalog`.

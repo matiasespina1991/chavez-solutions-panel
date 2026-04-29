@@ -46,5 +46,4 @@ Campos obligatorios por task:
 - `validation_commands`
 - `status`
 
-Plantilla: [task.md](/Users/matiasespina/Documents/Projekte/chavez-solutions/tech-migration/templates/task.md)
-
+Plantilla: [task.md](templates/task.md)

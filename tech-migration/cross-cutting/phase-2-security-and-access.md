@@ -52,7 +52,7 @@
 - `risk`: medium
 - `depends_on`: [SEC-2002]
 - `acceptance`:
-  - [x] Rutas operativas permitidas en prod sin drift (`requests-list`, `service-requests`, `work-orders`, `lab-analysis`, `services-catalog`, `configurator`).
+  - [x] Rutas operativas permitidas en prod sin drift (`requests-list`, `work-orders`, `lab-analysis`, `services-catalog`, `configurator`).
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
 - `status`: `approved`

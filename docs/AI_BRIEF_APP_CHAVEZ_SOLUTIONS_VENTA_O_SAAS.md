@@ -23,7 +23,7 @@ La aplicación es un panel administrativo para un laboratorio (flujo comercial-o
 - Generar PDF de proforma (preview) y enviar mail automático/manual con adjunto.
 
 Tecnológicamente es una app web Next.js conectada a Firebase (Firestore, Auth, Storage, Cloud Functions).  
-El flujo core ya está implementado y usable, pero aún hay áreas de madurez pendientes para escalar comercialmente (roles finos, endurecimiento de seguridad de reglas, PDF final de producción, auditoría operativa extendida, etc.).
+El flujo core ya está implementado y usable, con permisos backend por rol para acciones críticas. Aún hay áreas de madurez pendientes para escalar comercialmente (multi-tenant, PDF final de producción, auditoría operativa extendida, observabilidad, etc.).
 
 ## 3) Problema de negocio que resuelve
 
@@ -43,7 +43,7 @@ Resultado: menos fricción operativa, trazabilidad de estado y una base para est
 ### 4.1 Módulos principales en uso
 
 1. Configurador de proformas (`/dashboard/configurator`)
-2. Lista de solicitudes (`/dashboard/service-requests`)
+2. Lista de solicitudes (`/dashboard/requests-list`)
 3. Lista de órdenes de trabajo (`/dashboard/work-orders`)
 4. Registro de análisis de laboratorio (`/dashboard/lab-analysis`)
 5. Admin importación de servicios por CSV (`/dashboard/admin/import-services`)
@@ -125,7 +125,7 @@ Resultado: menos fricción operativa, trazabilidad de estado y una base para est
 
 - Estructura por features:
   - `features/configurator`
-  - `features/service-requests`
+  - `features/requests`
   - `features/work-orders`
   - `features/lab-analysis`
   - `features/admin`
@@ -143,7 +143,7 @@ Resultado: menos fricción operativa, trazabilidad de estado y una base para est
 - Login con Firebase Auth (Google y email/password).
 - Control de acceso por lista de usuarios autorizados en `config/default.authorizedUsers`.
 - Si el usuario no está autorizado, se cierra sesión.
-- Existe concepto de rol visual (admin, viewer, etc.), pero la autorización funcional por rol aún no está plenamente explotada en todo el flujo.
+- Las acciones críticas de backend usan `requirePermission` y roles reales (`admin`, `order-supervisor`, `logistics`, `technician`, `analyst`, `editor`, `viewer`), con custom claims como fuente primaria y `authorizedUsers` como fallback temporal.
 
 ## 6) Arquitectura backend
 
@@ -287,8 +287,8 @@ Con esto se calcula subtotal/iva/total de la proforma.
 ### 10.2 Brechas y deuda para venta enterprise/SaaS robusto
 
 - PDF aún placeholder (falta template final de proforma productiva).
-- Seguridad Firestore con lectura pública amplia en varias colecciones (requiere hardening para multi-tenant/producción estricta).
-- Modelo de autorización por roles aún parcial.
+- Seguridad Firestore y permisos backend endurecidos para el core single-tenant; falta enforcement multi-tenant/tenantId para SaaS estricto.
+- Modelo de autorización por roles implementado en callables críticos; falta administración de roles desde producto y políticas multi-tenant.
 - Falta observabilidad formal (dashboards, alertas, DLQ/retry strategy más estricta en correo).
 - Módulos heredados de template conviven con módulos de negocio (conviene podar/aislar para producto comercial).
 - Consistencia histórica de campos “muestras/análisis/servicios” en datos legacy (hay adaptaciones de compatibilidad en UI).
@@ -356,13 +356,13 @@ Fase 1 (corto plazo):
 
 - Consolidar nomenclatura de dominio (servicios en todo el producto).
 - PDF final de proforma (plantilla oficial).
-- Endurecer reglas de Firestore por rol/tenant.
+- Extender reglas y permisos a enforcement por tenant.
 - Telemetría básica y monitoreo de errores.
 
 Fase 2 (medio plazo):
 
 - Multi-tenancy explícito (tenantId en datos + enforcement backend).
-- Control de permisos por rol y módulo.
+- Administración de permisos por rol y módulo desde UI/producto.
 - Catálogo de servicios versionado por tenant.
 - Configuración de impuestos, moneda y plantillas por tenant.
 

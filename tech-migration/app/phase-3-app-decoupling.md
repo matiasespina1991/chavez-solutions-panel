@@ -138,4 +138,4 @@
   - Micro-slice 4: gap detectado en `lab-analysis` (tipos/helpers de dominio aún incrustados en componente). Se extrae a `features/lab-analysis/lib/lab-analysis-model.ts` y se actualizan imports en `lab-analysis-form.tsx` y `services/lab-analysis.ts`.
 - `validation_commands`:
   - `cd apps/admin-dashboard && npx tsc --noEmit`
-- `status`: `in_progress`
+- `status`: `approved`

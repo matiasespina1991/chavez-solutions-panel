@@ -9,7 +9,7 @@ Esta politica aplica a:
 - `services`
 - `mail_outbox`
 - callables operativos en `functions/src/callable/**`
-- navegacion operativa del dashboard (`requests-list`, `service-requests`, `work-orders`, `lab-analysis`, `services-catalog`, `configurator`)
+- navegacion operativa del dashboard (`requests-list`, `work-orders`, `lab-analysis`, `services-catalog`, `configurator`)
 
 No aplica a modulos legacy/starter fuera de alcance de esta migracion.
 
@@ -90,4 +90,3 @@ cd functions && npx tsc --noEmit
 cd apps/admin-dashboard && npx tsc --noEmit
 firebase deploy --only firestore:rules
 ```
-

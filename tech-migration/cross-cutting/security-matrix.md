@@ -1,67 +1,85 @@
 # Matriz de permisos - Core operativo
 
-Fecha: 2026-04-20
-Alcance: `configurator`, `requests-list`, `work-orders`, `services-catalog`, `functions`.
+Fecha: 2026-04-29
+Alcance: `configurator`, `requests-list`, `work-orders`, `services-catalog`, `lab-analysis`, `functions`.
 
-## Roles objetivo
+## Estado
 
-- `admin`: control total operativo/técnico.
-- `ops_manager`: ejecución operativa (solicitudes + OT) sin administración técnica.
-- `lab_operator`: ejecución de OT y laboratorio.
-- `catalog_manager`: mantenimiento técnico del catálogo de servicios.
-- `viewer`: solo lectura.
+La validacion por permiso esta implementada en backend mediante `functions/src/guards/require-permission.ts`.
 
-## Acciones críticas y permisos
+- Fuente primaria: custom claims de Firebase Auth (`role` o `roles`).
+- Fallback temporal: `config/default.authorizedUsers[]` por email.
+- Error estandar: `permission-denied` cuando el rol no habilita la accion.
+- Usuarios autenticados sin rol valido: sin acceso a acciones criticas.
 
-| Acción | admin | ops_manager | lab_operator | catalog_manager | viewer |
-|---|---|---|---|---|---|
-| Crear/editar borrador de proforma | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Aprobar proforma y emitir OT | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Rechazar proforma | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Pausar/reanudar OT | ✅ | ✅ | ✅ | ❌ | ❌ |
-| Finalizar OT | ✅ | ✅ | ✅ | ❌ | ❌ |
-| Guardar análisis de laboratorio | ✅ | ✅ | ✅ | ❌ | ❌ |
-| Crear servicio técnico | ✅ | ❌ | ❌ | ✅ | ❌ |
-| Editar servicios técnicos | ✅ | ❌ | ❌ | ✅ | ❌ |
-| Eliminar servicio técnico | ✅ | ❌ | ❌ | ✅ | ❌ |
-| Restaurar/eliminar historial técnico | ✅ | ❌ | ❌ | ✅ | ❌ |
-| Eliminar proforma/solicitud | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Lectura de panel operativo | ✅ | ✅ | ✅ | ✅ | ✅ |
+## Roles implementados
 
-## Claims esperados (Firebase Auth custom claims)
+- `admin`: control total operativo y tecnico.
+- `order-supervisor`: gestion de proformas y ordenes de trabajo.
+- `logistics`: pausa/reanudacion de OT.
+- `technician`: pausa/reanudacion, finalizacion de OT y laboratorio.
+- `analyst`: finalizacion de OT y laboratorio.
+- `editor`: mantenimiento tecnico del catalogo de servicios.
+- `viewer`: lectura/autenticacion sin permisos de escritura critica.
 
-- `role`: `admin | ops_manager | lab_operator | catalog_manager | viewer`
-- `permissions` (opcional, override granular): array de scopes string.
+## Permisos backend
 
-Scopes sugeridos:
+| Permiso | admin | order-supervisor | logistics | technician | analyst | editor | viewer |
+|---|---|---|---|---|---|---|---|
+| `requests.approve` | si | si | no | no | no | no | no |
+| `requests.reject` | si | si | no | no | no | no | no |
+| `requests.delete` | si | si | no | no | no | no | no |
+| `work_orders.execute` | si | si | no | no | no | no | no |
+| `work_orders.pause_resume` | si | si | si | si | no | no | no |
+| `work_orders.complete` | si | si | no | si | si | no | no |
+| `lab.save` | si | si | no | si | si | no | no |
+| `services_catalog.read_history` | si | no | no | no | no | si | no |
+| `services_catalog.write` | si | no | no | no | no | si | no |
+| `services_catalog.delete` | si | no | no | no | no | si | no |
+| `services_catalog.import` | si | no | no | no | no | si | no |
 
-- `requests.write`
-- `requests.approve`
-- `requests.reject`
-- `requests.delete`
-- `work_orders.execute`
-- `work_orders.pause_resume`
-- `work_orders.complete`
-- `lab.save`
-- `services_catalog.write`
-- `services_catalog.delete`
+## Acciones criticas y callables
 
-## Casos borde identificados
+| Accion | Permiso | Callable(s) |
+|---|---|---|
+| Aprobar proforma | `requests.approve` | `approveProforma` |
+| Rechazar proforma | `requests.reject` | `rejectProforma` |
+| Eliminar proforma/solicitud | `requests.delete` | `deleteProforma` |
+| Emitir OT | `work_orders.execute` | `createWorkOrder` |
+| Pausar/reanudar OT | `work_orders.pause_resume` | `pauseWorkOrder`, `resumeWorkOrder` |
+| Finalizar OT | `work_orders.complete` | `completeWorkOrder` |
+| Guardar analisis de laboratorio | `lab.save` | `saveWorkOrderLabAnalysis` |
+| Crear/editar/importar servicios | `services_catalog.write`, `services_catalog.import` | `createTechnicalService`, `saveServicesTechnicalChanges`, `importServicesFromCsv` |
+| Eliminar servicios | `services_catalog.delete` | `deleteTechnicalService` |
+| Ver/restaurar/eliminar historial tecnico | `services_catalog.read_history`, `services_catalog.delete` | `listServiceHistory`, `restoreServiceHistory`, `deleteServiceHistory` |
 
-- Usuario autenticado sin claim `role`: denegar acciones críticas; permitir solo lectura.
-- Usuarios con múltiples responsabilidades: resolver por `permissions` explícitos (si existe), si no por `role`.
-- Solicitud ya convertida a OT: bloquear edición de proforma en UI y callable.
-- Reintentos de callables idempotentes: mantener validaciones de estado para evitar doble emisión/acción.
-- Desfase temporal de claims (token stale): exigir refresh de token en UI cuando backend devuelva `permission-denied`.
+## Claims esperados
 
-## Plan de implementación (siguiente slice: SEC-2003)
+Custom claims recomendados:
 
-1. Crear helper backend `requireRole/requirePermission` en `functions/src/guards`.
-2. Aplicar en callables críticos:
-   - `approveProforma`, `rejectProforma`, `createWorkOrder`, `deleteProforma`
-   - `pauseWorkOrder`, `resumeWorkOrder`, `completeWorkOrder`, `saveWorkOrderLabAnalysis`
-   - `createTechnicalService`, `saveServicesTechnicalChanges`, `deleteTechnicalService`
-3. Estandarizar error:
-   - `permission-denied` + mensaje canónico por acción.
-4. Reflejar restricciones en UI (habilitado/disabled + tooltip).
+- `role`: uno de los roles implementados.
+- `roles`: arreglo opcional; se usa el primer rol valido.
 
+Ejemplo:
+
+```json
+{
+  "role": "order-supervisor"
+}
+```
+
+El backend no consume un claim granular `permissions` en el estado actual; la autorizacion efectiva se deriva del rol.
+
+## Casos borde
+
+- Usuario autenticado sin `role`/`roles` valido y sin entrada en `config/default.authorizedUsers`: acciones criticas rechazadas.
+- Token con rol stale: la UI debe forzar refresh o re-login cuando backend devuelve `permission-denied`.
+- Solicitud ya convertida a OT: se bloquea por validaciones de estado ademas de permisos.
+- Reintentos de callables: las validaciones de estado evitan doble emision o transiciones invalidas.
+
+## Validacion minima
+
+```bash
+cd functions && npx tsc --noEmit
+cd apps/admin-dashboard && npx tsc --noEmit
+```

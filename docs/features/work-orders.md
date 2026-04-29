@@ -51,10 +51,11 @@ Muestra:
 - Servicios seleccionados
 - Detalle de servicios (cantidad)
 
-Acciones de descargar/imprimir están presentes como placeholder en UI.
+Acciones de descargar/imprimir están implementadas desde el modal de detalle.
 
 ## Mantenimiento
 
 Si cambia el contrato de datos de `work_orders` o `requests.services`, revisar mapeos defensivos y fallback en:
 
-- `work-orders-listing.tsx` (normalización de filas)
+- `features/work-orders/lib/work-order-row-adapter.ts` (normalización de filas)
+- `features/work-orders/lib/work-order-preview.ts` (descarga/impresión del resumen)
