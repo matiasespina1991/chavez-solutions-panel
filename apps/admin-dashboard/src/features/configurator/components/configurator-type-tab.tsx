@@ -23,17 +23,17 @@ import { TabsContent } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { type FormValues } from '@/features/configurator/lib/configurator-form-model';
 
-interface ConfiguratorTypeTabProps {
+interface ConfiguratorDetailsTabProps {
   readonly form: UseFormReturn<FormValues>;
   readonly renderTabActions: () => ReactNode;
 }
 
-export function ConfiguratorTypeTab({
+export function ConfiguratorDetailsTab({
   form,
   renderTabActions
-}: ConfiguratorTypeTabProps) {
+}: ConfiguratorDetailsTabProps) {
   return (
-    <TabsContent value='type' className='mt-4 space-y-4'>
+    <TabsContent value='details' className='mt-4 space-y-4'>
       <Card className='border-0 shadow-none'>
         <CardHeader>
           <CardTitle>Datos de la proforma</CardTitle>

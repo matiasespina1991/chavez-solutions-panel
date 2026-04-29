@@ -95,7 +95,7 @@ export const formSchema = z.object({
 });
 
 export type FormValues = z.infer<typeof formSchema>;
-export type ConfiguratorTab = 'client' | 'samples' | 'type' | 'summary';
+export type ConfiguratorTab = 'client' | 'samples' | 'details' | 'summary';
 export type DialogFilterKey = 'matEnsayo' | 'norma' | 'tabla' | 'tecnica';
 export type DialogFilters = Record<DialogFilterKey, string[]>;
 export type ServiceFilterOption = { value: string; count: number };
@@ -107,7 +107,7 @@ export const DIALOG_FILTER_LABELS: Record<DialogFilterKey, string> = {
   tecnica: 'Técnica'
 };
 
-export const TAB_ORDER: ConfiguratorTab[] = ['client', 'samples', 'type', 'summary'];
+export const TAB_ORDER: ConfiguratorTab[] = ['client', 'samples', 'details', 'summary'];
 
 export type SelectedService = ImportedServiceDocument & {
   quantity: number;

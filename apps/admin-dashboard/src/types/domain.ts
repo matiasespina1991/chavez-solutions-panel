@@ -15,6 +15,8 @@ export type WorkOrderStatus =
   | 'cancelled'
   | 'unknown';
 
+export type LoadedRequestStatus = 'draft' | 'final' | 'paused' | null;
+
 export interface RequestServiceItem {
   serviceId: string;
   parameterId: string;

@@ -31,6 +31,7 @@ import {
   type ImportedServiceDocument,
   listImportedServices
 } from '../services/configurations';
+import type { LoadedRequestStatus } from '@/types/domain';
 import {
   generateProformaPreviewPdf,
   sendProformaPreviewEmail,
@@ -41,7 +42,7 @@ import { ConfiguratorClientTab } from '@/features/configurator/components/config
 import { ConfiguratorServicesDialog } from '@/features/configurator/components/configurator-services-dialog';
 import { ConfiguratorServicesTab } from '@/features/configurator/components/configurator-services-tab';
 import { ConfiguratorSummaryTab } from '@/features/configurator/components/configurator-summary-tab';
-import { ConfiguratorTypeTab } from '@/features/configurator/components/configurator-type-tab';
+import { ConfiguratorDetailsTab } from '@/features/configurator/components/configurator-type-tab';
 import { cn } from '@/lib/utils';
 import {
   createDefaultFormValues,
@@ -76,9 +77,9 @@ export default function ConfiguratorForm() {
   const [recipientEmail, setRecipientEmail] = useState('');
   const [isSendingPreviewEmail, setIsSendingPreviewEmail] = useState(false);
   const [isLoadingRequest, setIsLoadingRequest] = useState(false);
-  const [loadedRequestStatus, setLoadedRequestStatus] = useState<
-    'draft' | 'final' | 'paused' | null
-  >(null);
+  const [loadedRequestStatus, setLoadedRequestStatus] =
+    useState<LoadedRequestStatus>(null);
+  const [isWorkOrderContext, setIsWorkOrderContext] = useState(false);
   const [isClearDialogOpen, setIsClearDialogOpen] = useState(false);
   const [availableServices, setAvailableServices] = useState<
     ImportedServiceDocument[]
@@ -188,12 +189,14 @@ export default function ConfiguratorForm() {
   useEffect(() => {
     if (
       requestedTab &&
-      ['type', 'client', 'samples', 'services', 'summary'].includes(
+      ['type', 'details', 'client', 'samples', 'services', 'summary'].includes(
         requestedTab
       )
     ) {
       const normalizedTab: ConfiguratorTab =
-        requestedTab === 'services'
+        requestedTab === 'type'
+          ? 'details'
+          : requestedTab === 'services'
           ? 'samples'
           : (requestedTab as ConfiguratorTab);
       setActiveTab(normalizedTab);
@@ -205,8 +208,8 @@ export default function ConfiguratorForm() {
   const clientWatch = form.watch('client');
   const samplesWatch = form.watch('samples');
 
-  const tabStatus: Record<'type' | 'client' | 'samples', 'ok' | 'error'> = {
-    type: (() => {
+  const tabStatus: Record<'details' | 'client' | 'samples', 'ok' | 'error'> = {
+    details: (() => {
       const validDays = form.watch('validDays');
 
       if (!reference) return 'error';
@@ -265,7 +268,7 @@ export default function ConfiguratorForm() {
   };
 
   const canSubmitFinal =
-    tabStatus.type === 'ok' &&
+    tabStatus.details === 'ok' &&
     tabStatus.client === 'ok' &&
     tabStatus.samples === 'ok';
 
@@ -393,7 +396,7 @@ export default function ConfiguratorForm() {
   const handleConfirmClearCurrentData = () => {
     form.reset(createDefaultFormValues());
     setServiceGroups([]);
-    setActiveTab('type');
+    setActiveTab('details');
     removeCachedDraft();
     setIsClearDialogOpen(false);
     toast.success('Los datos en curso fueron vaciados correctamente.');
@@ -599,6 +602,12 @@ export default function ConfiguratorForm() {
           }
         };
 
+        const resolvedIsWorkOrder =
+          existing.requestStatus === 'converted_to_work_order' ||
+          existing.requestStatus === 'work_order_paused' ||
+          existing.requestStatus === 'work_order_completed' ||
+          existing.isWorkOrder === true;
+        setIsWorkOrderContext(resolvedIsWorkOrder);
         setLoadedRequestStatus(
           existing.requestStatus === 'work_order_paused'
             ? 'paused'
@@ -846,7 +855,7 @@ export default function ConfiguratorForm() {
         ConfigurationDocument,
         'id' | 'createdAt' | 'updatedAt'
       > = {
-        isWorkOrder: loadedRequestStatus === 'paused',
+        isWorkOrder: isWorkOrderContext,
         matrix: values.matrix,
         reference: status === 'draft' ? '' : values.reference,
         status,
@@ -914,7 +923,7 @@ export default function ConfiguratorForm() {
       setIsSubmitting(true);
 
       const updateData: Partial<ConfigurationDocument> = {
-        isWorkOrder: loadedRequestStatus === 'paused',
+        isWorkOrder: isWorkOrderContext,
         matrix: values.matrix,
         reference: values.reference,
         notes: values.notes || '',
@@ -1414,13 +1423,13 @@ export default function ConfiguratorForm() {
               />
             </TabsTrigger>
             <TabsTrigger
-              value='type'
+              value='details'
               className='flex cursor-pointer items-center justify-center gap-2'
             >
               <span>3. Datos</span>
               <span
                 className={`h-1.5 w-1.5 rounded-full ${
-                  tabStatus.type === 'ok' ? 'bg-emerald-500' : 'bg-red-500'
+                  tabStatus.details === 'ok' ? 'bg-emerald-500' : 'bg-red-500'
                 }`}
               />
             </TabsTrigger>
@@ -1430,7 +1439,7 @@ export default function ConfiguratorForm() {
           </TabsList>
 
           {/* PASO A: DATOS Y METADATOS */}
-          <ConfiguratorTypeTab
+          <ConfiguratorDetailsTab
             form={form}
             renderTabActions={() => renderTabActions()}
           />
