@@ -31,7 +31,8 @@ export const completeWorkOrder = onCall(async (req) => {
   if (!workOrderId && !sourceRequestIdInput) {
     throw new HttpsError(
       'invalid-argument',
-      'workOrderId or sourceRequestId is required.'
+      'workOrderId or sourceRequestId is required.',
+      { reason: 'WORK_ORDER_IDENTIFIER_REQUIRED' }
     );
   }
 
@@ -50,7 +51,8 @@ export const completeWorkOrder = onCall(async (req) => {
       if (workOrderQuerySnap.empty) {
         throw new HttpsError(
           'not-found',
-          'No work order found for the provided sourceRequestId.'
+          'No work order found for the provided sourceRequestId.',
+          { reason: 'WORK_ORDER_NOT_FOUND_BY_SOURCE_REQUEST' }
         );
       }
 
@@ -59,7 +61,9 @@ export const completeWorkOrder = onCall(async (req) => {
 
     const workOrderSnap = await tx.get(workOrderRef);
     if (!workOrderSnap.exists) {
-      throw new HttpsError('not-found', 'Work order not found.');
+      throw new HttpsError('not-found', 'Work order not found.', {
+        reason: 'WORK_ORDER_NOT_FOUND'
+      });
     }
 
     const workOrderData = workOrderSnap.data() as WorkOrderData;
@@ -83,7 +87,8 @@ export const completeWorkOrder = onCall(async (req) => {
     if (!hasRecordedLabAnalysis) {
       throw new HttpsError(
         'failed-precondition',
-        'Lab analysis must be recorded before completing a work order.'
+        'Lab analysis must be recorded before completing a work order.',
+        { reason: 'LAB_ANALYSIS_REQUIRED_BEFORE_COMPLETION' }
       );
     }
 
@@ -94,7 +99,8 @@ export const completeWorkOrder = onCall(async (req) => {
     if (!sourceRequestId) {
       throw new HttpsError(
         'failed-precondition',
-        'The work order has no sourceRequestId to update.'
+        'The work order has no sourceRequestId to update.',
+        { reason: 'WORK_ORDER_SOURCE_REQUEST_MISSING' }
       );
     }
 
@@ -104,7 +110,9 @@ export const completeWorkOrder = onCall(async (req) => {
     const sourceRequestSnap = await tx.get(sourceRequestRef);
 
     if (!sourceRequestSnap.exists) {
-      throw new HttpsError('not-found', 'Source service request not found.');
+      throw new HttpsError('not-found', 'Source service request not found.', {
+        reason: 'REQUEST_NOT_FOUND'
+      });
     }
 
     tx.update(workOrderRef, {

@@ -25,15 +25,17 @@ import {
 
 import {
   createConfiguration,
-  generateProformaPreviewPdf,
   getConfigurationById,
-  sendProformaPreviewEmail,
-  toProformaPreviewServiceLine,
   updateConfiguration,
   type ConfigurationDocument,
   type ImportedServiceDocument,
   listImportedServices
 } from '../services/configurations';
+import {
+  generateProformaPreviewPdf,
+  sendProformaPreviewEmail,
+  toProformaPreviewServiceLine
+} from '@/features/requests/services/request-preview';
 import { ConfiguratorCommonDialogs } from '@/features/configurator/components/configurator-common-dialogs';
 import { ConfiguratorClientTab } from '@/features/configurator/components/configurator-client-tab';
 import { ConfiguratorServicesDialog } from '@/features/configurator/components/configurator-services-dialog';

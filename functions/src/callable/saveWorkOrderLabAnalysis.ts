@@ -32,7 +32,9 @@ export const saveWorkOrderLabAnalysis = onCall(async (req) => {
   const notes = sanitizeText(data.notes);
 
   if (!workOrderId) {
-    throw new HttpsError('invalid-argument', 'workOrderId is required.');
+    throw new HttpsError('invalid-argument', 'workOrderId is required.', {
+      reason: 'WORK_ORDER_ID_REQUIRED'
+    });
   }
 
   const incomingAnalyses = Array.isArray(data.analyses) ? data.analyses : [];
@@ -49,7 +51,8 @@ export const saveWorkOrderLabAnalysis = onCall(async (req) => {
   if (normalizedAnalyses.length === 0) {
     throw new HttpsError(
       'invalid-argument',
-      'At least one analysis with parameter and result is required.'
+      'At least one analysis with parameter and result is required.',
+      { reason: 'LAB_ANALYSIS_MINIMUM_REQUIRED' }
     );
   }
 
@@ -59,7 +62,9 @@ export const saveWorkOrderLabAnalysis = onCall(async (req) => {
     const workOrderSnap = await tx.get(workOrderRef);
 
     if (!workOrderSnap.exists) {
-      throw new HttpsError('not-found', 'Work order not found.');
+      throw new HttpsError('not-found', 'Work order not found.', {
+        reason: 'WORK_ORDER_NOT_FOUND'
+      });
     }
 
     const workOrder = workOrderSnap.data() as WorkOrderData;
@@ -67,7 +72,8 @@ export const saveWorkOrderLabAnalysis = onCall(async (req) => {
     if (workOrder.status === 'cancelled') {
       throw new HttpsError(
         'failed-precondition',
-        'Cannot save lab analysis for a cancelled work order.'
+        'Cannot save lab analysis for a cancelled work order.',
+        { reason: 'WORK_ORDER_CANCELLED' }
       );
     }
 

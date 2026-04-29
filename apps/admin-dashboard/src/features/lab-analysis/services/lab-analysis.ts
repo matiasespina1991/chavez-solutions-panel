@@ -1,5 +1,6 @@
-import { getFunctions, httpsCallable } from 'firebase/functions';
 import { SaveLabAnalysisRowInput } from '@/features/lab-analysis/lib/lab-analysis-model';
+import { getCallableErrorMeta } from '@/lib/callable-errors';
+import { callFirebaseCallable } from '@/lib/firebase-callable';
 
 interface SaveWorkOrderLabAnalysisResponse {
   workOrderId: string;
@@ -13,45 +14,34 @@ export const saveWorkOrderLabAnalysis = async (
   analyses: SaveLabAnalysisRowInput[],
   notes?: string
 ): Promise<SaveWorkOrderLabAnalysisResponse> => {
-  const functions = getFunctions();
-  const callable = httpsCallable<
-    {
-      workOrderId: string;
-      analyses: SaveLabAnalysisRowInput[];
-      notes?: string;
-    },
-    SaveWorkOrderLabAnalysisResponse
-  >(functions, 'saveWorkOrderLabAnalysis');
-
   try {
-    const result = await callable({
+    return await callFirebaseCallable<
+      {
+        workOrderId: string;
+        analyses: SaveLabAnalysisRowInput[];
+        notes?: string;
+      },
+      SaveWorkOrderLabAnalysisResponse
+    >('saveWorkOrderLabAnalysis', {
       workOrderId,
       analyses,
       notes
     });
-
-    return result.data;
   } catch (error) {
-    const errorMessage =
-      error &&
-      typeof error === 'object' &&
-      'message' in error &&
-      typeof error.message === 'string'
-        ? error.message
-        : '';
+    const { code, reason } = getCallableErrorMeta(error);
 
-    if (errorMessage.includes('Work order not found.')) {
+    if (reason === 'WORK_ORDER_NOT_FOUND' || code === 'not-found') {
       throw new Error('No se encontró la orden de trabajo seleccionada.');
     }
 
-    if (errorMessage.includes('cancelled work order')) {
+    if (reason === 'WORK_ORDER_CANCELLED' || code === 'failed-precondition') {
       throw new Error('No se pueden registrar análisis para una OT cancelada.');
     }
 
     if (
-      errorMessage.includes(
-        'At least one analysis with parameter and result is required.'
-      )
+      reason === 'LAB_ANALYSIS_MINIMUM_REQUIRED' ||
+      reason === 'WORK_ORDER_ID_REQUIRED' ||
+      code === 'invalid-argument'
     ) {
       throw new Error(
         'Debe ingresar al menos un análisis con parámetro y resultado.'

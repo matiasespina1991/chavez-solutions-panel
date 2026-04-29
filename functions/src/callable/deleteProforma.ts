@@ -16,7 +16,9 @@ export const deleteProforma = onCall(async (req) => {
   const requestId = data.requestId?.trim();
 
   if (!requestId) {
-    throw new HttpsError('invalid-argument', 'requestId is required.');
+    throw new HttpsError('invalid-argument', 'requestId is required.', {
+      reason: 'REQUEST_ID_REQUIRED'
+    });
   }
 
   const sourceRef = db
@@ -30,7 +32,9 @@ export const deleteProforma = onCall(async (req) => {
     const sourceSnap = await tx.get(sourceRef);
 
     if (!sourceSnap.exists) {
-      throw new HttpsError('not-found', 'Proforma not found.');
+      throw new HttpsError('not-found', 'Proforma not found.', {
+        reason: 'REQUEST_NOT_FOUND'
+      });
     }
 
     const sourceData = sourceSnap.data() ?? {};

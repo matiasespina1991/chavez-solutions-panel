@@ -23,7 +23,9 @@ export const resumeWorkOrder = onCall(async (req) => {
   const notes = typeof data.notes === 'string' ? data.notes : undefined;
 
   if (!sourceRequestId) {
-    throw new HttpsError('invalid-argument', 'sourceRequestId is required.');
+    throw new HttpsError('invalid-argument', 'sourceRequestId is required.', {
+      reason: 'REQUEST_ID_REQUIRED'
+    });
   }
 
   const sourceRequestRef = db
@@ -34,7 +36,9 @@ export const resumeWorkOrder = onCall(async (req) => {
     const sourceSnap = await tx.get(sourceRequestRef);
 
     if (!sourceSnap.exists) {
-      throw new HttpsError('not-found', 'Service request not found.');
+      throw new HttpsError('not-found', 'Service request not found.', {
+        reason: 'REQUEST_NOT_FOUND'
+      });
     }
 
     const source = sourceSnap.data() as LinkedWorkOrderRequestData;
@@ -42,7 +46,8 @@ export const resumeWorkOrder = onCall(async (req) => {
     if (!source.linkedWorkOrderId) {
       throw new HttpsError(
         'failed-precondition',
-        'This request has no linked work order to resume.'
+        'This request has no linked work order to resume.',
+        { reason: 'REQUEST_NO_LINKED_WORK_ORDER' }
       );
     }
 
@@ -52,7 +57,9 @@ export const resumeWorkOrder = onCall(async (req) => {
     const workOrderSnap = await tx.get(workOrderRef);
 
     if (!workOrderSnap.exists) {
-      throw new HttpsError('not-found', 'Linked work order not found.');
+      throw new HttpsError('not-found', 'Linked work order not found.', {
+        reason: 'WORK_ORDER_NOT_FOUND'
+      });
     }
 
     const workOrder = workOrderSnap.data() as WorkOrderData;

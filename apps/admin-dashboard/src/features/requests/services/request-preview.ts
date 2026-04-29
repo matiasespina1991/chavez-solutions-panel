@@ -1,5 +1,6 @@
 export {
   generateProformaPreviewPdf,
+  sendProformaPreviewEmail,
   toProformaPreviewServiceLine
 } from '@/features/requests/services/request-preview-callables';
 

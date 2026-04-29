@@ -1,4 +1,5 @@
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getCallableErrorMeta } from '@/lib/callable-errors';
+import { callFirebaseCallable } from '@/lib/firebase-callable';
 
 interface CompleteWorkOrderResponse {
   workOrderId: string;
@@ -11,32 +12,26 @@ export const completeWorkOrder = async (
   workOrderId: string,
   sourceRequestId?: string
 ): Promise<CompleteWorkOrderResponse> => {
-  const functions = getFunctions();
-  const callable = httpsCallable<
-    { workOrderId: string; sourceRequestId?: string },
-    CompleteWorkOrderResponse
-  >(functions, 'completeWorkOrder');
-
   try {
-    const result = await callable({ workOrderId, sourceRequestId });
-    return result.data;
+    return await callFirebaseCallable<
+      { workOrderId: string; sourceRequestId?: string },
+      CompleteWorkOrderResponse
+    >('completeWorkOrder', { workOrderId, sourceRequestId });
   } catch (error) {
-    const errorMessage =
-      error &&
-      typeof error === 'object' &&
-      'message' in error &&
-      typeof error.message === 'string'
-        ? error.message
-        : '';
+    const { code, reason } = getCallableErrorMeta(error);
 
-    if (
-      errorMessage.includes(
-        'Lab analysis must be recorded before completing a work order.'
-      )
-    ) {
+    if (reason === 'LAB_ANALYSIS_REQUIRED_BEFORE_COMPLETION') {
       throw new Error(
         'Debe registrar análisis de laboratorio antes de finalizar la orden de trabajo.'
       );
+    }
+
+    if (reason === 'WORK_ORDER_NOT_FOUND' || code === 'not-found') {
+      throw new Error('No se encontró la orden de trabajo seleccionada.');
+    }
+
+    if (reason === 'WORK_ORDER_IDENTIFIER_REQUIRED' || code === 'invalid-argument') {
+      throw new Error('Faltan datos requeridos para completar la acción.');
     }
 
     throw error;

@@ -1,4 +1,4 @@
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { callFirebaseCallable } from '@/lib/firebase-callable';
 
 export interface ProformaPreviewPdfServiceLine {
   table: string;
@@ -98,11 +98,33 @@ interface GenerateProformaPreviewPdfResponse {
 export const generateProformaPreviewPdf = async (
   payload: ProformaPreviewPdfPayload
 ): Promise<GenerateProformaPreviewPdfResponse> => {
-  const functions = getFunctions();
-  const callable = httpsCallable<
+  return callFirebaseCallable<
     { payload: ProformaPreviewPdfPayload },
     GenerateProformaPreviewPdfResponse
-  >(functions, 'generateProformaPreviewPdf');
-  const result = await callable({ payload });
-  return result.data;
+  >('generateProformaPreviewPdf', { payload });
+};
+
+interface SendProformaPreviewEmailResponse {
+  sent: boolean;
+  to: string;
+  storagePath: string;
+  downloadURL: string;
+  fileName: string;
+}
+
+export const sendProformaPreviewEmail = async (params: {
+  to: string;
+  payload: ProformaPreviewPdfPayload;
+  subject?: string;
+  text?: string;
+}): Promise<SendProformaPreviewEmailResponse> => {
+  return callFirebaseCallable<
+    {
+      to: string;
+      payload: ProformaPreviewPdfPayload;
+      subject?: string;
+      text?: string;
+    },
+    SendProformaPreviewEmailResponse
+  >('sendProformaPreviewEmail', params);
 };
