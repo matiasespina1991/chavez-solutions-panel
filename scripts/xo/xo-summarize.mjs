@@ -1,8 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const rootDir = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../..');
-const reportsDir = path.join(rootDir, 'lint-fix', 'reports');
+const rootDir = path.resolve(
+  path.dirname(new URL(import.meta.url).pathname),
+  '../..'
+);
+const reportsDir = path.join(rootDir, 'scripts', 'xo', 'reports');
 
 const readXoJson = (filename) => {
   const fullPath = path.join(reportsDir, filename);
@@ -48,11 +51,14 @@ const lines = [
   `fixable_errors=${fixableErrors}`,
   `fixable_warnings=${fixableWarnings}`,
   '',
-  'top_rules:'
+  'top_rules:',
 ];
 
 for (const [rule, count] of topRules) {
   lines.push(`${String(count).padStart(6, ' ')} ${rule}`);
 }
 
-fs.writeFileSync(path.join(reportsDir, 'xo-baseline-summary.txt'), `${lines.join('\n')}\n`);
+fs.writeFileSync(
+  path.join(reportsDir, 'xo-baseline-summary.txt'),
+  `${lines.join('\n')}\n`
+);

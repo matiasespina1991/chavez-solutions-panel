@@ -10,7 +10,7 @@ ARGS=(
   --cwd
   "${ROOT_DIR}/apps/admin-dashboard"
   --config
-  "${ROOT_DIR}/lint-fix/config/xo-admin.cjs"
+  "${ROOT_DIR}/scripts/xo/config/xo-admin.cjs"
   --space
   --prettier=compat
 )

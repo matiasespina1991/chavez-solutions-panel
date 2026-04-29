@@ -10,7 +10,7 @@ ARGS=(
   --cwd
   "${ROOT_DIR}/functions"
   --config
-  "${ROOT_DIR}/lint-fix/config/xo-functions.cjs"
+  "${ROOT_DIR}/scripts/xo/config/xo-functions.cjs"
   --space
   --prettier=compat
 )

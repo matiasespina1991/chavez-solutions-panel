@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-REPORTS_DIR="${ROOT_DIR}/lint-fix/reports"
+REPORTS_DIR="${ROOT_DIR}/scripts/xo/reports"
 
 mkdir -p "${REPORTS_DIR}"
 
@@ -15,7 +15,7 @@ set -e
 
 npx --yes xo \
   --cwd "${ROOT_DIR}/apps/admin-dashboard" \
-  --config "${ROOT_DIR}/lint-fix/config/xo-admin.cjs" \
+  --config "${ROOT_DIR}/scripts/xo/config/xo-admin.cjs" \
   --space \
   --prettier=compat \
   --reporter=json \
@@ -23,7 +23,7 @@ npx --yes xo \
 
 npx --yes xo \
   --cwd "${ROOT_DIR}/functions" \
-  --config "${ROOT_DIR}/lint-fix/config/xo-functions.cjs" \
+  --config "${ROOT_DIR}/scripts/xo/config/xo-functions.cjs" \
   --space \
   --prettier=compat \
   --reporter=json \
